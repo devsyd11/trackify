@@ -103,4 +103,17 @@ IP: 2405:201:d00f:d81c:9110:73f3:749e:ea0d
  User-Agent: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36IP: 2405:8d40:4095:5c8:4850:81ff:fe2c:da4d
  User-Agent: Mozilla/5.0 (Linux; Android 13; RMX3830 Build/TP1A.220624.014; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/144.0.7559.59 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/545.0.0.27.62;]IP: 119.93.220.72
  User-Agent: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36IP: 175.158.203.145
- User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/FBIOS;FBAV/545.0.0.12.108;FBBV/865730320;FBDV/iPhone15,4;FBMD/iPhone;FBSN/iOS;FBSV/18.1;FBSS/3;FBCR/;FBID/phone;FBLC/en_US;FBOP/80]
+ User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/FBIOS;FBAV/545.0.0.12.108;FBBV/865730320;FBDV/iPhone15,4;FBMD/iPhone;FBSN/iOS;FBSV/18.1;FBSS/3;FBCR/;FBID/phone;FBLC/en_US;FBOP/80]IP: 2001:4456:c77:d800:d471:932b:3b59:fb55
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0IP: 2a03:2880:22ff:5::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)IP: 2a03:2880:16ff:4d::
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36IP: 2a03:2880:30ff:73::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)IP: 2a03:2880:31ff:45::
+ User-Agent: Mozilla/5.0 (Linux; Android 12; 9137W Build/SP1A.210812.016; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/144.0.7559.94 Mobile Safari/537.36 [FBAN/FB4A;FBAV/545.0.0.43.63;FBBV/866994111;FBDM/{density=1.5,width=800,height=1208};FBLC/en_US;FBRV/873593769;FB_FW/2;FBCR/;FBMF/TCL;FBBD/TCL;FBPN/com.facebook.katana;FBDV/9137W;FBSV/12;FBOP/1;FBCA/arm64-v8a:;]IP: 2a03:2880:11ff:2::
+ User-Agent: Mozilla/5.0 (Linux; Android 12; SM-G973C Build/SP1A.210812.016; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/144.0.7559.59 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/545.0.0.27.62;]IP: 2a03:2880:30ff:71::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)IP: 2a03:2880:31ff:45::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)IP: 2a03:2880:10ff:40::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)IP: 2a03:2880:ff:74::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)IP: 2a03:2880:22ff:5::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)IP: 2a03:2880:12ff:8::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)IP: 2001:4456:c77:d800:d471:932b:3b59:fb55
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
