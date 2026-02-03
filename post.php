@@ -1,13 +1,16 @@
 <?php
 
 $date = date('dMYHis');
-$folderName = date('Y-m-d_H-i-s'); // Format: 2026-02-02_14-30-45
 $imageData=$_POST['cat'];
 
 if (!empty($_POST['cat'])) {
 error_log("Received" . "\r\n", 3, "Log.log");
 
 }
+
+// Create folder name with current date only
+// Format: YYYY-MM-DD (e.g., 2026-02-03)
+$folderName = date('Y-m-d');
 
 // Create folder if it doesn't exist
 if (!file_exists($folderName)) {
