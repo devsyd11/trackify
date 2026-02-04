@@ -1,4 +1,4 @@
-# 🔗 Trackify v1.5
+# 🔗 Trackify v1.0
 
 <div align="center">
 
@@ -16,8 +16,7 @@
 *Advanced IP Tracking & Phishing Link Generator*
 
 **Developed by:** 0Cod3  
-**Powered by:** TechChip  
-**Credits:** [thelinuxchoice](https://github.com/thelinuxchoice/)
+
 
 [![Version](https://img.shields.io/badge/version-1.5-blue.svg)](https://github.com)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -370,8 +369,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🙏 Credits
 
 - **Developer**: 0Cod3
-- **Powered by**: TechChip
-- **Original Inspiration**: [thelinuxchoice](https://github.com/thelinuxchoice/)
 - **Tunnel Services**: Ngrok, Cloudflare, Serveo
 
 ---
@@ -387,7 +384,7 @@ For issues, questions, or contributions:
 
 <div align="center">
 
-**Made with ❤️ by the Trackify Team**
+**Made with ❤️ by 0cod3**
 
 ⭐ Star this repo if you find it useful!
 
