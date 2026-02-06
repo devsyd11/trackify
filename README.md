@@ -63,6 +63,8 @@
 - 📸 **Camera Capture**: Optional photo capture functionality
 - 💾 **Local Storage**: Saves captured data to files
 - 🎯 **IP Tracking**: Captures IP, User-Agent, and timestamp
+- 🗺️ **IP Geolocation**: Shows approximate location on interactive map
+- 📍 **Location Tracking**: Displays city, country, ISP, and coordinates
 - 🚀 **Easy Setup**: Interactive menu-driven interface
 - 🔄 **Auto-Download**: Automatically downloads tunnel binaries when needed
 
@@ -337,6 +339,68 @@ trackify/
 ├── saved.ip.txt        # Saved IP addresses
 └── README.md           # This file
 ```
+
+---
+
+## 🗺️ IP Geolocation Feature
+
+Trackify now includes IP geolocation functionality that shows the approximate location of captured IP addresses.
+
+### Features:
+- **Automatic Geolocation**: Automatically fetches location data for each captured IP
+- **Interactive Map**: View all captures on an interactive map (`map.php`)
+- **Location Details**: Shows city, region, country, ISP, and coordinates
+- **Telegram Integration**: Location info included in Telegram notifications
+- **API Endpoint**: JSON API for programmatic access (`api.php`)
+
+### Viewing the Map:
+
+1. **Start Trackify** and wait for captures
+2. **Open** `map.php` in your browser (e.g., `http://localhost:3333/map.php`)
+3. **View** all captures plotted on an interactive map
+4. **Click** on markers or sidebar items to see details
+
+### Map Features:
+- 🗺️ Interactive map with all capture locations
+- 📊 Statistics panel (total captures, unique countries, unique IPs)
+- 📍 Click markers to see detailed information
+- 🔄 Auto-refresh every 30 seconds
+- 📱 Responsive design for mobile devices
+
+### API Usage:
+
+Access capture data via JSON API:
+```bash
+curl http://localhost:3333/api.php
+```
+
+Response format:
+```json
+{
+  "status": "success",
+  "count": 5,
+  "data": [
+    {
+      "ip": "123.45.67.89",
+      "timestamp": "2026-02-05 12:34:56",
+      "latitude": 40.7128,
+      "longitude": -74.0060,
+      "city": "New York",
+      "region": "New York",
+      "country": "United States",
+      "isp": "Example ISP",
+      "location": "New York, New York, United States"
+    }
+  ]
+}
+```
+
+### Geolocation Data Storage:
+
+- Location data is saved to `geolocations.json`
+- Each capture includes full geolocation details
+- Data persists across sessions
+- Used by both `ip.php` and `device-info.php`
 
 ---
 

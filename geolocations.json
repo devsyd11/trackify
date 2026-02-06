@@ -1,0 +1,53 @@
+[
+    {
+        "ip": "49.145.223.117",
+        "timestamp": "2026-02-04 16:51:14",
+        "geo": {
+            "status": "success",
+            "ip": "49.145.223.117",
+            "country": "Philippines",
+            "countryCode": "PH",
+            "region": "11",
+            "regionName": "Davao Region",
+            "city": "Davao City",
+            "zip": "8000",
+            "latitude": 7.0712,
+            "longitude": 125.6089,
+            "timezone": "Asia\/Manila",
+            "isp": "Philippine Long Distance Telephone Co.",
+            "org": "Philippine Long Distance Telephone Company",
+            "as": "AS9299 Philippine Long Distance Telephone Company",
+            "location": "Davao City, Davao Region, Philippines"
+        }
+    },
+    {
+        "ip": "49.145.223.117",
+        "timestamp": "2026-02-06 13:52:26",
+        "geo": {
+            "status": "success",
+            "ip": "49.145.223.117",
+            "country": "Philippines",
+            "countryCode": "PH",
+            "region": "11",
+            "regionName": "Davao Region",
+            "city": "Davao City",
+            "zip": "8000",
+            "latitude": 7.0712,
+            "longitude": 125.6089,
+            "timezone": "Asia\/Manila",
+            "isp": "Philippine Long Distance Telephone Co.",
+            "org": "Philippine Long Distance Telephone Company",
+            "as": "AS9299 Philippine Long Distance Telephone Company",
+            "location": "Davao City, Davao Region, Philippines"
+        }
+    },
+    {
+        "ip": "::1",
+        "timestamp": "2026-02-06 13:55:30",
+        "geo": {
+            "status": "private",
+            "message": "Private or local IP address",
+            "ip": "::1"
+        }
+    }
+]
