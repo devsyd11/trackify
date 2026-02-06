@@ -135,4 +135,18 @@ IP: 49.145.223.117
 🌐 ISP: Philippine Long Distance Telephone Co.
 🕐 Timezone: Asia/Manila
 IP: ::1
- User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36IP: 2001:4456:cef:5900:9c04:476c:573c:28e
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 2001:4456:cef:5900:9c04:476c:573c:28e
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 2001:4456:cef:5900:9c04:476c:573c:28e
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila

