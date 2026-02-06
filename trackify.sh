@@ -1,7 +1,6 @@
 #!/bin/bash
 # Trackify v1.0
-# Powered by TechChip
-# Credits goes to thelinuxchoice [github.com/thelinuxchoice/]
+
 
 trap 'printf "\n";stop' 2
 
