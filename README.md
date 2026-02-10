@@ -24,6 +24,8 @@
 
 </div>
 
+![Trackify Screenshot](trackify_screenshot.png)
+
 ---
 
 ## 📋 Table of Contents
@@ -59,7 +61,7 @@
 
 - 🔗 **Multiple Tunnel Services**: Ngrok, Cloudflare Tunnel, Serveo.net
 - 📱 **Telegram Integration**: Real-time notifications with bot support
-- 🎨 **Multiple Templates**: YouTube Live, Google Meet, Sensitive Video, Netflix Login, Instagram Verification, Bank Login
+- 🎨 **Multiple Templates**: YouTube Live, Google Meet, Sensitive Video, Netflix Login, Instagram Verification, Bank Login, GCash Payment
 - 📸 **Camera Capture**: Optional photo capture functionality
 - 💾 **Local Storage**: Saves captured data to files
 - 🎯 **IP Tracking**: Captures IP, User-Agent, and timestamp
@@ -252,6 +254,11 @@ wsl bash trackify.sh
 
 ## 🎨 Templates
 
+### 0. GCash Payment Template
+- Mimics a GCash payment/QR page
+- Uses `GCash.html`
+- Ideal for payment-themed phishing scenarios
+
 ### 1. YouTube Live Template
 - Mimics YouTube live stream page
 - Requires YouTube video watch ID
@@ -355,6 +362,7 @@ trackify/
 ├── Netflix.html        # Netflix login template
 ├── Instagram.html      # Instagram verification template
 ├── Bank.html           # Bank login template
+├── GCash.html          # GCash payment template
 ├── index.php           # Generated redirect page
 ├── index2.html         # Generated phishing page
 ├── saved.ip.txt        # Saved IP addresses
