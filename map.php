@@ -189,11 +189,53 @@
             font-size: 48px;
             margin-bottom: 10px;
         }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 14px 16px;
+            }
+            .header h1 {
+                font-size: 1.25rem;
+                font-weight: 700;
+                line-height: 1.4;
+                letter-spacing: -0.02em;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: baseline;
+                gap: 0 6px;
+            }
+            .header-emoji {
+                font-size: 1.2em;
+            }
+            .header-brand {
+                white-space: nowrap;
+            }
+            .header-sub {
+                font-size: 0.85em;
+                font-weight: 600;
+                opacity: 0.95;
+                white-space: normal;
+            }
+            .header p {
+                font-size: 13px;
+            }
+        }
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.1rem;
+            }
+            .header-sub {
+                font-size: 0.8em;
+                display: block;
+                width: 100%;
+                margin-top: 2px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🗺️ Trackify IP Geolocation Map</h1>
+        <h1><span class="header-emoji">🗺️</span> <span class="header-brand">Trackify</span> <span class="header-sub">IP Geolocation Map</span></h1>
         <p>View all captured IP addresses on an interactive map</p>
     </div>
     

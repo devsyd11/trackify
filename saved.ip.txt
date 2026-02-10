@@ -230,3 +230,73 @@ IP: 49.145.223.117
 📍 Location: Davao City, Davao Region, Philippines
 🌐 ISP: Philippine Long Distance Telephone Co.
 🕐 Timezone: Asia/Manila
+IP: 2001:4456:cef:5900:e578:83f4:93fe:a299
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 2a03:2880:22ff:72::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)
+📍 Location: Sandston, Virginia, United States
+🌐 ISP: Facebook, Inc.
+🕐 Timezone: America/New_York
+IP: 2a03:2880:11ff:4a::
+ User-Agent: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36
+📍 Location: Fort Worth, Texas, United States
+🌐 ISP: Facebook, Inc.
+🕐 Timezone: America/Chicago
+IP: 2a03:2880:18ff:48::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)
+📍 Location: Springfield, Nebraska, United States
+🌐 ISP: Facebook, Inc.
+🕐 Timezone: America/Chicago
+IP: 2a03:2880:18ff:40::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)
+📍 Location: Springfield, Nebraska, United States
+🌐 ISP: Facebook, Inc.
+🕐 Timezone: America/Chicago
+IP: 2a03:2880:16ff:72::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)
+📍 Location: Gallatin, Tennessee, United States
+🌐 ISP: Facebook, Inc.
+🕐 Timezone: America/Chicago
+IP: 2a03:2880:2ff:74::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)
+📍 Location: Prineville, Oregon, United States
+🌐 ISP: Facebook, Inc.
+🕐 Timezone: America/Los_Angeles
+IP: 136.158.24.153
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+📍 Location: Paranaque City, Metro Manila, Philippines
+🌐 ISP: ComClark Network & Technology Corp
+🕐 Timezone: Asia/Manila
+IP: 2a03:2880:10ff:2::
+ User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)
+📍 Location: Altoona, Iowa, United States
+🌐 ISP: Facebook, Inc.
+🕐 Timezone: America/Chicago
+IP: 180.195.70.199
+ User-Agent: WhatsApp/2.23.20.0
+📍 Location: Bacoor, Calabarzon, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 136.158.24.153
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+📍 Location: Paranaque City, Metro Manila, Philippines
+🌐 ISP: ComClark Network & Technology Corp
+🕐 Timezone: Asia/Manila
+IP: 136.158.24.153
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+📍 Location: Paranaque City, Metro Manila, Philippines
+🌐 ISP: ComClark Network & Technology Corp
+🕐 Timezone: Asia/Manila
+IP: 49.145.223.117
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 49.145.223.117
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila

