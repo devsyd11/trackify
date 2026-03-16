@@ -300,3 +300,48 @@ IP: 49.145.223.117
 📍 Location: Davao City, Davao Region, Philippines
 🌐 ISP: Philippine Long Distance Telephone Co.
 🕐 Timezone: Asia/Manila
+IP: 49.145.215.51
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 49.145.215.51
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 49.145.215.51
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 49.145.215.51
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 2001:4456:c08:2400:6c15:25d3:69b8:25cb
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 2001:4456:c08:2400:6c15:25d3:69b8:25cb
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 2001:4456:c08:2400:6c15:25d3:69b8:25cb
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 2001:4456:c08:2400:6c15:25d3:69b8:25cb
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila
+IP: 2001:4456:c08:2400:6c15:25d3:69b8:25cb
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+📍 Location: Davao City, Davao Region, Philippines
+🌐 ISP: Philippine Long Distance Telephone Co.
+🕐 Timezone: Asia/Manila

