@@ -105,7 +105,7 @@
 ### Method 1: Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/trackify.git
+git clone https://github.com/devsyd11/trackify.git
 cd trackify
 chmod +x trackify.sh
 ```
