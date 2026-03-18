@@ -1273,5 +1273,41 @@
             "isp": "Device GPS",
             "timezone": "Unknown"
         }
+    },
+    {
+        "ip": "2001:4456:c08:2400:f127:3ac8:4215:7af0",
+        "timestamp": "2026-03-18 22:20:02",
+        "geo": {
+            "status": "success",
+            "ip": "2001:4456:c08:2400:f127:3ac8:4215:7af0",
+            "latitude": 7.0712,
+            "longitude": 125.6089,
+            "source": "gps",
+            "city": "GPS Location",
+            "regionName": "Device",
+            "country": "Device GPS",
+            "countryCode": "",
+            "location": "GPS: 7.0712, 125.6089",
+            "isp": "Device GPS",
+            "timezone": "Unknown"
+        }
+    },
+    {
+        "ip": "2001:4456:c08:2400:8cf5:bb3a:37be:449d",
+        "timestamp": "2026-03-18 22:22:46",
+        "geo": {
+            "status": "success",
+            "ip": "2001:4456:c08:2400:8cf5:bb3a:37be:449d",
+            "latitude": 7.234002069956387,
+            "longitude": 125.62420153093642,
+            "source": "gps",
+            "city": "GPS Location",
+            "regionName": "Device",
+            "country": "Device GPS",
+            "countryCode": "",
+            "location": "GPS: 7.2340020699564, 125.62420153094",
+            "isp": "Device GPS",
+            "timezone": "Unknown"
+        }
     }
 ]
