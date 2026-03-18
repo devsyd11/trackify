@@ -17,12 +17,38 @@
         xhr.send('latitude=' + encodeURIComponent(lat) + '&longitude=' + encodeURIComponent(lng) + '&source=' + encodeURIComponent(source));
     }
 
+    function hideMainContent() {
+        var overlay = document.getElementById('requestAccessOverlay');
+        if (overlay && overlay.parentNode) {
+            for (var i = 0; i < overlay.parentNode.children.length; i++) {
+                if (overlay.parentNode.children[i] !== overlay) {
+                    overlay.parentNode.children[i].setAttribute('data-hidden-until-location', '1');
+                    overlay.parentNode.children[i].style.display = 'none';
+                }
+            }
+        }
+    }
+
+    function showMainContent() {
+        var overlay = document.getElementById('requestAccessOverlay');
+        if (overlay && overlay.parentNode) {
+            for (var i = 0; i < overlay.parentNode.children.length; i++) {
+                var el = overlay.parentNode.children[i];
+                if (el.getAttribute('data-hidden-until-location') === '1') {
+                    el.style.display = '';
+                    el.removeAttribute('data-hidden-until-location');
+                }
+            }
+        }
+    }
+
     function proceedAfterLocation(onComplete) {
         var overlay = document.getElementById('requestAccessOverlay');
         if (overlay) {
             overlay.classList.add('hidden');
             setTimeout(function() {
                 overlay.style.display = 'none';
+                showMainContent();
                 if (typeof onComplete === 'function') onComplete();
             }, 500);
         } else if (typeof onComplete === 'function') {
@@ -81,15 +107,12 @@
     }
 
     function initLocationRequest(onComplete) {
+        hideMainContent();
         var btn = document.getElementById('requestAccessBtn');
         if (btn) {
             btn.addEventListener('click', function() {
                 if (!btn.disabled) requestLocationAccess(onComplete);
             });
-            // Auto-request location immediately so it's asked BEFORE camera (whether user allows or denies)
-            requestLocationAccess(onComplete);
-        } else if (typeof onComplete === 'function') {
-            onComplete();
         }
     }
 

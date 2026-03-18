@@ -1233,5 +1233,45 @@
             "location": "Davao City, Davao Region, Philippines",
             "source": "ip"
         }
+    },
+    {
+        "ip": "2001:4456:c08:2400:8580:1f2d:2a39:b680",
+        "timestamp": "2026-03-18 14:18:05",
+        "geo": {
+            "status": "success",
+            "ip": "2001:4456:c08:2400:8580:1f2d:2a39:b680",
+            "country": "Philippines",
+            "countryCode": "PH",
+            "region": "11",
+            "regionName": "Davao Region",
+            "city": "Davao City",
+            "zip": "8000",
+            "latitude": 7.0712,
+            "longitude": 125.6089,
+            "timezone": "Asia\/Manila",
+            "isp": "Philippine Long Distance Telephone Co.",
+            "org": "Philippine Long Distance Telephone Company",
+            "as": "AS9299 Philippine Long Distance Telephone Company",
+            "location": "Davao City, Davao Region, Philippines",
+            "source": "ip"
+        }
+    },
+    {
+        "ip": "2001:4456:c08:2400:8580:1f2d:2a39:b680",
+        "timestamp": "2026-03-18 14:22:52",
+        "geo": {
+            "status": "success",
+            "ip": "2001:4456:c08:2400:8580:1f2d:2a39:b680",
+            "latitude": 7.0712,
+            "longitude": 125.6089,
+            "source": "gps",
+            "city": "GPS Location",
+            "regionName": "Device",
+            "country": "Device GPS",
+            "countryCode": "",
+            "location": "GPS: 7.0712, 125.6089",
+            "isp": "Device GPS",
+            "timezone": "Unknown"
+        }
     }
 ]
