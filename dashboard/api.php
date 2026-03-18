@@ -27,6 +27,9 @@ switch ($action) {
     case 'captures':
         handleCaptures();
         break;
+    case 'photos':
+        handlePhotos();
+        break;
     case 'status':
         handleStatus();
         break;
@@ -214,6 +217,50 @@ function handleCaptures() {
     }
     
     echo json_encode(['status' => 'success', 'data' => $data]);
+}
+
+function handlePhotos() {
+    global $baseDir;
+    
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $perPage = min(24, max(8, (int)($_GET['per_page'] ?? 12)));
+    
+    $allPhotos = [];
+    $folders = glob($baseDir . '/20*', GLOB_ONLYDIR);
+    foreach (array_reverse($folders) as $folder) {
+        $imgs = glob($folder . '/cam*.png');
+        foreach ($imgs as $img) {
+            $filename = basename($img);
+            $folderName = basename($folder);
+            $allPhotos[] = [
+                'path' => $folderName . '/' . $filename,
+                'date' => filemtime($img),
+                'filename' => $filename
+            ];
+        }
+    }
+    
+    usort($allPhotos, function($a, $b) {
+        return $b['date'] - $a['date'];
+    });
+    
+    $total = count($allPhotos);
+    $totalPages = $total ? (int)ceil($total / $perPage) : 1;
+    $offset = ($page - 1) * $perPage;
+    $photos = array_slice($allPhotos, $offset, $perPage);
+    
+    echo json_encode([
+        'status' => 'success',
+        'photos' => $photos,
+        'pagination' => [
+            'page' => $page,
+            'per_page' => $perPage,
+            'total' => $total,
+            'total_pages' => $totalPages,
+            'has_prev' => $page > 1,
+            'has_next' => $page < $totalPages
+        ]
+    ]);
 }
 
 function handleStatus() {
