@@ -459,6 +459,93 @@
             transform: translateY(0);
             opacity: 1;
         }
+        .disclaimer-wrap {
+            margin-bottom: 24px;
+        }
+        .disclaimer-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--accent);
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(88, 166, 255, 0.12);
+            border: 1px solid rgba(88, 166, 255, 0.25);
+            transition: all 0.2s ease;
+        }
+        .disclaimer-link:hover {
+            color: #79b8ff;
+            background: rgba(88, 166, 255, 0.2);
+            border-color: rgba(88, 166, 255, 0.4);
+        }
+        .disclaimer-link svg {
+            width: 14px;
+            height: 14px;
+            opacity: 0.8;
+        }
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            max-width: 480px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 24px;
+            transform: scale(0.95);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.show .modal-content {
+            transform: scale(1);
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+        .modal-body {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+        .modal-body p {
+            margin-bottom: 12px;
+        }
+        .modal-close {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .modal-close:hover {
+            background: var(--border);
+        }
     </style>
 </head>
 <body>
@@ -466,6 +553,12 @@
         <main class="main">
             <h1>Trackify</h1>
             <p class="subtitle">IP Tracker & Geolocation — Generate tracker links and monitor captures</p>
+            <div class="disclaimer-wrap">
+                <button class="disclaimer-link" onclick="openDisclaimer()" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    Disclaimer
+                </button>
+            </div>
 
             <div class="card">
                 <h2>Generate Tracker Link</h2>
@@ -574,6 +667,18 @@
     </div>
 
     <div class="toast" id="toast">Copied to clipboard!</div>
+
+    <div class="modal-overlay" id="disclaimerModal" onclick="closeDisclaimer(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 class="modal-title">Disclaimer</h2>
+            <div class="modal-body">
+                <p>This tool is intended for educational and authorized security testing purposes only.</p>
+                <p>Use of this software to track, monitor, or collect information from individuals without their explicit consent may violate privacy laws and regulations in your jurisdiction.</p>
+                <p>You are solely responsible for ensuring your use complies with all applicable laws. The developers assume no liability for misuse of this software.</p>
+            </div>
+            <button class="modal-close" onclick="closeDisclaimer()">I Understand</button>
+        </div>
+    </div>
 
     <script>
         const API = 'api.php';
@@ -758,6 +863,16 @@
 
         function closeLightbox() {
             document.getElementById('lightbox').classList.remove('show');
+        }
+
+        function openDisclaimer() {
+            document.getElementById('disclaimerModal').classList.add('show');
+        }
+
+        function closeDisclaimer(event) {
+            if (!event || event.target === event.currentTarget || event.target.classList.contains('modal-close')) {
+                document.getElementById('disclaimerModal').classList.remove('show');
+            }
         }
 
         async function loadCaptures() {
