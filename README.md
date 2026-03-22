@@ -327,7 +327,7 @@ brew install php
 
 ### Issue: Cloudflare tunnel fails
 - ✅ Check internet connection
-- ✅ Verify port 3333 is not in use
+- ✅ Verify port 8000 is not in use
 - ✅ Try restarting the script
 
 ### Issue: Telegram bot not working
@@ -385,7 +385,7 @@ Trackify now includes IP geolocation functionality that shows the approximate lo
 ### Viewing the Map:
 
 1. **Start Trackify** and wait for captures
-2. **Open** `map.php` in your browser (e.g., `http://localhost:3333/map.php`)
+2. **Open** `map.php` in your browser (e.g., `http://localhost:8000/map.php`)
 3. **View** all captures plotted on an interactive map
 4. **Click** on markers or sidebar items to see details
 
@@ -400,7 +400,7 @@ Trackify now includes IP geolocation functionality that shows the approximate lo
 
 Access capture data via JSON API:
 ```bash
-curl http://localhost:3333/api.php
+curl http://localhost:8000/api.php
 ```
 
 Response format:

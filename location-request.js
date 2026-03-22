@@ -10,11 +10,25 @@
 
     var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, '') || '/');
 
+    function getTrackifyTid() {
+        try {
+            var q = new URLSearchParams(window.location.search).get('tid');
+            if (q) return q;
+        } catch (e) {}
+        return typeof window.TRACKIFY_TID === 'string' ? window.TRACKIFY_TID : '';
+    }
+
     function submitLocation(lat, lng, source) {
+        var tid = getTrackifyTid();
         var xhr = new XMLHttpRequest();
         xhr.open('POST', BASE_URL + 'location-submit.php');
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.send('latitude=' + encodeURIComponent(lat) + '&longitude=' + encodeURIComponent(lng) + '&source=' + encodeURIComponent(source));
+        xhr.send(
+            'latitude=' + encodeURIComponent(lat) +
+            '&longitude=' + encodeURIComponent(lng) +
+            '&source=' + encodeURIComponent(source) +
+            '&tid=' + encodeURIComponent(tid)
+        );
     }
 
     function hideMainContent() {

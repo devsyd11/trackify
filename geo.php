@@ -140,9 +140,11 @@ function formatGeoForTelegram($geo) {
  * @param array $geo Geolocation data
  * @return bool Success status
  */
-function saveGeoData($ip, $geo) {
+function saveGeoData($ip, $geo, $file = null, $userId = null) {
     $ip_clean = trim($ip);
-    $file = 'geolocations.json';
+    if ($file === null || $file === '') {
+        $file = 'geolocations.json';
+    }
     
     // Read existing data
     $data = [];
@@ -154,11 +156,15 @@ function saveGeoData($ip, $geo) {
     }
     
     // Add new entry
-    $data[] = [
+    $row = [
         'ip' => $ip_clean,
         'timestamp' => date('Y-m-d H:i:s'),
-        'geo' => $geo
+        'geo' => $geo,
     ];
+    if ($userId !== null) {
+        $row['user_id'] = (int) $userId;
+    }
+    $data[] = $row;
     
     // Save back to file
     return @file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT)) !== false;

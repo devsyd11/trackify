@@ -236,7 +236,8 @@
 <body>
     <div class="header">
         <h1><span class="header-emoji">🗺️</span> <span class="header-brand">Trackify</span> <span class="header-sub">IP Geolocation Map</span></h1>
-        <p>View all captured IP addresses on an interactive map</p>
+        <p>View captured IP addresses for your signed-in account on an interactive map</p>
+        <p id="mapAccountMeta" style="margin-top:8px;font-size:13px;opacity:0.95"></p>
     </div>
     
     <div class="container">
@@ -277,6 +278,7 @@
         let map;
         let markers = [];
         let captures = [];
+        let accountUserId = null;
         
         // Initialize map
         function initMap() {
@@ -289,20 +291,58 @@
             }).addTo(map);
         }
         
-        // Load capture data
+        // Load capture data (scoped to logged-in user via session cookie)
         async function loadData() {
             try {
-                const response = await fetch('api.php');
+                const response = await fetch('api.php?action=captures', { credentials: 'same-origin' });
                 const result = await response.json();
-                
-                if (result.status === 'success') {
-                    captures = result.data;
-                    displayCaptures();
-                    updateStats();
-                    plotMarkers();
-                } else {
-                    showError('Failed to load data');
+                const meta = document.getElementById('mapAccountMeta');
+
+                if (result.status === 'error') {
+                    if (meta) {
+                        meta.textContent = '';
+                    }
+                    showError(result.message || 'Sign in required — open panel.html, sign in, then refresh this page.');
+                    return;
                 }
+
+                if (result.status !== 'success' || !result.data) {
+                    if (meta) meta.textContent = '';
+                    showError('Failed to load data');
+                    return;
+                }
+
+                accountUserId = result.user_id != null ? result.user_id : null;
+                if (meta) {
+                    meta.textContent = accountUserId != null
+                        ? 'Showing data for account user_id: ' + accountUserId + ' (from your session).'
+                        : '';
+                }
+
+                const geos = result.data.geolocations || [];
+                captures = geos.map((g) => {
+                    const geo = g.geo || {};
+                    const lat = geo.latitude != null ? geo.latitude : null;
+                    const lon = geo.longitude != null ? geo.longitude : null;
+                    return {
+                        ip: g.ip || geo.ip || '—',
+                        latitude: lat,
+                        longitude: lon,
+                        city: geo.city,
+                        country: geo.country,
+                        location: geo.location,
+                        isp: geo.isp || 'Unknown',
+                        org: geo.org || '—',
+                        timezone: geo.timezone || '—',
+                        timestamp: g.timestamp || '',
+                        user_id: g.user_id != null ? g.user_id : accountUserId,
+                    };
+                }).filter((c) => c.latitude != null && c.longitude != null
+                    && !Number.isNaN(Number(c.latitude)) && !Number.isNaN(Number(c.longitude)));
+
+                displayCaptures();
+                updateStats();
+                plotMarkers();
             } catch (error) {
                 console.error('Error loading data:', error);
                 showError('Error loading data: ' + error.message);
@@ -319,10 +359,13 @@
             }
             
             list.innerHTML = captures.map((capture, index) => {
-                const location = capture.location || `${capture.city}, ${capture.country}`;
+                const location = capture.location || [capture.city, capture.country].filter(Boolean).join(', ') || 'Unknown';
+                const uid = capture.user_id != null ? capture.user_id : accountUserId;
+                const uidLabel = uid != null ? `<div class="capture-location" style="opacity:0.85">👤 user_id: ${uid}</div>` : '';
                 return `
                     <div class="capture-item" onclick="focusMarker(${index})" data-index="${index}">
                         <div class="capture-ip">${capture.ip}</div>
+                        ${uidLabel}
                         <div class="capture-location">📍 ${location}</div>
                         <div class="capture-location">🌐 ${capture.isp}</div>
                         <div class="capture-time">⏰ ${capture.timestamp}</div>
@@ -352,11 +395,15 @@
                 if (capture.latitude && capture.longitude) {
                     const location = capture.location || `${capture.city}, ${capture.country}`;
                     
+                    const uidLine = (capture.user_id != null || accountUserId != null)
+                        ? `<p style="margin: 5px 0;"><strong>👤 user_id:</strong> ${capture.user_id != null ? capture.user_id : accountUserId}</p>`
+                        : '';
                     const marker = L.marker([capture.latitude, capture.longitude])
                         .addTo(map)
                         .bindPopup(`
                             <div style="min-width: 200px;">
                                 <h3 style="margin: 0 0 10px 0; color: #333;">${capture.ip}</h3>
+                                ${uidLine}
                                 <p style="margin: 5px 0;"><strong>📍 Location:</strong> ${location}</p>
                                 <p style="margin: 5px 0;"><strong>🌐 ISP:</strong> ${capture.isp}</p>
                                 <p style="margin: 5px 0;"><strong>🏢 Org:</strong> ${capture.org}</p>

