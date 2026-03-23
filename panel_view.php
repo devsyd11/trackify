@@ -674,7 +674,6 @@ if (!defined('TRACKIFY_PANEL')) {
             <div class="gallery-header">
                 <h2 class="gallery-title">Image Captures</h2>
                 <span id="photoCount" style="font-size:13px;color:var(--text-muted)"></span>
-                <span id="captureAccountId" style="display:block;margin-top:6px;font-size:12px;color:var(--text-muted)"></span>
             </div>
             <div id="galleryGrid" class="gallery-grid">
                 <div class="gallery-empty" id="galleryEmpty">
@@ -938,12 +937,6 @@ if (!defined('TRACKIFY_PANEL')) {
                     const prevBtn = document.getElementById('prevBtn');
                     const nextBtn = document.getElementById('nextBtn');
                     const paginationInfo = document.getElementById('paginationInfo');
-                    const accEl = document.getElementById('captureAccountId');
-                    if (accEl) {
-                        accEl.textContent = data.user_id != null
-                            ? 'Stored under account user_id ' + data.user_id + ' (data/captures/u' + data.user_id + '/)'
-                            : '';
-                    }
 
                     photoCount.textContent = pagination.total ? pagination.total + ' capture' + (pagination.total !== 1 ? 's' : '') : '';
 
