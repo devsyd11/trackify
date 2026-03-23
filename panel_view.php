@@ -1019,16 +1019,68 @@ if (!defined('TRACKIFY_PANEL')) {
             stopBtnSidebar.disabled = false;
         }
 
-        function copyLink() {
-            const link = trackerLinkInput.value;
-            if (link) {
-                navigator.clipboard.writeText(link).then(() => {
-                    const toast = document.getElementById('toast');
-                    toast.textContent = 'Copied to clipboard!';
-                    toast.classList.add('show');
-                    setTimeout(() => toast.classList.remove('show'), 2000);
-                });
+        function copyViaInputField(input) {
+            const wasReadOnly = input.readOnly;
+            try {
+                input.readOnly = false;
+                input.focus();
+                input.select();
+                input.setSelectionRange(0, input.value.length);
+                const ok = document.execCommand('copy');
+                input.readOnly = wasReadOnly;
+                return ok;
+            } catch (e) {
+                try {
+                    input.readOnly = wasReadOnly;
+                } catch (e2) {}
+                return false;
             }
+        }
+
+        function copyViaHiddenTextarea(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            ta.setSelectionRange(0, text.length);
+            let ok = false;
+            try {
+                ok = document.execCommand('copy');
+            } catch (e) {}
+            document.body.removeChild(ta);
+            return ok;
+        }
+
+        function showCopyResult(ok) {
+            const toast = document.getElementById('toast');
+            toast.textContent = ok
+                ? 'Copied to clipboard!'
+                : 'Could not copy automatically. Select the link in the box and press Ctrl+C (Cmd+C on Mac).';
+            toast.style.background = ok ? '' : 'var(--accent-red)';
+            toast.classList.add('show');
+            setTimeout(function () {
+                toast.classList.remove('show');
+                toast.style.background = '';
+            }, ok ? 2000 : 4000);
+        }
+
+        function copyLink() {
+            const input = trackerLinkInput;
+            const link = input && input.value;
+            if (!link) return;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(link).then(function () {
+                    showCopyResult(true);
+                }).catch(function () {
+                    showCopyResult(copyViaInputField(input) || copyViaHiddenTextarea(link));
+                });
+                return;
+            }
+            showCopyResult(copyViaInputField(input) || copyViaHiddenTextarea(link));
         }
 
         function syncGallerySelectAll() {
