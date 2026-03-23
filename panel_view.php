@@ -765,6 +765,106 @@ $userNavInitial = $userNavInitial ?? '?';
         .modal-close:hover {
             background: var(--border);
         }
+        .support-float {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 2600;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+        .support-prompt {
+            max-width: 280px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(88, 166, 255, 0.35);
+            background: rgba(13, 17, 23, 0.96);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            font-size: 13px;
+            line-height: 1.45;
+            color: var(--text);
+        }
+        .support-prompt[hidden] {
+            display: none !important;
+        }
+        .support-prompt-actions {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .support-link-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 34px;
+            padding: 0 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 221, 87, 0.45);
+            background: linear-gradient(135deg, #ffdd57, #ffbf00);
+            color: #121212;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .support-link-btn:hover {
+            filter: brightness(1.05);
+        }
+        .support-dismiss-btn {
+            height: 34px;
+            padding: 0 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .support-dismiss-btn:hover {
+            color: var(--text);
+            border-color: var(--accent);
+        }
+        .support-fab {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 48px;
+            padding: 0 16px;
+            border: none;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #ffdd57, #ffbf00);
+            color: #111;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.35);
+            text-decoration: none;
+            transition: transform 0.18s ease, filter 0.18s ease;
+        }
+        .support-fab:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.04);
+        }
+        @media (max-width: 680px) {
+            .support-float {
+                right: 12px;
+                bottom: 12px;
+            }
+            .support-prompt {
+                max-width: min(280px, calc(100vw - 24px));
+            }
+            .support-fab {
+                font-size: 12px;
+                padding: 0 14px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -920,6 +1020,19 @@ $userNavInitial = $userNavInitial ?? '?';
             </div>
             <button class="modal-close" onclick="closeDisclaimer()">I Understand</button>
         </div>
+    </div>
+
+    <div class="support-float" aria-live="polite">
+        <div class="support-prompt" id="supportPrompt">
+            If you want to support this project and help continue development, you can support me on Ko-fi.
+            <div class="support-prompt-actions">
+                <a class="support-link-btn" href="https://ko-fi.com/0cod3" target="_blank" rel="noopener noreferrer">Support on Ko-fi</a>
+                <button type="button" class="support-dismiss-btn" id="supportContinueBtn">Continue</button>
+            </div>
+        </div>
+        <a class="support-fab" href="https://ko-fi.com/0cod3" target="_blank" rel="noopener noreferrer" aria-label="Support this project on Ko-fi">
+            ☕ Support on Ko-fi
+        </a>
     </div>
 
     <script>
@@ -1385,6 +1498,25 @@ $userNavInitial = $userNavInitial ?? '?';
                 document.getElementById('disclaimerModal').classList.remove('show');
             }
         }
+
+        (function initSupportPrompt() {
+            const prompt = document.getElementById('supportPrompt');
+            const continueBtn = document.getElementById('supportContinueBtn');
+            if (!prompt || !continueBtn) return;
+            const storageKey = 'trackify_support_prompt_hidden';
+            try {
+                if (localStorage.getItem(storageKey) === '1') {
+                    prompt.hidden = true;
+                }
+            } catch (e) {}
+
+            continueBtn.addEventListener('click', function () {
+                prompt.hidden = true;
+                try {
+                    localStorage.setItem(storageKey, '1');
+                } catch (e) {}
+            });
+        })();
 
         async function loadCaptures() {
             try {
