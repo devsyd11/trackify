@@ -7,6 +7,9 @@ if (!defined('TRACKIFY_PANEL')) {
     echo 'Forbidden';
     exit;
 }
+
+$userNavName = $userNavName ?? 'Account';
+$userNavInitial = $userNavInitial ?? '?';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -367,26 +370,95 @@ if (!defined('TRACKIFY_PANEL')) {
         .title-row h1 {
             margin-bottom: 0;
         }
-        .btn-logout {
+        .user-nav {
+            position: relative;
+            flex-shrink: 0;
+            z-index: 200;
+        }
+        .user-nav-trigger {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
             font-size: 13px;
             font-weight: 600;
             font-family: inherit;
-            color: var(--text-muted);
-            text-decoration: none;
-            padding: 8px 14px;
-            border-radius: 8px;
+            color: var(--text);
+            padding: 6px 10px 6px 6px;
+            border-radius: 10px;
             border: 1px solid var(--border);
             background: var(--bg-input);
-            transition: color 0.2s, border-color 0.2s, background 0.2s;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .user-nav-trigger:hover {
+            border-color: var(--accent);
+            background: var(--bg-card);
+        }
+        .user-nav-trigger[aria-expanded="true"] {
+            border-color: var(--accent);
+        }
+        .user-nav-trigger[aria-expanded="true"] .user-nav-chevron {
+            transform: rotate(180deg);
+        }
+        .user-nav-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #58a6ff, #a371f7);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             flex-shrink: 0;
         }
-        .btn-logout:hover {
+        .user-nav-name {
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        @media (max-width: 600px) {
+            .user-nav-name { max-width: 100px; }
+        }
+        .user-nav-chevron {
+            color: var(--text-muted);
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .user-nav-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 212px;
+            padding: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+        }
+        .user-nav-dropdown[hidden] {
+            display: none !important;
+        }
+        .user-nav-item {
+            display: block;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .user-nav-item:hover {
+            background: var(--bg-input);
+        }
+        .user-nav-item--danger {
             color: var(--accent-red);
-            border-color: rgba(248, 81, 73, 0.45);
-            background: rgba(248, 81, 73, 0.08);
+        }
+        .user-nav-item--danger:hover {
+            background: rgba(248, 81, 73, 0.1);
         }
         h1 {
             font-size: 28px;
@@ -700,7 +772,17 @@ if (!defined('TRACKIFY_PANEL')) {
         <main class="main">
             <div class="title-row">
                 <h1>Trackify</h1>
-                <a href="logout.php" class="btn-logout" title="Sign out">Log out</a>
+                <div class="user-nav" id="userNav">
+                    <button type="button" class="user-nav-trigger" id="userNavTrigger" aria-expanded="false" aria-haspopup="true" aria-controls="userNavMenu">
+                        <span class="user-nav-avatar" aria-hidden="true"><?= h($userNavInitial) ?></span>
+                        <span class="user-nav-name"><?= h($userNavName) ?></span>
+                        <svg class="user-nav-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </button>
+                    <div class="user-nav-dropdown" id="userNavMenu" role="menu" hidden>
+                        <a href="account-settings.php" class="user-nav-item" role="menuitem">Account settings</a>
+                        <a href="logout.php" class="user-nav-item user-nav-item--danger" role="menuitem">Log out</a>
+                    </div>
+                </div>
             </div>
             <p class="subtitle">IP Tracker & Geolocation — Generate tracker links and monitor captures</p>
             <div class="disclaimer-wrap">
@@ -1380,6 +1462,41 @@ if (!defined('TRACKIFY_PANEL')) {
                 }
             } catch (e) {}
         }
+
+        (function initUserNav() {
+            const nav = document.getElementById('userNav');
+            const trigger = document.getElementById('userNavTrigger');
+            const menu = document.getElementById('userNavMenu');
+            if (!nav || !trigger || !menu) return;
+
+            function closeMenu() {
+                trigger.setAttribute('aria-expanded', 'false');
+                menu.hidden = true;
+            }
+            function toggleMenu() {
+                const open = trigger.getAttribute('aria-expanded') === 'true';
+                if (open) {
+                    closeMenu();
+                } else {
+                    trigger.setAttribute('aria-expanded', 'true');
+                    menu.hidden = false;
+                }
+            }
+
+            trigger.addEventListener('click', function (e) {
+                e.stopPropagation();
+                toggleMenu();
+            });
+            nav.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+            document.addEventListener('click', function () {
+                closeMenu();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeMenu();
+            });
+        })();
 
         setInterval(() => { loadPhotos(currentPage); loadCaptures(); }, 5000);
         setInterval(checkStatus, 10000);
