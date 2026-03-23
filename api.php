@@ -644,6 +644,7 @@ function handlePhotos(): void
     });
 
     $total = count($allPhotos);
+    $maxCaptures = trackify_max_photo_captures();
     $totalPages = $total ? (int) ceil($total / $perPage) : 1;
     $offset = ($page - 1) * $perPage;
     $photos = array_slice($allPhotos, $offset, $perPage);
@@ -652,6 +653,11 @@ function handlePhotos(): void
         'status' => 'success',
         'user_id' => $uid,
         'photos' => $photos,
+        'capture_quota' => [
+            'max' => $maxCaptures,
+            'used' => $total,
+            'full' => $total >= $maxCaptures,
+        ],
         'pagination' => [
             'page' => $page,
             'per_page' => $perPage,

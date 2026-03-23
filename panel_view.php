@@ -227,6 +227,15 @@ if (!defined('TRACKIFY_PANEL')) {
             background: rgba(0,0,0,0.35);
             border-radius: 4px;
         }
+        .capture-quota-banner {
+            font-size: 13px;
+            line-height: 1.45;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(210,153,34,0.45);
+            background: rgba(210,153,34,0.12);
+            color: var(--accent-yellow);
+        }
         .gallery-empty {
             grid-column: 1 / -1;
             display: flex;
@@ -772,6 +781,7 @@ if (!defined('TRACKIFY_PANEL')) {
                     </label>
                     <button type="button" class="gallery-btn danger" id="galleryBulkDelete" disabled>Delete selected</button>
                 </div>
+                <div id="captureQuotaBanner" class="capture-quota-banner" style="display:none" role="status" aria-live="polite"></div>
             </div>
             <div id="galleryGrid" class="gallery-grid">
                 <div class="gallery-empty" id="galleryEmpty">
@@ -1100,6 +1110,17 @@ if (!defined('TRACKIFY_PANEL')) {
                     }
 
                     photoCount.textContent = pagination.total ? pagination.total + ' capture' + (pagination.total !== 1 ? 's' : '') : '';
+
+                    const quotaBanner = document.getElementById('captureQuotaBanner');
+                    const q = data.capture_quota;
+                    if (quotaBanner && q) {
+                        if (q.full) {
+                            quotaBanner.style.display = 'block';
+                            quotaBanner.textContent = 'Maximum image captures reached (' + q.used + '/' + q.max + '). Delete photos below to allow new camera uploads.';
+                        } else {
+                            quotaBanner.style.display = 'none';
+                        }
+                    }
 
                     if (toolbar) {
                         toolbar.style.display = pagination.total > 0 ? 'flex' : 'none';

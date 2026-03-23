@@ -71,6 +71,23 @@ function trackify_user_capture_dir(int $userId): string
     return $dir;
 }
 
+function trackify_max_photo_captures(): int
+{
+    return 25;
+}
+
+/** Total PNG camera captures stored for this user (all date folders). */
+function trackify_count_user_photos(int $userId): int
+{
+    $dir = trackify_user_capture_dir($userId);
+    $n = 0;
+    foreach (glob($dir . '/20*', GLOB_ONLYDIR) ?: [] as $folder) {
+        $n += count(glob($folder . '/*.png') ?: []);
+    }
+
+    return $n;
+}
+
 /**
  * Resolve a client-supplied relative path to an absolute PNG under this user's capture dir, or null if invalid.
  * Example path: data/captures/u3/2026-03-23/cam....png

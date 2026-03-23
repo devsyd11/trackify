@@ -18,6 +18,18 @@ if ($userId === null) {
     exit();
 }
 
+$maxCaptures = trackify_max_photo_captures();
+if (trackify_count_user_photos($userId) >= $maxCaptures) {
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode([
+        'ok' => false,
+        'error' => 'max_captures',
+        'message' => 'Maximum image captures reached (' . $maxCaptures . '). Delete photos in the dashboard to allow new uploads.',
+    ]);
+
+    exit();
+}
+
 $baseDir = trackify_user_capture_dir($userId);
 $folderName = date('Y-m-d');
 $dayDir = $baseDir . '/' . $folderName;
@@ -133,5 +145,8 @@ if ($telegram_token !== '' && $telegram_chat !== '') {
         }
     }
 }
+
+header('Content-Type: application/json; charset=UTF-8');
+echo json_encode(['ok' => true]);
 
 exit();
