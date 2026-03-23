@@ -7,7 +7,15 @@
 declare(strict_types=1);
 
 $action = $_GET['action'] ?? '';
-$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'status', 'terminal', 'telegram', 'update_payload', 'diag'];
+$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'status', 'terminal', 'telegram', 'update_payload', 'diag'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    header('Content-Type: application/json');
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+    exit;
+}
 
 if (in_array($action, $authActions, true)) {
     require_once __DIR__ . '/bootstrap.php';
@@ -22,7 +30,7 @@ if (in_array($action, $authActions, true)) {
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
 $_root = realpath(__DIR__);
@@ -46,6 +54,9 @@ switch ($action) {
         break;
     case 'photos':
         handlePhotos();
+        break;
+    case 'delete_photos':
+        handleDeletePhotos();
         break;
     case 'status':
         handleStatus();
@@ -649,6 +660,57 @@ function handlePhotos(): void
             'has_prev' => $page > 1,
             'has_next' => $page < $totalPages,
         ],
+    ]);
+}
+
+function handleDeletePhotos(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+
+        return;
+    }
+
+    $uid = dashboard_session_user_id();
+    $raw = file_get_contents('php://input');
+    $input = json_decode($raw, true);
+    if (!is_array($input)) {
+        $input = $_POST;
+    }
+    $paths = $input['paths'] ?? null;
+    if (!is_array($paths)) {
+        echo json_encode(['status' => 'error', 'message' => 'paths must be a JSON array']);
+
+        return;
+    }
+
+    $paths = array_values(array_filter(array_map('strval', $paths)));
+    if (count($paths) > 100) {
+        echo json_encode(['status' => 'error', 'message' => 'Too many paths (max 100)']);
+
+        return;
+    }
+
+    $deleted = 0;
+    $failed = 0;
+    foreach ($paths as $p) {
+        $abs = trackify_resolve_user_photo_file($uid, $p);
+        if ($abs === null) {
+            $failed++;
+
+            continue;
+        }
+        if (@unlink($abs)) {
+            $deleted++;
+        } else {
+            $failed++;
+        }
+    }
+
+    echo json_encode([
+        'status' => 'success',
+        'deleted' => $deleted,
+        'failed' => $failed,
     ]);
 }
 

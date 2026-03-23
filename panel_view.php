@@ -74,12 +74,55 @@ if (!defined('TRACKIFY_PANEL')) {
         }
         .gallery-header {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
             margin-bottom: 16px;
             padding-bottom: 12px;
             border-bottom: 1px solid var(--border);
+        }
+        .gallery-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .gallery-toolbar {
+            display: none;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .gallery-toolbar-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .gallery-btn {
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text);
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .gallery-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .gallery-btn.danger {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+        .gallery-btn.danger:not(:disabled):hover {
+            background: rgba(248,81,73,0.12);
         }
         .gallery-title {
             font-size: 18px;
@@ -137,6 +180,52 @@ if (!defined('TRACKIFY_PANEL')) {
             color: rgba(255,255,255,0.9);
             font-size: 9px;
             font-family: 'JetBrains Mono', monospace;
+        }
+        .gallery-item-actions {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 4px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            z-index: 3;
+            pointer-events: none;
+        }
+        .gallery-item-actions > * {
+            pointer-events: auto;
+        }
+        .gallery-select-cb {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+        .gallery-delete-one {
+            width: 26px;
+            height: 26px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(248,81,73,0.92);
+            color: #fff;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: inherit;
+            padding: 0;
+        }
+        .gallery-delete-one:hover {
+            background: var(--accent-red);
+        }
+        .gallery-select-label {
+            margin: 0;
+            padding: 2px;
+            background: rgba(0,0,0,0.35);
+            border-radius: 4px;
         }
         .gallery-empty {
             grid-column: 1 / -1;
@@ -672,8 +761,17 @@ if (!defined('TRACKIFY_PANEL')) {
 
         <section class="gallery-section">
             <div class="gallery-header">
-                <h2 class="gallery-title">Image Captures</h2>
-                <span id="photoCount" style="font-size:13px;color:var(--text-muted)"></span>
+                <div class="gallery-header-top">
+                    <h2 class="gallery-title">Image Captures</h2>
+                    <span id="photoCount" style="font-size:13px;color:var(--text-muted)"></span>
+                </div>
+                <div class="gallery-toolbar" id="galleryToolbar">
+                    <label class="gallery-toolbar-label">
+                        <input type="checkbox" id="gallerySelectAll" title="Select all on this page">
+                        Select page
+                    </label>
+                    <button type="button" class="gallery-btn danger" id="galleryBulkDelete" disabled>Delete selected</button>
+                </div>
             </div>
             <div id="galleryGrid" class="gallery-grid">
                 <div class="gallery-empty" id="galleryEmpty">
@@ -923,6 +1021,64 @@ if (!defined('TRACKIFY_PANEL')) {
             }
         }
 
+        function syncGallerySelectAll() {
+            const grid = document.getElementById('galleryGrid');
+            const selectAll = document.getElementById('gallerySelectAll');
+            if (!grid || !selectAll) return;
+            const cbs = grid.querySelectorAll('.gallery-select-cb');
+            if (cbs.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+                return;
+            }
+            const n = [...cbs].filter(c => c.checked).length;
+            selectAll.checked = n === cbs.length;
+            selectAll.indeterminate = n > 0 && n < cbs.length;
+        }
+
+        function updateGalleryBulkDeleteBtn() {
+            const grid = document.getElementById('galleryGrid');
+            const btn = document.getElementById('galleryBulkDelete');
+            if (!grid || !btn) return;
+            const n = grid.querySelectorAll('.gallery-select-cb:checked').length;
+            btn.disabled = n === 0;
+        }
+
+        function resetGallerySelectionUi() {
+            const selectAll = document.getElementById('gallerySelectAll');
+            if (selectAll) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
+            updateGalleryBulkDeleteBtn();
+        }
+
+        async function deletePhotosByPaths(paths) {
+            if (!paths || !paths.length) return;
+            try {
+                const res = await fetch(API + '?action=delete_photos', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paths })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    alert(data.message || 'Delete failed');
+                    return;
+                }
+                const toast = document.getElementById('toast');
+                let msg = data.deleted ? 'Deleted ' + data.deleted + ' file(s)' : 'Nothing deleted';
+                if (data.failed) msg += ' (' + data.failed + ' failed)';
+                toast.textContent = msg;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2500);
+                await loadPhotos(currentPage);
+            } catch (err) {
+                alert('Delete failed: ' + (err && err.message ? err.message : String(err)));
+            }
+        }
+
         async function loadPhotos(page = 1) {
             try {
                 const res = await fetch(API + '?action=photos&page=' + page + '&per_page=12', { credentials: 'same-origin' });
@@ -931,14 +1087,24 @@ if (!defined('TRACKIFY_PANEL')) {
                     currentPage = page;
                     const { photos, pagination } = data;
                     const grid = document.getElementById('galleryGrid');
-                    const empty = document.getElementById('galleryEmpty');
                     const paginationEl = document.getElementById('pagination');
                     const photoCount = document.getElementById('photoCount');
                     const prevBtn = document.getElementById('prevBtn');
                     const nextBtn = document.getElementById('nextBtn');
                     const paginationInfo = document.getElementById('paginationInfo');
+                    const toolbar = document.getElementById('galleryToolbar');
+
+                    if (photos.length === 0 && pagination.total > 0 && pagination.has_prev) {
+                        await loadPhotos(page - 1);
+                        return;
+                    }
 
                     photoCount.textContent = pagination.total ? pagination.total + ' capture' + (pagination.total !== 1 ? 's' : '') : '';
+
+                    if (toolbar) {
+                        toolbar.style.display = pagination.total > 0 ? 'flex' : 'none';
+                    }
+                    resetGallerySelectionUi();
 
                     if (photos.length === 0) {
                         grid.innerHTML = `
@@ -952,9 +1118,15 @@ if (!defined('TRACKIFY_PANEL')) {
                         paginationEl.style.display = 'none';
                     } else {
                         grid.innerHTML = photos.map(p => `
-                            <div class="gallery-item" role="button" tabindex="0" title="Click to view full size"
+                            <div class="gallery-item" tabindex="0" title="Click to view full size"
                                  data-full-src="${escapeHtmlAttr(p.path)}"
-                                 aria-label="View capture full size, ${escapeHtmlAttr(p.filename || '')}">
+                                 aria-label="Capture ${escapeHtmlAttr(p.filename || '')}">
+                                <div class="gallery-item-actions">
+                                    <label class="gallery-toolbar-label gallery-select-label">
+                                        <input type="checkbox" class="gallery-select-cb" data-path="${escapeHtmlAttr(p.path)}">
+                                    </label>
+                                    <button type="button" class="gallery-delete-one" data-path="${escapeHtmlAttr(p.path)}" title="Delete" aria-label="Delete capture">×</button>
+                                </div>
                                 <img src="${p.path}" alt="" loading="lazy">
                                 <div class="gallery-item-overlay">${new Date(p.date * 1000).toLocaleString()} · View</div>
                             </div>
@@ -963,6 +1135,8 @@ if (!defined('TRACKIFY_PANEL')) {
                         prevBtn.disabled = !pagination.has_prev;
                         nextBtn.disabled = !pagination.has_next;
                         paginationInfo.textContent = `Page ${pagination.page} of ${pagination.total_pages}`;
+                        syncGallerySelectAll();
+                        updateGalleryBulkDeleteBtn();
                     }
                 }
             } catch (e) {}
@@ -987,6 +1161,7 @@ if (!defined('TRACKIFY_PANEL')) {
             const grid = document.getElementById('galleryGrid');
             if (!grid) return;
             grid.addEventListener('click', function (e) {
+                if (e.target.closest('.gallery-item-actions')) return;
                 const item = e.target.closest('.gallery-item');
                 if (!item || !grid.contains(item)) return;
                 const src = item.getAttribute('data-full-src');
@@ -994,11 +1169,49 @@ if (!defined('TRACKIFY_PANEL')) {
             });
             grid.addEventListener('keydown', function (e) {
                 if (e.key !== 'Enter' && e.key !== ' ') return;
+                if (e.target.closest('.gallery-item-actions')) return;
                 const item = e.target.closest('.gallery-item');
                 if (!item || !grid.contains(item)) return;
                 e.preventDefault();
                 const src = item.getAttribute('data-full-src');
                 if (src) openLightbox(src);
+            });
+            grid.addEventListener('change', function (e) {
+                if (!e.target.classList || !e.target.classList.contains('gallery-select-cb')) return;
+                syncGallerySelectAll();
+                updateGalleryBulkDeleteBtn();
+            });
+        })();
+
+        (function initGalleryBulkControls() {
+            const selectAll = document.getElementById('gallerySelectAll');
+            const bulkDel = document.getElementById('galleryBulkDelete');
+            const grid = document.getElementById('galleryGrid');
+            if (!selectAll || !bulkDel || !grid) return;
+            selectAll.addEventListener('change', function () {
+                grid.querySelectorAll('.gallery-select-cb').forEach(function (cb) {
+                    cb.checked = selectAll.checked;
+                });
+                selectAll.indeterminate = false;
+                updateGalleryBulkDeleteBtn();
+            });
+            bulkDel.addEventListener('click', function () {
+                const paths = [...grid.querySelectorAll('.gallery-select-cb:checked')]
+                    .map(function (cb) { return cb.getAttribute('data-path'); })
+                    .filter(Boolean);
+                if (!paths.length) return;
+                if (!confirm('Delete ' + paths.length + ' capture(s)?')) return;
+                deletePhotosByPaths(paths);
+            });
+            grid.addEventListener('click', function (e) {
+                const btn = e.target.closest('.gallery-delete-one');
+                if (!btn || !grid.contains(btn)) return;
+                e.stopPropagation();
+                e.preventDefault();
+                const path = btn.getAttribute('data-path');
+                if (!path) return;
+                if (!confirm('Delete this capture?')) return;
+                deletePhotosByPaths([path]);
             });
         })();
 
