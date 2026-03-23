@@ -302,7 +302,7 @@
                     if (meta) {
                         meta.textContent = '';
                     }
-                    showError(result.message || 'Sign in required — open panel.html, sign in, then refresh this page.');
+                    showError(result.message || 'Sign in required — open panel.php, sign in, then refresh this page.');
                     return;
                 }
 

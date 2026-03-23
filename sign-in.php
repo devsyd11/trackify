@@ -4,7 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/bootstrap.php';
 
 if (!empty($_SESSION['user_id'])) {
-    header('Location: panel.html');
+    header('Location: panel.php');
     exit;
 }
 
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_id'] = (int) $user['id'];
                     $_SESSION['user_email'] = $user['email'];
                     $_SESSION['user_name'] = $user['full_name'];
-                    header('Location: panel.html');
+                    header('Location: panel.php');
                     exit;
                 }
                 $error = 'Invalid email or password.';
