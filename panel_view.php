@@ -658,6 +658,32 @@ $userNavInitial = $userNavInitial ?? '?';
             padding: 32px;
             font-size: 14px;
         }
+        .card-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .card-header-row h2 {
+            margin-bottom: 0;
+        }
+        .mini-btn {
+            height: 30px;
+            padding: 0 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .mini-btn:hover {
+            color: var(--text);
+            border-color: var(--accent);
+        }
         .toast {
             position: fixed;
             bottom: 24px;
@@ -990,7 +1016,10 @@ $userNavInitial = $userNavInitial ?? '?';
                 <button class="btn btn-danger" id="stopBtnSidebar" onclick="stopService()" style="display:none;width:100%;margin-top:12px">Stop Tunnel</button>
             </div>
             <div class="card">
-                <h2>Recent Captures</h2>
+                <div class="card-header-row">
+                    <h2>Recent Captures</h2>
+                    <button type="button" class="mini-btn" id="clearCapturesBtn" onclick="clearCaptures()">Clear Captures</button>
+                </div>
                 <div id="capturesList" class="captures-list">
                     <div class="empty-state">No captures yet</div>
                 </div>
@@ -1496,6 +1525,34 @@ $userNavInitial = $userNavInitial ?? '?';
         function closeDisclaimer(event) {
             if (!event || event.target === event.currentTarget || event.target.classList.contains('modal-close')) {
                 document.getElementById('disclaimerModal').classList.remove('show');
+            }
+        }
+
+        async function clearCaptures() {
+            const btn = document.getElementById('clearCapturesBtn');
+            if (!btn) return;
+            if (!confirm('Clear recent capture history?')) return;
+
+            btn.disabled = true;
+            try {
+                const res = await fetch(API + '?action=clear_captures', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    alert(data.message || 'Could not clear captures');
+                    return;
+                }
+                capturesList.innerHTML = '<div class="empty-state">No captures yet</div>';
+                const toast = document.getElementById('toast');
+                toast.textContent = 'Capture history cleared';
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+            } catch (e) {
+                alert('Could not clear captures: ' + (e && e.message ? e.message : String(e)));
+            } finally {
+                btn.disabled = false;
             }
         }
 

