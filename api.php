@@ -640,13 +640,18 @@ function handlePhoneLookup(): void
         return;
     }
 
-    // Extract URLs from organic_results
+    // Extract URLs (with title/snippet) from organic_results
     $urls = [];
     if (!empty($json['organic_results']) && is_array($json['organic_results'])) {
         foreach ($json['organic_results'] as $res) {
-            if (!empty($res['link']) && is_string($res['link'])) {
-                $urls[] = $res['link'];
+            if (empty($res['link']) || !is_string($res['link'])) {
+                continue;
             }
+            $urls[] = [
+                'url' => $res['link'],
+                'title' => isset($res['title']) && is_string($res['title']) ? $res['title'] : '',
+                'snippet' => isset($res['snippet']) && is_string($res['snippet']) ? $res['snippet'] : '',
+            ];
         }
     }
 

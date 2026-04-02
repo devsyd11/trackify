@@ -1576,15 +1576,28 @@ $userNavInitial = $userNavInitial ?? '?';
                     const num = String(item.phone_number || '');
                     const cnt = typeof item.url_count === 'number' ? item.url_count : (Array.isArray(item.urls) ? item.urls.length : 0);
                     const ts = String(item.created_at || '');
-                    const firstUrl = Array.isArray(item.urls) && item.urls.length ? String(item.urls[0]) : '';
+
+                    let first = Array.isArray(item.urls) && item.urls.length ? item.urls[0] : '';
+                    let rawUrl = '';
+                    let title = '';
+                    if (first && typeof first === 'object') {
+                        rawUrl = String(first.url || first.link || '');
+                        if (first.title) title = String(first.title);
+                    } else {
+                        rawUrl = String(first || '');
+                    }
+
                     const safeNum = num.replace(/</g,'&lt;').replace(/>/g,'&gt;');
                     const safeTs = ts.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-                    const safeUrl = firstUrl.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    const safeUrl = rawUrl.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    const safeTitle = title ? title.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
+
                     return '' +
                         '<div class="phone-history-item">' +
                         '<div class="phone-history-number">' + safeNum + '</div>' +
                         '<div class="phone-history-meta">' + cnt + ' URL(s) · ' + safeTs + '</div>' +
-                        (safeUrl ? '<div class="phone-history-urls"><a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' + safeUrl + '</a></div>' : '') +
+                        (safeUrl ? '<div class="phone-history-urls"><a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' +
+                            (safeTitle || safeUrl) + '</a></div>' : '') +
                         '</div>';
                 }).join('');
             } catch (e) {
@@ -1637,15 +1650,33 @@ $userNavInitial = $userNavInitial ?? '?';
                 lines.push('<div class="phone-lookup-terminal-line">&nbsp;</div>');
 
                 if (urls.length > 0) {
-                    urls.forEach(url => {
-                        const rawUrl = String(url);
+                    urls.forEach(entry => {
+                        let rawUrl = '';
+                        let title = '';
+                        let snippet = '';
+                        if (entry && typeof entry === 'object') {
+                            rawUrl = String(entry.url || entry.link || '');
+                            if (entry.title) title = String(entry.title);
+                            if (entry.snippet) snippet = String(entry.snippet);
+                        } else {
+                            rawUrl = String(entry);
+                        }
+                        if (!rawUrl) return;
                         const safeUrl = rawUrl.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                        const safeTitle = title ? title.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
+                        const safeSnippet = snippet ? snippet.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
                         lines.push(
                             '<div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~#</span> ' +
                             '<a class="link" href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' +
                             safeUrl +
                             '</a></div>'
                         );
+                        if (safeTitle || safeSnippet) {
+                            const meta = [safeTitle, safeSnippet].filter(Boolean).join(' — ');
+                            lines.push(
+                                '<div class="phone-lookup-terminal-line"><span class="hint">    ↳ ' + meta + '</span></div>'
+                            );
+                        }
                     });
                 }
                 lines.push('<div class="phone-lookup-terminal-line">&nbsp;</div>');
