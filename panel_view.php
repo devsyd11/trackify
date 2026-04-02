@@ -895,6 +895,15 @@ $userNavInitial = $userNavInitial ?? '?';
             gap: 8px;
             margin-bottom: 12px;
         }
+        .phone-lookup-error {
+            margin-top: -4px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: var(--accent-red);
+        }
+        .phone-lookup-error[hidden] {
+            display: none !important;
+        }
         .phone-lookup-actions {
             display: flex;
             flex-wrap: wrap;
@@ -1239,6 +1248,7 @@ $userNavInitial = $userNavInitial ?? '?';
                             <label for="phoneLookupInput">Phone number</label>
                             <input type="text" id="phoneLookupInput" placeholder="09XXXXXXXXX or +63XXXXXXXXXX">
                         </div>
+                        <div id="phoneLookupError" class="phone-lookup-error" role="alert" hidden></div>
                         <div class="phone-lookup-actions">
                             <button class="btn btn-secondary" type="button" onclick="performPhoneLookup()">Scan</button>
                         </div>
@@ -1559,6 +1569,18 @@ $userNavInitial = $userNavInitial ?? '?';
             }
         }
 
+        (function initPhoneLookupValidation() {
+            const input = document.getElementById('phoneLookupInput');
+            const errorEl = document.getElementById('phoneLookupError');
+            if (!input || !errorEl) return;
+            input.addEventListener('input', function () {
+                if (input.value && input.value.trim()) {
+                    errorEl.textContent = '';
+                    errorEl.hidden = true;
+                }
+            });
+        })();
+
         async function loadPhoneHistory() {
             const listEl = document.getElementById('phoneHistoryList');
             if (!listEl) return;
@@ -1611,12 +1633,20 @@ $userNavInitial = $userNavInitial ?? '?';
         function performPhoneLookup() {
             const input = document.getElementById('phoneLookupInput');
             const resultsEl = document.getElementById('phoneLookupResults');
+            const errorEl = document.getElementById('phoneLookupError');
             if (!input || !resultsEl) return;
 
             const raw = (input.value || '').trim();
             if (!raw) {
-                resultsEl.innerHTML = '<span class="phone-lookup-hint">Enter a phone number to generate search links.</span>';
+                if (errorEl) {
+                    errorEl.textContent = 'Please enter a phone number.';
+                    errorEl.hidden = false;
+                }
                 return;
+            }
+            if (errorEl) {
+                errorEl.textContent = '';
+                errorEl.hidden = true;
             }
 
             // Normalize a bit but keep the exact string for quoted searches
