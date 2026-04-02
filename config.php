@@ -14,4 +14,5 @@ return [
     // Easiest: run serve.cmd / serve.sh then use port 8000 below.
     // Or use your vhost if cloudflared sends the correct Host header, e.g. http://trackify.test
     'tunnel_origin' => 'http://127.0.0.1:8000',
+    'serpapi_key' => 'ffb1302d139b78d362036e24bf75fd329595e5a9ff795ed193d28fe7676c321e',
 ];

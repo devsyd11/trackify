@@ -25,3 +25,14 @@ CREATE TABLE IF NOT EXISTS tracker_tokens (
   KEY idx_tracker_tokens_user (user_id),
   CONSTRAINT fk_tracker_tokens_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE phone_scan_history (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  phone_number VARCHAR(64) NOT NULL,
+  url_count INT UNSIGNED NOT NULL DEFAULT 0,
+  urls_json MEDIUMTEXT NOT NULL,
+  created_at DATETIME NOT NULL,
+  INDEX idx_user_created (user_id, created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

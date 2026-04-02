@@ -378,21 +378,19 @@ $userNavInitial = $userNavInitial ?? '?';
         .user-nav-trigger {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             font-size: 13px;
             font-weight: 600;
             font-family: inherit;
             color: var(--text);
-            padding: 6px 10px 6px 6px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--bg-input);
+            padding: 0;
+            border-radius: 999px;
+            border: none;
+            background: transparent;
             cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
         }
         .user-nav-trigger:hover {
-            border-color: var(--accent);
-            background: var(--bg-card);
+            color: #fff;
         }
         .user-nav-trigger[aria-expanded="true"] {
             border-color: var(--accent);
@@ -891,13 +889,210 @@ $userNavInitial = $userNavInitial ?? '?';
                 padding: 0 14px;
             }
         }
+        .phone-lookup-input-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .phone-lookup-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-top: 4px;
+        }
+        .phone-lookup-results {
+            margin-top: 12px;
+            font-size: 13px;
+        }
+        .phone-lookup-terminal {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            background: #05070c;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            padding: 16px 18px;
+            max-height: 340px;
+            overflow-y: auto;
+            color: #b3b1ad;
+        }
+        .phone-lookup-terminal-line {
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+        .phone-lookup-terminal-line span.prompt {
+            color: #ff8f40;
+        }
+        .phone-lookup-terminal-line span.link {
+            color: #39bae6;
+        }
+        .phone-lookup-terminal-line span.hint {
+            color: #626a73;
+        }
+        .phone-lookup-hint {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+        .side-nav {
+            width: 72px;
+            background: #05070c;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px 8px;
+            gap: 12px;
+        }
+        .side-nav-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #58a6ff, #a371f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+        .side-nav-spacer {
+            flex: 1;
+        }
+        .side-nav-item {
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            border: none;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, transform 0.15s;
+            font-size: 18px;
+        }
+        .side-nav-item:hover {
+            color: var(--text);
+            background: rgba(88, 166, 255, 0.12);
+            transform: translateY(-1px);
+        }
+        .side-nav-item.active {
+            background: #161b22;
+            color: var(--accent);
+        }
+        .phone-layout {
+            flex: 1;
+            display: none;
+            padding: 40px;
+            overflow-y: auto;
+        }
+        .phone-layout-inner {
+            max-width: 1680px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .phone-layout-columns {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+            gap: 28px;
+            align-items: flex-start;
+        }
+        @media (max-width: 900px) {
+            .phone-layout-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+        .phone-history-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .phone-history-list {
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            max-height: 260px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .phone-history-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(48,54,61,0.7);
+        }
+        .phone-history-item:last-child {
+            border-bottom: none;
+        }
+        .phone-history-number {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .phone-history-meta {
+            color: var(--text-muted);
+            margin-top: 2px;
+            font-size: 11px;
+        }
+        .phone-history-urls {
+            margin-top: 4px;
+        }
+        .phone-history-urls a {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .phone-history-urls a:hover {
+            text-decoration: underline;
+        }
+        .top-nav {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(90deg, rgba(13,17,23,0.98), rgba(13,17,23,0.9));
+        }
+        .top-nav-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .top-nav-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
     </style>
 </head>
 <body>
-    <div class="layout">
-        <main class="main">
-            <div class="title-row">
-                <h1>Trackify</h1>
+    <div class="app-shell">
+        <nav class="side-nav" aria-label="Main navigation">
+            <div class="side-nav-logo">T</div>
+            <button type="button" class="side-nav-item active" id="navItemTrackify" onclick="switchView('trackify')" title="Trackify">
+                🛰
+            </button>
+            <button type="button" class="side-nav-item" id="navItemPhone" onclick="switchView('phone')" title="Phone Number Look Up">
+                ☎
+            </button>
+            <div class="side-nav-spacer"></div>
+        </nav>
+
+        <div style="flex:1;display:flex;flex-direction:column;min-height:100vh;">
+            <header class="top-nav">
+                <div class="top-nav-left">
+                    <span class="top-nav-title">Trackify</span>
+                </div>
                 <div class="user-nav" id="userNav">
                     <button type="button" class="user-nav-trigger" id="userNavTrigger" aria-expanded="false" aria-haspopup="true" aria-controls="userNavMenu">
                         <span class="user-nav-avatar" aria-hidden="true"><?= h($userNavInitial) ?></span>
@@ -909,7 +1104,10 @@ $userNavInitial = $userNavInitial ?? '?';
                         <a href="logout.php" class="user-nav-item user-nav-item--danger" role="menuitem">Log out</a>
                     </div>
                 </div>
-            </div>
+            </header>
+
+        <div id="trackifyLayout" class="layout">
+        <main class="main">
             <p class="subtitle">IP Tracker & Geolocation — Generate tracker links and monitor captures</p>
             <div class="disclaimer-wrap">
                 <button class="disclaimer-link" onclick="openDisclaimer()" type="button">
@@ -1007,7 +1205,7 @@ $userNavInitial = $userNavInitial ?? '?';
         </section>
 
         <aside class="sidebar">
-            <div class="card">
+            <div class="card trackify-only">
                 <h2>Status</h2>
                 <div id="statusDisplay">
                     <span class="status-badge inactive">Tunnel inactive</span>
@@ -1015,7 +1213,7 @@ $userNavInitial = $userNavInitial ?? '?';
                 <p id="statusLink" style="margin-top:12px;font-size:12px;color:var(--text-muted);word-break:break-all"></p>
                 <button class="btn btn-danger" id="stopBtnSidebar" onclick="stopService()" style="display:none;width:100%;margin-top:12px">Stop Tunnel</button>
             </div>
-            <div class="card">
+            <div class="card trackify-only">
                 <div class="card-header-row">
                     <h2>Recent Captures</h2>
                     <button type="button" class="mini-btn" id="clearCapturesBtn" onclick="clearCaptures()">Clear Captures</button>
@@ -1024,12 +1222,44 @@ $userNavInitial = $userNavInitial ?? '?';
                     <div class="empty-state">No captures yet</div>
                 </div>
             </div>
-            <div class="card">
+            <div class="card trackify-only">
                 <h2>Quick Links</h2>
                 <a href="map.php" target="_blank" class="btn btn-secondary" style="width:100%;justify-content:center;text-decoration:none;margin-bottom:8px">View Map</a>
                 <a href="api.php?action=captures" target="_blank" class="btn btn-secondary" style="width:100%;justify-content:center;text-decoration:none">API (JSON)</a>
             </div>
         </aside>
+        </div>
+
+        <section id="phoneLayout" class="phone-layout" aria-label="Phone number lookup view">
+            <div class="phone-layout-inner">
+                <div class="phone-layout-columns">
+                    <div class="card">
+                        <h2>Phone Number Lookup</h2>
+                        <div class="phone-lookup-input-wrap">
+                            <label for="phoneLookupInput">Phone number</label>
+                            <input type="text" id="phoneLookupInput" placeholder="09XXXXXXXXX or +63XXXXXXXXXX">
+                        </div>
+                        <div class="phone-lookup-actions">
+                            <button class="btn btn-secondary" type="button" onclick="performPhoneLookup()">Scan</button>
+                        </div>
+                        <div id="phoneLookupResults" class="phone-lookup-results" aria-live="polite">
+                            <div class="phone-lookup-terminal">
+                                <div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Enter a phone number on the left and press <span class="link">Scan</span> to generate OSINT URLs.</div>
+                                <div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="phone-history">
+                        <div class="phone-history-title">Scan History</div>
+                        <div id="phoneHistoryList" class="phone-history-list">
+                            <div class="phone-history-item">
+                                <div class="phone-history-meta">No scans yet. Run your first lookup to populate history.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
     <div class="lightbox" id="lightbox" onclick="closeLightbox()" role="dialog" aria-modal="true" aria-label="Full size capture">
@@ -1305,6 +1535,134 @@ $userNavInitial = $userNavInitial ?? '?';
                 return;
             }
             showCopyResult(copyViaInputField(input) || copyViaHiddenTextarea(link));
+        }
+
+        function switchView(which) {
+            const trackifyLayout = document.getElementById('trackifyLayout');
+            const phoneLayout = document.getElementById('phoneLayout');
+            const navTrackify = document.getElementById('navItemTrackify');
+            const navPhone = document.getElementById('navItemPhone');
+
+            if (!trackifyLayout || !phoneLayout || !navTrackify || !navPhone) return;
+
+            if (which === 'phone') {
+                trackifyLayout.style.display = 'none';
+                phoneLayout.style.display = 'block';
+                navTrackify.classList.remove('active');
+                navPhone.classList.add('active');
+                loadPhoneHistory();
+            } else {
+                trackifyLayout.style.display = 'grid';
+                phoneLayout.style.display = 'none';
+                navTrackify.classList.add('active');
+                navPhone.classList.remove('active');
+            }
+        }
+
+        async function loadPhoneHistory() {
+            const listEl = document.getElementById('phoneHistoryList');
+            if (!listEl) return;
+            try {
+                const res = await fetch(API + '?action=phone_history', { credentials: 'same-origin' });
+                const data = await res.json();
+                if (!data || data.status !== 'success' || !Array.isArray(data.history) || data.history.length === 0) {
+                    listEl.innerHTML =
+                        '<div class="phone-history-item">' +
+                        '<div class="phone-history-meta">No scans yet.</div>' +
+                        '</div>';
+                    return;
+                }
+                listEl.innerHTML = data.history.map(item => {
+                    const num = String(item.phone_number || '');
+                    const cnt = typeof item.url_count === 'number' ? item.url_count : (Array.isArray(item.urls) ? item.urls.length : 0);
+                    const ts = String(item.created_at || '');
+                    const firstUrl = Array.isArray(item.urls) && item.urls.length ? String(item.urls[0]) : '';
+                    const safeNum = num.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    const safeTs = ts.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    const safeUrl = firstUrl.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    return '' +
+                        '<div class="phone-history-item">' +
+                        '<div class="phone-history-number">' + safeNum + '</div>' +
+                        '<div class="phone-history-meta">' + cnt + ' URL(s) · ' + safeTs + '</div>' +
+                        (safeUrl ? '<div class="phone-history-urls"><a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' + safeUrl + '</a></div>' : '') +
+                        '</div>';
+                }).join('');
+            } catch (e) {
+                listEl.innerHTML =
+                    '<div class="phone-history-item">' +
+                    '<div class="phone-history-meta">Could not load history.</div>' +
+                    '</div>';
+            }
+        }
+
+        function performPhoneLookup() {
+            const input = document.getElementById('phoneLookupInput');
+            const resultsEl = document.getElementById('phoneLookupResults');
+            if (!input || !resultsEl) return;
+
+            const raw = (input.value || '').trim();
+            if (!raw) {
+                resultsEl.innerHTML = '<span class="phone-lookup-hint">Enter a phone number to generate search links.</span>';
+                return;
+            }
+
+            // Normalize a bit but keep the exact string for quoted searches
+            const phoneForQuery = raw.replace(/\s+/g, ' ').trim();
+            const safeDisplay = phoneForQuery.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            resultsEl.innerHTML =
+                '<div class="phone-lookup-terminal">' +
+                '<div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Searching for <span class="link">' + safeDisplay + '</span> ...</div>' +
+                '<div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>' +
+                '</div>';
+
+            fetch(API + '?action=phone_lookup&number=' + encodeURIComponent(phoneForQuery), {
+                credentials: 'same-origin'
+            }).then(r => r.json()).then(data => {
+                const lines = [];
+                if (!data || data.status !== 'success') {
+                    const msg = (data && data.message) ? String(data.message) : 'Search failed';
+                    lines.push('<div class="phone-lookup-terminal-line"><span class="hint">[!]</span> ' + msg.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>');
+                    lines.push('<div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>');
+                    resultsEl.innerHTML =
+                        '<div class="phone-lookup-terminal">' +
+                        lines.join('') +
+                        '</div>';
+                    return;
+                }
+
+                const urls = Array.isArray(data.urls) ? data.urls : [];
+                lines.push('<div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Found ' + urls.length + ' result(s) for <span class="link">' + safeDisplay + '</span></div>');
+                lines.push('<div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Copy any URL below and open it in your browser.</div>');
+                lines.push('<div class="phone-lookup-terminal-line">&nbsp;</div>');
+
+                if (urls.length > 0) {
+                    urls.forEach(url => {
+                        const rawUrl = String(url);
+                        const safeUrl = rawUrl.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                        lines.push(
+                            '<div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~#</span> ' +
+                            '<a class="link" href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' +
+                            safeUrl +
+                            '</a></div>'
+                        );
+                    });
+                }
+                lines.push('<div class="phone-lookup-terminal-line">&nbsp;</div>');
+                lines.push('<div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>');
+
+                resultsEl.innerHTML =
+                    '<div class="phone-lookup-terminal">' +
+                    lines.join('') +
+                    '</div>';
+            }).catch(err => {
+                const msg = (err && err.message) ? err.message : String(err);
+                resultsEl.innerHTML =
+                    '<div class="phone-lookup-terminal">' +
+                    '<div class="phone-lookup-terminal-line"><span class="hint">[!]</span> Error: ' + msg.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
+                    '<div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>' +
+                    '</div>';
+            });
         }
 
         function syncGallerySelectAll() {
