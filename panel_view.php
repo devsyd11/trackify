@@ -800,12 +800,15 @@ $userNavInitial = $userNavInitial ?? '?';
             transform: translateY(0);
             opacity: 1;
         }
+        .side-nav-spacer {
+            flex: 1;
+            min-height: 8px;
+        }
         .side-nav-disclaimer-wrap {
             width: 100%;
             display: flex;
             justify-content: center;
             flex-shrink: 0;
-            margin-top: auto;
         }
         .disclaimer-link {
             display: inline-flex;
@@ -833,15 +836,28 @@ $userNavInitial = $userNavInitial ?? '?';
             opacity: 0.8;
             flex-shrink: 0;
         }
-        .disclaimer-link--rail {
+        .disclaimer-link.disclaimer-link--rail {
             width: 40px;
             height: 40px;
             padding: 0;
-            border-radius: 999px;
+            border-radius: 10px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
         }
-        .disclaimer-link--rail svg {
+        .disclaimer-link.disclaimer-link--rail:hover {
+            color: var(--text);
+            background: rgba(88, 166, 255, 0.12);
+            border: none;
+        }
+        .disclaimer-link.disclaimer-link--rail svg {
             width: 18px;
             height: 18px;
+            opacity: 1;
+        }
+        .disclaimer-link.disclaimer-link--rail:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
         }
         .modal-overlay {
             position: fixed;
@@ -1141,6 +1157,8 @@ $userNavInitial = $userNavInitial ?? '?';
             cursor: pointer;
             transition: background 0.15s, color 0.15s, transform 0.15s;
             font-size: 18px;
+            text-decoration: none;
+            font-family: inherit;
         }
         .side-nav-item:hover {
             color: var(--text);
@@ -1341,6 +1359,8 @@ $userNavInitial = $userNavInitial ?? '?';
             <button type="button" class="side-nav-item" id="navItemIp" onclick="switchView('ip')" title="IP Lookup">
                 🌐
             </button>
+            <div class="side-nav-spacer" aria-hidden="true"></div>
+            <a href="account-settings.php" class="side-nav-item" title="Account settings">⚙</a>
             <div class="side-nav-disclaimer-wrap">
                 <button type="button" class="disclaimer-link disclaimer-link--rail" onclick="openDisclaimer()" title="Disclaimer" aria-label="Disclaimer">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
