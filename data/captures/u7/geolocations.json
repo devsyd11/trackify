@@ -1,0 +1,21 @@
+[
+    {
+        "user_id": 7,
+        "ip": "2001:4456:c08:2400:bd48:a413:39f5:8359",
+        "timestamp": "2026-03-23 01:52:44",
+        "geo": {
+            "status": "success",
+            "ip": "2001:4456:c08:2400:bd48:a413:39f5:8359",
+            "latitude": 7.234007462620811,
+            "longitude": 125.62421027798773,
+            "source": "gps",
+            "city": "GPS Location",
+            "regionName": "Device",
+            "country": "Device GPS",
+            "countryCode": "",
+            "location": "GPS: 7.2340074626208, 125.62421027799",
+            "isp": "Device GPS",
+            "timezone": "Unknown"
+        }
+    }
+]

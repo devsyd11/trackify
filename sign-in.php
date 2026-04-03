@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $error = 'Invalid email or password.';
             } catch (PDOException $e) {
-                $error = 'Could not sign in. Check database configuration.';
+                $error = 'Could not sign in. Check database configuration.'.$e->getMessage();
             }
         }
     }

