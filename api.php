@@ -7,7 +7,7 @@
 declare(strict_types=1);
 
 $action = $_GET['action'] ?? '';
-$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'update_payload', 'diag', 'phone_lookup', 'phone_history'];
+$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Content-Type: application/json');
@@ -81,6 +81,9 @@ switch ($action) {
         break;
     case 'phone_history':
         handlePhoneHistory();
+        break;
+    case 'ip_lookup':
+        handleIpLookup();
         break;
     default:
         echo json_encode(['status' => 'error', 'message' => 'Unknown action']);
@@ -163,6 +166,642 @@ function serpapi_api_key(): ?string
     }
 
     return null;
+}
+
+/**
+ * FindIP.net API token (https://findip.net/).
+ *
+ * @return string|null non-empty when configured
+ */
+function findip_api_token(): ?string
+{
+    $path = __DIR__ . '/config.php';
+    if (is_readable($path)) {
+        $cfg = require $path;
+        if (!empty($cfg['findip_token']) && is_string($cfg['findip_token'])) {
+            $t = trim($cfg['findip_token']);
+            if ($t !== '') {
+                return $t;
+            }
+        }
+    }
+    $env = getenv('FINDIP_TOKEN');
+    if (is_string($env) && trim($env) !== '') {
+        return trim($env);
+    }
+
+    return null;
+}
+
+/** @return non-empty-string */
+function findip_api_base_url(): string
+{
+    $path = __DIR__ . '/config.php';
+    $default = 'https://api.findip.net';
+    if (!is_readable($path)) {
+        return $default;
+    }
+    $cfg = require $path;
+    $base = $cfg['findip_api_base'] ?? $default;
+    if (!is_string($base) || trim($base) === '') {
+        return $default;
+    }
+    $base = rtrim(trim($base), '/');
+
+    return preg_match('#^https?://#i', $base) ? $base : $default;
+}
+
+function findip_is_list_array(array $arr): bool
+{
+    if (function_exists('array_is_list')) {
+        return array_is_list($arr);
+    }
+    $i = 0;
+    foreach ($arr as $k => $_) {
+        if ($k !== $i) {
+            return false;
+        }
+        $i++;
+    }
+
+    return true;
+}
+
+/**
+ * True when a merged value is useless so a richer sibling (e.g. under "data") should win.
+ */
+function findip_is_emptyish(mixed $v): bool
+{
+    if ($v === null) {
+        return true;
+    }
+    if (is_string($v)) {
+        return trim($v) === '';
+    }
+    if (is_array($v)) {
+        if ($v === []) {
+            return true;
+        }
+        if (findip_is_list_array($v)) {
+            return $v === [];
+        }
+
+        return count($v) === 0;
+    }
+
+    return false;
+}
+
+/**
+ * Flatten FindIP JSON: merge common wrappers and nested objects so scalar picks work.
+ *
+ * @return array<string, mixed>
+ */
+function findip_flatten_payload(array $json): array
+{
+    $flat = [];
+
+    $mergeKey = function (string $k, mixed $v) use (&$flat): void {
+        if (!array_key_exists($k, $flat)) {
+            $flat[$k] = $v;
+
+            return;
+        }
+        if (findip_is_emptyish($flat[$k]) && !findip_is_emptyish($v)) {
+            $flat[$k] = $v;
+        }
+    };
+
+    $mergeLevel = function (array $node) use (&$flat, $mergeKey): void {
+        foreach ($node as $k => $v) {
+            if (!is_string($k)) {
+                continue;
+            }
+            $mergeKey($k, $v);
+            if (is_array($v) && !findip_is_list_array($v)) {
+                foreach ($v as $nk => $nv) {
+                    if (!is_string($nk)) {
+                        continue;
+                    }
+                    $mergeKey($nk, $nv);
+                    $mergeKey($k . '_' . $nk, $nv);
+                }
+            }
+        }
+    };
+
+    // Merge nested payloads first so empty top-level placeholders (country: "") do not block "data".
+    foreach (['data', 'result', 'payload', 'response', 'location', 'ip'] as $rootKey) {
+        if (isset($json[$rootKey]) && is_array($json[$rootKey])) {
+            $mergeLevel($json[$rootKey]);
+        }
+    }
+    $mergeLevel($json);
+
+    // Unwrap typical nested objects (country/city/isp as { name, iso, ... })
+    $parents = [
+        'country', 'city', 'region', 'state', 'province', 'isp', 'organization', 'org',
+        'connection', 'location', 'address', 'subdivision', 'sub_division', 'continent',
+        'geo', 'geolocation', 'network', 'traits',
+    ];
+    foreach ($parents as $p) {
+        if (!isset($flat[$p]) || !is_array($flat[$p]) || findip_is_list_array($flat[$p])) {
+            continue;
+        }
+        foreach ($flat[$p] as $nk => $nv) {
+            if (!is_string($nk)) {
+                continue;
+            }
+            $ck = $p . '_' . $nk;
+            $mergeKey($ck, $nv);
+        }
+    }
+
+    return $flat;
+}
+
+/**
+ * Turn API value into display string (scalars or { name, iso, ... } objects).
+ */
+function findip_stringify_value(mixed $v): ?string
+{
+    if ($v === null) {
+        return null;
+    }
+    if (is_bool($v) || is_float($v) || is_int($v)) {
+        return findip_format_scalar($v);
+    }
+    if (is_string($v)) {
+        $t = trim($v);
+
+        return $t === '' ? null : $t;
+    }
+    if (is_array($v) && !findip_is_list_array($v)) {
+        foreach (['name', 'Name', 'long_name', 'country_name', 'city', 'title', 'label', 'value', 'organization', 'org'] as $nk) {
+            if (!isset($v[$nk])) {
+                continue;
+            }
+            $inner = findip_stringify_value($v[$nk]);
+            if ($inner !== null && $inner !== '') {
+                return $inner;
+            }
+        }
+        if (isset($v['names']) && is_array($v['names']) && !findip_is_list_array($v['names'])) {
+            foreach (['en', 'EN', 'english', 'de', 'es', 'fr', 'ja', 'zh-CN'] as $lang) {
+                if (!isset($v['names'][$lang]) || !is_string($v['names'][$lang])) {
+                    continue;
+                }
+                $t = trim($v['names'][$lang]);
+                if ($t !== '') {
+                    return $t;
+                }
+            }
+            foreach ($v['names'] as $nv) {
+                if (!is_string($nv)) {
+                    continue;
+                }
+                $t = trim($nv);
+                if ($t !== '') {
+                    return $t;
+                }
+            }
+        }
+        if (isset($v['iso']) && is_scalar($v['iso']) && trim((string) $v['iso']) !== '') {
+            return trim((string) $v['iso']);
+        }
+        if (isset($v['code']) && is_scalar($v['code']) && trim((string) $v['code']) !== '') {
+            return trim((string) $v['code']);
+        }
+    }
+
+    return null;
+}
+
+/**
+ * @param array<string, mixed> $data
+ */
+function findip_pick_string(array $data, array $keys): ?string
+{
+    foreach ($keys as $k) {
+        if (!array_key_exists($k, $data)) {
+            continue;
+        }
+        $s = findip_stringify_value($data[$k]);
+        if ($s !== null && $s !== '') {
+            return $s;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * @param array<string, mixed> $data
+ */
+function findip_pick_float(array $data, array $keys): ?float
+{
+    foreach ($keys as $k) {
+        if (!array_key_exists($k, $data)) {
+            continue;
+        }
+        $v = $data[$k];
+        if ($v === null || $v === '') {
+            continue;
+        }
+        if (is_numeric($v)) {
+            return (float) $v;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * @param array<string, mixed> $data
+ */
+function findip_pick_iso2_alpha2(array $data): ?string
+{
+    $keys = [
+        'country_iso2', 'countryIso2', 'country_code', 'countryCode', 'CountryCode',
+        'iso_code', 'isoCode', 'country_code_iso2', 'ISO_CODE',
+    ];
+    foreach ($keys as $k) {
+        if (!array_key_exists($k, $data)) {
+            continue;
+        }
+        $v = $data[$k];
+        if (!is_string($v) && !is_int($v)) {
+            continue;
+        }
+        $s = strtoupper(trim((string) $v));
+        if (strlen($s) === 2 && ctype_alpha($s)) {
+            return $s;
+        }
+    }
+
+    return null;
+}
+
+function findip_is_eu_member_iso2(string $iso2): bool
+{
+    static $eu = null;
+    if ($eu === null) {
+        $eu = array_flip([
+            'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR',
+            'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK',
+            'SI', 'ES', 'SE',
+        ]);
+    }
+
+    return isset($eu[strtoupper($iso2)]);
+}
+
+function findip_continent_name_from_code(string $code): ?string
+{
+    $c = strtoupper(trim($code));
+    $map = [
+        'AF' => 'Africa',
+        'AN' => 'Antarctica',
+        'AS' => 'Asia',
+        'EU' => 'Europe',
+        'NA' => 'North America',
+        'OC' => 'Oceania',
+        'SA' => 'South America',
+    ];
+
+    return $map[$c] ?? null;
+}
+
+/**
+ * Region / state / province (FindIP and MaxMind-style subdivisions array).
+ *
+ * @param array<string, mixed> $data
+ */
+function findip_pick_subdivision(array $data): ?string
+{
+    $direct = findip_pick_string($data, [
+        'sub_division', 'subdivision', 'SubDivision', 'subdivision_name', 'subdivisionName',
+        'region', 'regionName', 'region_name', 'regionNameEn', 'region_name_en',
+        'state', 'State', 'province', 'administrative_area', 'administrative_area_level_1',
+        'admin_level_1', 'state_province', 'StateProvince', 'principal_subdivision',
+        'most_specific_subdivision', 'first_subdivision', 'subdivision_1', 'subdivision1',
+        'location_region', 'address_region', 'geo_region', 'metro', 'metro_name',
+    ]);
+    if ($direct !== null) {
+        return $direct;
+    }
+    foreach (['subdivisions', 'Subdivisions'] as $sk) {
+        if (!isset($data[$sk]) || !is_array($data[$sk])) {
+            continue;
+        }
+        $arr = $data[$sk];
+        if (!findip_is_list_array($arr) || $arr === []) {
+            continue;
+        }
+        $first = $arr[0];
+        $s = findip_stringify_value($first);
+        if ($s !== null && $s !== '') {
+            return $s;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Format a scalar for display (FindIP-style booleans as True/False).
+ */
+function findip_format_scalar(mixed $v): ?string
+{
+    if ($v === null) {
+        return null;
+    }
+    if (is_bool($v)) {
+        return $v ? 'True' : 'False';
+    }
+    if (is_float($v) || is_int($v)) {
+        return (string) $v;
+    }
+    if (is_string($v)) {
+        $t = trim($v);
+
+        return $t === '' ? null : $t;
+    }
+
+    return null;
+}
+
+/**
+ * Normalize FindIP JSON: coordinates + two-column rows (same layout as findip.net UI).
+ *
+ * @param array<string, mixed> $json
+ * @return array{details_rows: list<array{left: array{label: string, value: string}, right: array{label: string, value: string}}>, details_extra: list<array{label: string, value: string}>, details: array<string, string>, lat: ?float, lon: ?float}
+ */
+function findip_normalize_for_ui(array $json, string $queriedIp = ''): array
+{
+    $data = findip_flatten_payload($json);
+
+    $lat = findip_pick_float($data, [
+        'latitude', 'lat', 'Latitude', 'location_latitude', 'geo_latitude', 'lat_dd',
+    ]);
+    $lon = findip_pick_float($data, [
+        'longitude', 'lon', 'lng', 'Longitude', 'location_longitude', 'geo_longitude', 'lon_dd',
+    ]);
+
+    if (($lat === null || $lon === null) && isset($data['loc']) && is_string($data['loc'])) {
+        $parts = array_map('trim', explode(',', $data['loc']));
+        if (count($parts) === 2 && is_numeric($parts[0]) && is_numeric($parts[1])) {
+            $lat = (float) $parts[0];
+            $lon = (float) $parts[1];
+        }
+    }
+
+    $cell = function (array $keys) use ($data): string {
+        $picked = findip_pick_string($data, $keys);
+        if ($picked !== null && $picked !== '') {
+            return $picked;
+        }
+
+        return '—';
+    };
+
+    $isEuVal = null;
+    foreach ([
+        'is_eu', 'isEu', 'eu', 'EU', 'in_european_union', 'is_in_european_union',
+        'is_european_union', 'EuropeanUnion', 'european_union', 'isEuMember', 'is_eu_member',
+    ] as $k) {
+        if (!array_key_exists($k, $data)) {
+            continue;
+        }
+        $v = $data[$k];
+        if (is_bool($v)) {
+            $isEuVal = $v ? 'True' : 'False';
+            break;
+        }
+        if ($v === '1' || $v === 1 || $v === 'true' || $v === 'True') {
+            $isEuVal = 'True';
+            break;
+        }
+        if ($v === '0' || $v === 0 || $v === 'false' || $v === 'False') {
+            $isEuVal = 'False';
+            break;
+        }
+        $s = findip_stringify_value($v);
+        if ($s !== null && $s !== '') {
+            $isEuVal = $s;
+            break;
+        }
+    }
+    if ($isEuVal === null || $isEuVal === '—') {
+        $iso2eu = findip_pick_iso2_alpha2($data);
+        if ($iso2eu !== null) {
+            $isEuVal = findip_is_eu_member_iso2($iso2eu) ? 'True' : 'False';
+        } else {
+            $isEuVal = '—';
+        }
+    }
+
+    $continentCodeForName = findip_pick_string($data, [
+        'continent_code', 'continentCode', 'continent_code_iso2', 'continentCodeIso2',
+    ]);
+    $continentNameVal = $cell([
+        'continent_name', 'continentName', 'continent_name_long', 'continent_full_name',
+        'continent_name_en', 'continent', 'location_continent', 'traits_continent',
+    ]);
+    if ($continentNameVal === '—' && $continentCodeForName !== null) {
+        $mapped = findip_continent_name_from_code($continentCodeForName);
+        if ($mapped !== null) {
+            $continentNameVal = $mapped;
+        }
+    }
+
+    $subDivStr = findip_pick_subdivision($data);
+    if ($subDivStr === null || $subDivStr === '') {
+        $subDivStr = '—';
+    }
+
+    $latStr = $lat !== null ? (string) $lat : '—';
+    $lonStr = $lon !== null ? (string) $lon : '—';
+
+    $ipRow = $cell(['ip', 'query', 'ip_address', 'IPAddress', 'IPAddressV4', 'IPAddressV6']);
+    if ($ipRow === '—' && $queriedIp !== '') {
+        $ipRow = $queriedIp;
+    }
+
+    // Left column labels + key lists | Right column (findip.net layout)
+    $detailsRows = [
+        [
+            'left' => ['label' => 'IP Address', 'value' => $ipRow],
+            'right' => ['label' => 'Latitude', 'value' => $latStr],
+        ],
+        [
+            'left' => ['label' => 'Country', 'value' => $cell([
+                'country', 'country_name', 'Country', 'countryName', 'country_long_name',
+                'country_name_en', 'CountryName', 'countryNameEn', 'country_iso', 'country_iso2',
+                'country_iso3', 'countryNameNative', 'country_name_native',
+                'location_country', 'address_country', 'geo_country', 'registered_country',
+                'represented_country',
+            ])],
+            'right' => ['label' => 'Longitude', 'value' => $lonStr],
+        ],
+        [
+            'left' => ['label' => 'City', 'value' => $cell([
+                'city', 'City', 'city_name', 'cityName', 'locality', 'district',
+                'location_city', 'address_city', 'geo_city', 'town', 'municipality', 'village',
+                'address_locality',
+            ])],
+            'right' => ['label' => 'ISP', 'value' => $cell([
+                'isp', 'ISP', 'organization', 'org', 'as', 'AS', 'asname', 'ASName',
+                'isp_name', 'IspName', 'carrier', 'Carrier', 'company', 'Company',
+            ])],
+        ],
+        [
+            'left' => ['label' => 'Time Zone', 'value' => $cell(['timezone', 'time_zone', 'TimeZone', 'timeZone', 'timezone_name'])],
+            'right' => ['label' => 'Continent Code', 'value' => $cell(['continent_code', 'continentCode', 'continent_code_iso2', 'continentCodeIso2'])],
+        ],
+        [
+            'left' => ['label' => 'Weather Code', 'value' => $cell(['weather_code', 'weatherCode', 'WeatherCode', 'weather'])],
+            'right' => ['label' => 'Continent Name', 'value' => $continentNameVal],
+        ],
+        [
+            'left' => ['label' => 'Connection Type', 'value' => $cell([
+                'connection_type', 'connectionType', 'connection', 'type', 'usage_type', 'UsageType',
+                'connection_type_name', 'network_type', 'NetworkType',
+            ])],
+            'right' => ['label' => 'Is EU', 'value' => $isEuVal],
+        ],
+        [
+            'left' => ['label' => 'Sub Division', 'value' => $subDivStr],
+            'right' => ['label' => 'ISO Code', 'value' => $cell([
+                'iso_code', 'country_code', 'countryCode', 'country_code_iso2', 'CountryCode', 'isoCode',
+                'country_iso', 'country_iso2', 'countryIso2',
+            ])],
+        ],
+    ];
+
+    // Flat map for map popup
+    $details = [];
+    foreach ($detailsRows as $row) {
+        $details[$row['left']['label']] = $row['left']['value'];
+        $details[$row['right']['label']] = $row['right']['value'];
+    }
+
+    // Any remaining scalar fields from API (additional detail)
+    $usedKeys = [
+        'ip', 'query', 'ip_address', 'IPAddress', 'IPAddressV4', 'IPAddressV6',
+        'latitude', 'lat', 'Latitude', 'longitude', 'lon', 'lng', 'Longitude', 'loc',
+        'country', 'country_name', 'Country', 'countryName',
+        'city', 'City', 'city_name',
+        'timezone', 'time_zone', 'TimeZone', 'timeZone',
+        'weather_code', 'weatherCode', 'WeatherCode', 'weather',
+        'connection_type', 'connectionType', 'connection', 'type', 'usage_type', 'UsageType',
+        'sub_division', 'subdivision', 'SubDivision', 'region', 'regionName', 'region_name', 'state', 'State', 'province',
+        'isp', 'ISP', 'organization', 'org', 'as', 'AS', 'asname', 'ASName',
+        'continent_code', 'continentCode', 'continent_code_iso2',
+        'continent_name', 'continentName', 'continent',
+        'is_eu', 'isEu', 'eu', 'EU',
+        'iso_code', 'country_code', 'countryCode', 'isoCode',
+        'success', 'message', 'error', 'data', 'result', 'status',
+    ];
+    $usedKeys = array_flip($usedKeys);
+
+    $detailsExtra = [];
+    foreach ($data as $key => $val) {
+        if (!is_string($key) || isset($usedKeys[$key])) {
+            continue;
+        }
+        $formatted = findip_format_scalar($val);
+        if ($formatted === null) {
+            continue;
+        }
+        $label = ucfirst(str_replace(['_', '-'], ' ', $key));
+        if (isset($details[$label])) {
+            continue;
+        }
+        $details[$label] = $formatted;
+        $detailsExtra[] = ['label' => $label, 'value' => $formatted];
+    }
+
+    return [
+        'details_rows' => $detailsRows,
+        'details_extra' => $detailsExtra,
+        'details' => $details,
+        'lat' => $lat,
+        'lon' => $lon,
+    ];
+}
+
+function handleIpLookup(): void
+{
+    $ip = trim((string) ($_GET['ip'] ?? ''));
+    if ($ip === '') {
+        echo json_encode(['status' => 'error', 'message' => 'ip required']);
+        return;
+    }
+
+    if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid IP address']);
+        return;
+    }
+
+    $token = findip_api_token();
+    if ($token === null) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'FindIP token not configured. Set findip_token in config.php or FINDIP_TOKEN env (see https://findip.net/).',
+        ]);
+        return;
+    }
+
+    $base = findip_api_base_url();
+    $url = $base . '/' . rawurlencode($ip) . '/?token=' . rawurlencode($token);
+
+    $ctx = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'timeout' => 12,
+            'ignore_errors' => true,
+            'header' => "Accept: application/json\r\n",
+        ],
+        'ssl' => [
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+        ],
+    ]);
+
+    $raw = @file_get_contents($url, false, $ctx);
+    if ($raw === false || $raw === '') {
+        echo json_encode(['status' => 'error', 'message' => 'FindIP request failed']);
+        return;
+    }
+
+    $json = json_decode($raw, true);
+    if (!is_array($json)) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid JSON from FindIP']);
+        return;
+    }
+
+    if (!empty($json['error']) && is_string($json['error'])) {
+        echo json_encode(['status' => 'error', 'message' => $json['error']]);
+        return;
+    }
+    if (isset($json['success']) && $json['success'] === false) {
+        $msg = $json['message'] ?? $json['error'] ?? 'Lookup failed';
+        echo json_encode(['status' => 'error', 'message' => is_string($msg) ? $msg : 'Lookup failed']);
+        return;
+    }
+
+    $norm = findip_normalize_for_ui($json, $ip);
+
+    echo json_encode([
+        'status' => 'success',
+        'ip' => $ip,
+        'lat' => $norm['lat'],
+        'lon' => $norm['lon'],
+        'details' => $norm['details'],
+        'details_rows' => $norm['details_rows'],
+        'details_extra' => $norm['details_extra'],
+    ]);
 }
 
 /** @return non-empty-string|null */

@@ -702,12 +702,17 @@ $userNavInitial = $userNavInitial ?? '?';
             transform: translateY(0);
             opacity: 1;
         }
-        .disclaimer-wrap {
-            margin-bottom: 24px;
+        .side-nav-disclaimer-wrap {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: auto;
         }
         .disclaimer-link {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
             font-size: 13px;
             color: var(--accent);
@@ -717,6 +722,7 @@ $userNavInitial = $userNavInitial ?? '?';
             background: rgba(88, 166, 255, 0.12);
             border: 1px solid rgba(88, 166, 255, 0.25);
             transition: all 0.2s ease;
+            font-family: inherit;
         }
         .disclaimer-link:hover {
             color: #79b8ff;
@@ -727,6 +733,17 @@ $userNavInitial = $userNavInitial ?? '?';
             width: 14px;
             height: 14px;
             opacity: 0.8;
+            flex-shrink: 0;
+        }
+        .disclaimer-link--rail {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border-radius: 999px;
+        }
+        .disclaimer-link--rail svg {
+            width: 18px;
+            height: 18px;
         }
         .modal-overlay {
             position: fixed;
@@ -950,13 +967,15 @@ $userNavInitial = $userNavInitial ?? '?';
         }
         .side-nav {
             width: 72px;
+            min-height: 100vh;
             background: #05070c;
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 16px 8px;
+            padding: 16px 8px 20px;
             gap: 12px;
+            box-sizing: border-box;
         }
         .side-nav-logo {
             width: 40px;
@@ -970,9 +989,6 @@ $userNavInitial = $userNavInitial ?? '?';
             font-size: 18px;
             color: #fff;
             margin-bottom: 12px;
-        }
-        .side-nav-spacer {
-            flex: 1;
         }
         .side-nav-item {
             width: 40px;
@@ -1063,6 +1079,99 @@ $userNavInitial = $userNavInitial ?? '?';
         .phone-history-urls a:hover {
             text-decoration: underline;
         }
+        .ip-lookup-details {
+            font-size: 13px;
+        }
+        .ip-lookup-grid {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--bg-input);
+        }
+        .ip-lookup-pair-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 1px solid var(--border);
+        }
+        .ip-lookup-pair-row:last-child {
+            border-bottom: none;
+        }
+        .ip-lookup-half {
+            display: grid;
+            grid-template-columns: minmax(100px, 38%) 1fr;
+            gap: 10px 14px;
+            padding: 12px 16px;
+            align-items: baseline;
+            border-right: 1px solid var(--border);
+        }
+        .ip-lookup-half:last-child {
+            border-right: none;
+        }
+        .ip-lookup-lbl {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .ip-lookup-val {
+            color: var(--accent-green);
+            font-size: 13px;
+            font-weight: 600;
+            word-break: break-word;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .ip-lookup-extra {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+        .ip-lookup-extra h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .ip-lookup-extra-row {
+            display: grid;
+            grid-template-columns: minmax(120px, 32%) 1fr;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(48,54,61,0.5);
+        }
+        .ip-lookup-extra-row:last-child {
+            border-bottom: none;
+        }
+        @media (max-width: 720px) {
+            .ip-lookup-pair-row {
+                grid-template-columns: 1fr;
+            }
+            .ip-lookup-half {
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+            .ip-lookup-half:last-child {
+                border-bottom: none;
+            }
+        }
+        .ip-lookup-map {
+            height: 380px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            background: var(--bg-input);
+        }
+        .ip-lookup-map.ip-lookup-map--empty {
+            height: auto;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 24px;
+            text-align: center;
+        }
         .top-nav {
             height: 56px;
             display: flex;
@@ -1094,7 +1203,14 @@ $userNavInitial = $userNavInitial ?? '?';
             <button type="button" class="side-nav-item" id="navItemPhone" onclick="switchView('phone')" title="Phone Number Look Up">
                 ☎
             </button>
-            <div class="side-nav-spacer"></div>
+            <button type="button" class="side-nav-item" id="navItemIp" onclick="switchView('ip')" title="IP Lookup">
+                🌐
+            </button>
+            <div class="side-nav-disclaimer-wrap">
+                <button type="button" class="disclaimer-link disclaimer-link--rail" onclick="openDisclaimer()" title="Disclaimer" aria-label="Disclaimer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                </button>
+            </div>
         </nav>
 
         <div style="flex:1;display:flex;flex-direction:column;min-height:100vh;">
@@ -1118,12 +1234,6 @@ $userNavInitial = $userNavInitial ?? '?';
         <div id="trackifyLayout" class="layout">
         <main class="main">
             <p class="subtitle">IP Tracker & Geolocation — Generate tracker links and monitor captures</p>
-            <div class="disclaimer-wrap">
-                <button class="disclaimer-link" onclick="openDisclaimer()" type="button">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                    Disclaimer
-                </button>
-            </div>
 
             <div class="card">
                 <h2>Generate Tracker Link</h2>
@@ -1265,6 +1375,42 @@ $userNavInitial = $userNavInitial ?? '?';
                             <div class="phone-history-item">
                                 <div class="phone-history-meta">No scans yet. Run your first lookup to populate history.</div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ipLayout" class="phone-layout" style="display:none" aria-label="IP lookup view">
+            <div class="phone-layout-inner">
+                <div class="phone-layout-columns">
+                    <div class="card">
+                        <h2>IP Lookup</h2>
+                        <div class="phone-lookup-input-wrap">
+                            <label for="ipLookupInput">IP address</label>
+                            <input type="text" id="ipLookupInput" placeholder="e.g. 8.8.8.8 or 2001:4860:4860::8888" autocomplete="off">
+                        </div>
+                        <div id="ipLookupError" class="phone-lookup-error" role="alert" hidden></div>
+                        <div class="phone-lookup-actions">
+                            <button type="button" class="btn btn-secondary" onclick="performIpLookup()">Lookup</button>
+                        </div>
+                        <div id="ipLookupTerminal" class="phone-lookup-results" aria-live="polite">
+                            <div class="phone-lookup-terminal">
+                                <div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Enter an IPv4 or IPv6 address and press <span class="link">Lookup</span>.</div>
+                                <div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card">
+                            <h2>Details</h2>
+                            <div id="ipLookupDetails" class="ip-lookup-details">
+                                <p style="margin:0;color:var(--text-muted);font-size:13px">Run a lookup to see IP details.</p>
+                            </div>
+                        </div>
+                        <div class="card" style="margin-top:20px">
+                            <h2>Map</h2>
+                            <div id="ipLookupMap" class="ip-lookup-map ip-lookup-map--empty">No location yet. Coordinates appear here when FindIP returns latitude/longitude.</div>
                         </div>
                     </div>
                 </div>
@@ -1550,24 +1696,241 @@ $userNavInitial = $userNavInitial ?? '?';
         function switchView(which) {
             const trackifyLayout = document.getElementById('trackifyLayout');
             const phoneLayout = document.getElementById('phoneLayout');
+            const ipLayout = document.getElementById('ipLayout');
             const navTrackify = document.getElementById('navItemTrackify');
             const navPhone = document.getElementById('navItemPhone');
+            const navIp = document.getElementById('navItemIp');
 
-            if (!trackifyLayout || !phoneLayout || !navTrackify || !navPhone) return;
+            if (!trackifyLayout || !phoneLayout || !ipLayout || !navTrackify || !navPhone || !navIp) return;
+
+            navTrackify.classList.remove('active');
+            navPhone.classList.remove('active');
+            navIp.classList.remove('active');
 
             if (which === 'phone') {
                 trackifyLayout.style.display = 'none';
                 phoneLayout.style.display = 'block';
-                navTrackify.classList.remove('active');
+                ipLayout.style.display = 'none';
                 navPhone.classList.add('active');
                 loadPhoneHistory();
+            } else if (which === 'ip') {
+                trackifyLayout.style.display = 'none';
+                phoneLayout.style.display = 'none';
+                ipLayout.style.display = 'block';
+                navIp.classList.add('active');
+                setTimeout(function () {
+                    if (typeof ipLookupLeafletMap !== 'undefined' && ipLookupLeafletMap) {
+                        try { ipLookupLeafletMap.invalidateSize(); } catch (e) {}
+                    }
+                }, 250);
             } else {
                 trackifyLayout.style.display = 'grid';
                 phoneLayout.style.display = 'none';
+                ipLayout.style.display = 'none';
                 navTrackify.classList.add('active');
-                navPhone.classList.remove('active');
             }
         }
+
+        let ipLookupLeafletMap = null;
+        let ipLookupLeafletMarker = null;
+        let leafletLoadPromise = null;
+
+        function destroyIpLookupMap() {
+            if (ipLookupLeafletMap) {
+                try { ipLookupLeafletMap.remove(); } catch (e) {}
+                ipLookupLeafletMap = null;
+                ipLookupLeafletMarker = null;
+            }
+        }
+
+        function setIpMapPlaceholder(text) {
+            destroyIpLookupMap();
+            const el = document.getElementById('ipLookupMap');
+            if (!el) return;
+            el.className = 'ip-lookup-map ip-lookup-map--empty';
+            el.textContent = text;
+        }
+
+        function ensureLeafletLoaded() {
+            if (window.L) {
+                return Promise.resolve();
+            }
+            if (leafletLoadPromise) {
+                return leafletLoadPromise;
+            }
+            leafletLoadPromise = new Promise(function (resolve, reject) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+                document.head.appendChild(link);
+                const s = document.createElement('script');
+                s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                s.onload = function () { resolve(); };
+                s.onerror = function () { reject(new Error('Could not load map library')); };
+                document.body.appendChild(s);
+            });
+            return leafletLoadPromise;
+        }
+
+        function escapeHtmlText(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function renderIpDetails(data) {
+            const wrap = document.getElementById('ipLookupDetails');
+            if (!wrap) return;
+            if (!data || data.status !== 'success') {
+                wrap.innerHTML = '<p style="margin:0;color:var(--text-muted);font-size:13px">No details returned.</p>';
+                return;
+            }
+            const rows = Array.isArray(data.details_rows) ? data.details_rows : [];
+            if (rows.length === 0 && data.details && typeof data.details === 'object') {
+                const keys = Object.keys(data.details);
+                let html = '<div class="ip-lookup-grid">';
+                keys.forEach(function (k) {
+                    html += '<div class="ip-lookup-pair-row"><div class="ip-lookup-half" style="grid-column:1/-1;border-right:none">' +
+                        '<span class="ip-lookup-lbl">' + escapeHtmlText(k) + '</span>' +
+                        '<span class="ip-lookup-val">' + escapeHtmlText(String(data.details[k])) + '</span></div></div>';
+                });
+                html += '</div>';
+                wrap.innerHTML = html;
+                return;
+            }
+            let html = '<div class="ip-lookup-grid">';
+            rows.forEach(function (row) {
+                const L = row.left || {};
+                const R = row.right || {};
+                html += '<div class="ip-lookup-pair-row">' +
+                    '<div class="ip-lookup-half">' +
+                    '<span class="ip-lookup-lbl">' + escapeHtmlText(L.label || '') + '</span>' +
+                    '<span class="ip-lookup-val">' + escapeHtmlText(String(L.value != null ? L.value : '—')) + '</span>' +
+                    '</div>' +
+                    '<div class="ip-lookup-half">' +
+                    '<span class="ip-lookup-lbl">' + escapeHtmlText(R.label || '') + '</span>' +
+                    '<span class="ip-lookup-val">' + escapeHtmlText(String(R.value != null ? R.value : '—')) + '</span>' +
+                    '</div>' +
+                    '</div>';
+            });
+            html += '</div>';
+            const extra = Array.isArray(data.details_extra) ? data.details_extra : [];
+            if (extra.length > 0) {
+                html += '<div class="ip-lookup-extra"><h3>Additional fields</h3>';
+                extra.forEach(function (row) {
+                    html += '<div class="ip-lookup-extra-row">' +
+                        '<span class="ip-lookup-lbl">' + escapeHtmlText(row.label || '') + '</span>' +
+                        '<span class="ip-lookup-val">' + escapeHtmlText(String(row.value != null ? row.value : '')) + '</span>' +
+                        '</div>';
+                });
+                html += '</div>';
+            }
+            wrap.innerHTML = html;
+        }
+
+        function showIpOnMap(lat, lon, label) {
+            const el = document.getElementById('ipLookupMap');
+            if (!el) return;
+            ensureLeafletLoaded().then(function () {
+                destroyIpLookupMap();
+                el.className = 'ip-lookup-map';
+                el.innerHTML = '';
+                ipLookupLeafletMap = L.map(el).setView([lat, lon], 10);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a>'
+                }).addTo(ipLookupLeafletMap);
+                ipLookupLeafletMarker = L.marker([lat, lon]).addTo(ipLookupLeafletMap);
+                if (label) {
+                    ipLookupLeafletMarker.bindPopup(escapeHtmlText(label)).openPopup();
+                }
+                setTimeout(function () {
+                    if (ipLookupLeafletMap) ipLookupLeafletMap.invalidateSize();
+                }, 150);
+            }).catch(function () {
+                setIpMapPlaceholder('Map could not load. Check your network or try again.');
+            });
+        }
+
+        function performIpLookup() {
+            const input = document.getElementById('ipLookupInput');
+            const termEl = document.getElementById('ipLookupTerminal');
+            const errEl = document.getElementById('ipLookupError');
+            if (!input || !termEl) return;
+
+            const raw = (input.value || '').trim();
+            if (!raw) {
+                if (errEl) {
+                    errEl.textContent = 'Please enter an IP address.';
+                    errEl.hidden = false;
+                }
+                return;
+            }
+            if (errEl) {
+                errEl.textContent = '';
+                errEl.hidden = true;
+            }
+
+            const safeIp = escapeHtmlText(raw);
+            termEl.innerHTML =
+                '<div class="phone-lookup-terminal">' +
+                '<div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Looking up <span class="link">' + safeIp + '</span> via FindIP ...</div>' +
+                '<div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>' +
+                '</div>';
+
+            fetch(API + '?action=ip_lookup&ip=' + encodeURIComponent(raw), { credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    const lines = [];
+                    if (!data || data.status !== 'success') {
+                        const msg = (data && data.message) ? String(data.message) : 'Lookup failed';
+                        lines.push('<div class="phone-lookup-terminal-line"><span class="hint">[!]</span> ' + escapeHtmlText(msg) + '</div>');
+                        lines.push('<div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>');
+                        termEl.innerHTML = '<div class="phone-lookup-terminal">' + lines.join('') + '</div>';
+                        renderIpDetails({ status: 'error' });
+                        setIpMapPlaceholder('Lookup failed — no map.');
+                        return;
+                    }
+
+                    lines.push('<div class="phone-lookup-terminal-line"><span class="hint">[+]</span> FindIP response received for <span class="link">' + safeIp + '</span></div>');
+                    lines.push('<div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>');
+                    termEl.innerHTML = '<div class="phone-lookup-terminal">' + lines.join('') + '</div>';
+
+                    renderIpDetails(data);
+
+                    const lat = typeof data.lat === 'number' ? data.lat : null;
+                    const lon = typeof data.lon === 'number' ? data.lon : null;
+                    if (lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon)) {
+                        const locLabel = (data.details && data.details.City && data.details.Country)
+                            ? (data.details.City + ', ' + data.details.Country)
+                            : raw;
+                        showIpOnMap(lat, lon, locLabel);
+                    } else {
+                        setIpMapPlaceholder('No latitude/longitude in this response. Details may still list location text.');
+                    }
+                })
+                .catch(function (err) {
+                    const msg = (err && err.message) ? err.message : String(err);
+                    termEl.innerHTML =
+                        '<div class="phone-lookup-terminal">' +
+                        '<div class="phone-lookup-terminal-line"><span class="hint">[!]</span> Error: ' + escapeHtmlText(msg) + '</div>' +
+                        '<div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>' +
+                        '</div>';
+                    setIpMapPlaceholder('Request error.');
+                });
+        }
+
+        (function initIpLookupValidation() {
+            const input = document.getElementById('ipLookupInput');
+            const errorEl = document.getElementById('ipLookupError');
+            if (!input || !errorEl) return;
+            input.addEventListener('input', function () {
+                if (input.value && input.value.trim()) {
+                    errorEl.textContent = '';
+                    errorEl.hidden = true;
+                }
+            });
+        })();
 
         (function initPhoneLookupValidation() {
             const input = document.getElementById('phoneLookupInput');
@@ -1932,8 +2295,16 @@ $userNavInitial = $userNavInitial ?? '?';
         })();
 
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && document.getElementById('lightbox').classList.contains('show')) {
+            if (e.key !== 'Escape') {
+                return;
+            }
+            if (document.getElementById('lightbox').classList.contains('show')) {
                 closeLightbox();
+                return;
+            }
+            const dm = document.getElementById('disclaimerModal');
+            if (dm && dm.classList.contains('show')) {
+                dm.classList.remove('show');
             }
         });
 
