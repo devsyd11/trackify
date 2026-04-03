@@ -42,7 +42,8 @@ $userNavInitial = $userNavInitial ?? '?';
         .layout {
             display: grid;
             grid-template-columns: minmax(380px, 1fr) minmax(460px, 580px) 360px;
-            min-height: 100vh;
+            min-height: auto;
+            align-content: start;
         }
         @media (max-width: 1200px) {
             .layout { grid-template-columns: 1fr 360px; }
@@ -52,7 +53,7 @@ $userNavInitial = $userNavInitial ?? '?';
             .layout { grid-template-columns: 1fr; }
         }
         .main {
-            padding: 32px;
+            padding: 24px 28px 28px;
             overflow-y: auto;
         }
         .gallery-section {
@@ -470,7 +471,7 @@ $userNavInitial = $userNavInitial ?? '?';
         .subtitle {
             color: var(--text-muted);
             font-size: 14px;
-            margin-bottom: 32px;
+            margin-bottom: 20px;
         }
         .card {
             background: var(--bg-card);
@@ -478,6 +479,10 @@ $userNavInitial = $userNavInitial ?? '?';
             border-radius: 12px;
             padding: 24px;
             margin-bottom: 24px;
+        }
+        .layout .card {
+            padding: 20px;
+            margin-bottom: 18px;
         }
         .card h2 {
             font-size: 16px;
@@ -535,6 +540,28 @@ $userNavInitial = $userNavInitial ?? '?';
             cursor: not-allowed;
             transform: none;
         }
+        .btn-generate {
+            width: 100%;
+            margin-top: 20px;
+            min-height: 50px;
+            padding: 0 28px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            box-shadow: 0 2px 14px rgba(35, 134, 54, 0.32);
+        }
+        .btn-generate:hover:not(:disabled) {
+            box-shadow: 0 4px 20px rgba(35, 134, 54, 0.42);
+        }
+        .btn-generate:active:not(:disabled) {
+            transform: translateY(0);
+            filter: brightness(0.98);
+        }
+        .btn-generate-icon {
+            flex-shrink: 0;
+            opacity: 0.95;
+        }
         .btn-secondary {
             background: var(--bg-input);
             color: var(--text);
@@ -566,27 +593,6 @@ $userNavInitial = $userNavInitial ?? '?';
             font-size: 13px;
             box-sizing: border-box;
         }
-        .terminal {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            background: #0a0e14;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            height: 400px;
-            overflow-y: auto;
-            color: #b3b1ad;
-        }
-        .terminal-line {
-            margin-bottom: 4px;
-            word-break: break-all;
-        }
-        .terminal-line.cyan { color: #39bae6; }
-        .terminal-line.green { color: #7fd962; }
-        .terminal-line.yellow { color: #ffb454; }
-        .terminal-line.dim { color: #626a73; }
-        .terminal-line.prompt { color: #ff8f40; }
         .terminal-cursor {
             display: inline-block;
             width: 8px;
@@ -604,6 +610,98 @@ $userNavInitial = $userNavInitial ?? '?';
             border-top: 1px solid var(--border);
         }
         .telegram-section label { margin-top: 12px; }
+        .telegram-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .telegram-toggle-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+        }
+        .toggle {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+        .toggle-input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            margin: 0;
+        }
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .toggle-input:checked + .toggle-track {
+            background: rgba(46, 160, 67, 0.28);
+            border-color: rgba(63, 185, 80, 0.65);
+        }
+        .toggle-thumb {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            transition: transform 0.2s, background 0.2s;
+            pointer-events: none;
+        }
+        .toggle-input:checked + .toggle-track .toggle-thumb {
+            transform: translateX(22px);
+            background: var(--accent-green);
+        }
+        .toggle-input:focus-visible + .toggle-track {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        .modal-content--telegram label {
+            margin-top: 12px;
+        }
+        .modal-content--telegram label:first-of-type {
+            margin-top: 0;
+        }
+        .modal-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin: -8px 0 16px;
+        }
+        .telegram-modal-error {
+            font-size: 13px;
+            color: var(--accent-red);
+            margin: 12px 0 0;
+            min-height: 1.2em;
+        }
+        .telegram-modal-error:empty {
+            display: none;
+        }
+        .telegram-modal-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+            align-items: center;
+        }
+        .telegram-modal-actions .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+        .telegram-modal-actions .btn-telegram-secondary {
+            flex: 0 1 auto;
+            min-width: 100px;
+        }
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -957,6 +1055,10 @@ $userNavInitial = $userNavInitial ?? '?';
         .phone-lookup-terminal-line span.hint {
             color: #626a73;
         }
+        .phone-lookup-terminal-line.green { color: #7fd962; }
+        .phone-lookup-terminal-line.cyan { color: #39bae6; }
+        .phone-lookup-terminal-line.yellow { color: #ffb454; }
+        .phone-lookup-terminal-line.dim { color: #626a73; }
         .phone-lookup-hint {
             color: var(--text-muted);
             font-size: 12px;
@@ -1252,19 +1354,19 @@ $userNavInitial = $userNavInitial ?? '?';
                     <input type="text" id="ytVideoId" placeholder="dQw4w9WgXcQ" value="dQw4w9WgXcQ">
                 </div>
                 <div class="telegram-section">
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-                        <input type="checkbox" id="useTelegram">
-                        Enable Telegram notifications
-                    </label>
-                    <div id="telegramFields" style="display:none;margin-top:12px">
-                        <label>Bot Token</label>
-                        <input type="password" id="botToken" placeholder="123456:ABC...">
-                        <label>Chat ID / Username</label>
-                        <input type="text" id="chatId" placeholder="@username or -100123456">
+                    <div class="telegram-toggle-row">
+                        <span class="telegram-toggle-label" id="telegramToggleLabel">Telegram notifications</span>
+                        <label class="toggle" title="Enable Telegram notifications">
+                            <input type="checkbox" id="useTelegram" class="toggle-input" aria-labelledby="telegramToggleLabel">
+                            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                        </label>
                     </div>
+                    <input type="hidden" id="botToken" value="">
+                    <input type="hidden" id="chatId" value="">
                 </div>
-                <button class="btn btn-primary" id="generateBtn" onclick="generateLink()">
-                    <span>Generate Link</span>
+                <button type="button" class="btn btn-primary btn-generate" id="generateBtn" onclick="generateLink()">
+                    <svg class="btn-generate-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    <span>Generate</span>
                 </button>
                 <div id="linkBox" class="link-box" style="display:none">
                     <input type="text" class="link-input" id="trackerLink" readonly>
@@ -1275,20 +1377,9 @@ $userNavInitial = $userNavInitial ?? '?';
 
             <div class="card">
                 <h2>Terminal</h2>
-                <div class="terminal" id="terminal">
-                    <div class="terminal-line cyan">  ╔══════════════════════════════════════════════════════════════╗</div>
-                    <div class="terminal-line cyan">  ║  <span class="green">████████╗██████╗  █████╗  ██████╗██╗  ██╗██╗███████╗██╗   ██╗</span><span class="cyan">  ║</span></div>
-                    <div class="terminal-line cyan">  ║  <span class="green">╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║██╔════╝╚██╗ ██╔╝</span><span class="cyan">  ║</span></div>
-                    <div class="terminal-line cyan">  ║  <span class="green">   ██║   ██████╔╝███████║██║     █████╔╝ ██║█████╗   ╚████╔╝ </span><span class="cyan">  ║</span></div>
-                    <div class="terminal-line cyan">  ║  <span class="green">   ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██║██╔══╝    ╚██╔╝  </span><span class="cyan">  ║</span></div>
-                    <div class="terminal-line cyan">  ║  <span class="green">   ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗██║██║        ██║   </span><span class="cyan">  ║</span></div>
-                    <div class="terminal-line cyan">  ║  <span class="green">   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝        ╚═╝   </span><span class="cyan">  ║</span></div>
-                    <div class="terminal-line cyan">  ╠══════════════════════════════════════════════════════════════╣</div>
-                    <div class="terminal-line cyan">  ║  <span class="yellow">  [*] IP TRACKER // GEOLOCATION  │  root@trackify:~#</span><span class="cyan">           ║</span></div>
-                    <div class="terminal-line cyan">  ╚══════════════════════════════════════════════════════════════╝</div>
-                    <div class="terminal-line dim" style="margin-top:12px">  Developed by: 0Cod3</div>
-                    <div class="terminal-line yellow" style="margin-top:16px">  [*] Waiting for targets, Press Ctrl + C to exit...</div>
-                    <div class="terminal-line"><span class="prompt">  root@trackify:~# </span><span class="terminal-cursor"></span></div>
+                <div class="phone-lookup-terminal" id="terminal">
+                    <div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Waiting for targets, Press Ctrl + C to exit...</div>
+                    <div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>
                 </div>
             </div>
         </main>
@@ -1425,6 +1516,23 @@ $userNavInitial = $userNavInitial ?? '?';
 
     <div class="toast" id="toast">Copied to clipboard!</div>
 
+    <div class="modal-overlay" id="telegramModal" role="dialog" aria-modal="true" aria-labelledby="telegramModalTitle" onclick="closeTelegramModalBackdrop(event)">
+        <div class="modal-content modal-content--telegram" onclick="event.stopPropagation()">
+            <h2 class="modal-title" id="telegramModalTitle">Telegram notifications</h2>
+            <p class="modal-sub">Create a bot with @BotFather, copy the API token, and use @userinfobot or your chat ID (numeric or @username).</p>
+            <label for="modalBotToken">Bot token</label>
+            <input type="password" id="modalBotToken" autocomplete="off" placeholder="123456789:AAH…">
+            <label for="modalChatId">Chat ID</label>
+            <input type="text" id="modalChatId" autocomplete="off" placeholder="@username or -1001234567890">
+            <p class="telegram-modal-error" id="telegramModalError" role="alert"></p>
+            <div class="telegram-modal-actions">
+                <button type="button" class="btn btn-secondary btn-telegram-secondary" id="telegramTestBtn">Test now</button>
+                <button type="button" class="btn btn-primary" id="telegramSaveBtn">Save</button>
+                <button type="button" class="btn btn-secondary" id="telegramModalCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="disclaimerModal" onclick="closeDisclaimer(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 class="modal-title">Disclaimer</h2>
@@ -1464,6 +1572,7 @@ $userNavInitial = $userNavInitial ?? '?';
         const linkBox = document.getElementById('linkBox');
         const trackerLinkInput = document.getElementById('trackerLink');
         const generateBtn = document.getElementById('generateBtn');
+        const GENERATE_BTN_IDLE_HTML = '<svg class="btn-generate-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Generate</span>';
         const statusDisplay = document.getElementById('statusDisplay');
         const statusLink = document.getElementById('statusLink');
         const capturesList = document.getElementById('capturesList');
@@ -1495,15 +1604,171 @@ $userNavInitial = $userNavInitial ?? '?';
             syncPayloadOptions();
         });
 
-        document.getElementById('useTelegram').addEventListener('change', function() {
-            document.getElementById('telegramFields').style.display = this.checked ? 'block' : 'none';
+        let telegramPersisted = false;
+        let telegramModalFromToggle = false;
+
+        function setTelegramModalError(msg) {
+            const el = document.getElementById('telegramModalError');
+            if (el) {
+                el.textContent = msg ? String(msg) : '';
+            }
+        }
+
+        /**
+         * Load telegram_config.json into hidden fields; optionally prefill the modal (same session only).
+         * @returns {Promise<boolean>} true if bot token and chat id were loaded
+         */
+        async function loadTelegramConfigIntoUi(options) {
+            const fillModal = options && options.fillModal;
+            try {
+                const res = await fetch(API + '?action=telegram_config', { credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success' || !data.configured || !data.bot_token || !data.chat_id) {
+                    return false;
+                }
+                const bt = document.getElementById('botToken');
+                const ci = document.getElementById('chatId');
+                if (bt) {
+                    bt.value = data.bot_token;
+                }
+                if (ci) {
+                    ci.value = data.chat_id;
+                }
+                if (fillModal) {
+                    const mt = document.getElementById('modalBotToken');
+                    const mc = document.getElementById('modalChatId');
+                    if (mt) {
+                        mt.value = data.bot_token;
+                    }
+                    if (mc) {
+                        mc.value = data.chat_id;
+                    }
+                }
+                telegramPersisted = true;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function openTelegramModal(fromToggle) {
+            telegramModalFromToggle = !!fromToggle;
+            setTelegramModalError('');
+            await loadTelegramConfigIntoUi({ fillModal: true });
+            const m = document.getElementById('telegramModal');
+            if (m) {
+                m.classList.add('show');
+            }
+            const tok = document.getElementById('modalBotToken');
+            if (tok) {
+                tok.focus();
+            }
+        }
+
+        function cancelTelegramModal() {
+            const m = document.getElementById('telegramModal');
+            if (m) {
+                m.classList.remove('show');
+            }
+            if (telegramModalFromToggle && !telegramPersisted) {
+                const cb = document.getElementById('useTelegram');
+                if (cb) {
+                    cb.checked = false;
+                }
+            }
+            telegramModalFromToggle = false;
+            setTelegramModalError('');
+        }
+
+        function closeTelegramModalBackdrop(e) {
+            if (!e || e.target === e.currentTarget) {
+                cancelTelegramModal();
+            }
+        }
+
+        document.getElementById('useTelegram').addEventListener('change', function () {
+            if (this.checked) {
+                void openTelegramModal(true);
+            }
+            /* Toggle off: do not delete telegram_config.json — credentials stay on disk for next time. */
+        });
+
+        document.getElementById('telegramModalCancelBtn').addEventListener('click', cancelTelegramModal);
+
+        document.getElementById('telegramSaveBtn').addEventListener('click', async function () {
+            const token = (document.getElementById('modalBotToken').value || '').trim();
+            const chat = (document.getElementById('modalChatId').value || '').trim();
+            if (!token || !chat) {
+                setTelegramModalError('Enter both bot token and chat ID.');
+                return;
+            }
+            const btn = document.getElementById('telegramSaveBtn');
+            btn.disabled = true;
+            setTelegramModalError('');
+            try {
+                const res = await fetch(API + '?action=telegram', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bot_token: token, chat_id: chat }),
+                    credentials: 'same-origin',
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    setTelegramModalError(data.message || 'Could not save');
+                    return;
+                }
+                document.getElementById('botToken').value = token;
+                document.getElementById('chatId').value = chat;
+                telegramPersisted = true;
+                document.getElementById('useTelegram').checked = true;
+                document.getElementById('telegramModal').classList.remove('show');
+                telegramModalFromToggle = false;
+            } catch (err) {
+                setTelegramModalError('Network error — try again');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('telegramTestBtn').addEventListener('click', async function () {
+            const token = (document.getElementById('modalBotToken').value || '').trim();
+            const chat = (document.getElementById('modalChatId').value || '').trim();
+            if (!token || !chat) {
+                setTelegramModalError('Enter bot token and chat ID to test.');
+                return;
+            }
+            const btn = document.getElementById('telegramTestBtn');
+            const prev = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Sending…';
+            setTelegramModalError('');
+            try {
+                const res = await fetch(API + '?action=telegram_test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bot_token: token, chat_id: chat }),
+                    credentials: 'same-origin',
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.status === 'success') {
+                    setTelegramModalError('');
+                    alert(data.message || 'Test message sent.');
+                } else {
+                    setTelegramModalError(data.message || 'Test failed');
+                }
+            } catch (err) {
+                setTelegramModalError('Network error — try again');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = prev;
+            }
         });
 
         function addTerminalLine(text, cls = '') {
             const line = document.createElement('div');
-            line.className = 'terminal-line' + (cls ? ' ' + cls : '');
+            line.className = 'phone-lookup-terminal-line' + (cls ? ' ' + cls : '');
             line.textContent = '  ' + text;
-            const prompt = terminalEl.querySelector('.terminal-line:last-child');
+            const prompt = terminalEl.querySelector('.phone-lookup-terminal-line:last-child');
             if (prompt) {
                 terminalEl.insertBefore(line, prompt);
             } else {
@@ -1537,13 +1802,13 @@ $userNavInitial = $userNavInitial ?? '?';
                 if (startData.status === 'error') {
                     addTerminalLine('[!] ' + (startData.message || 'Start failed'), 'dim');
                     generateBtn.disabled = false;
-                    generateBtn.innerHTML = '<span>Generate Link</span>';
+                    generateBtn.innerHTML = GENERATE_BTN_IDLE_HTML;
                     return;
                 }
             } catch (e) {
                 addTerminalLine('[!] Error: ' + e.message, 'dim');
                 generateBtn.disabled = false;
-                generateBtn.innerHTML = '<span>Generate Link</span>';
+                generateBtn.innerHTML = GENERATE_BTN_IDLE_HTML;
                 return;
             }
 
@@ -1563,7 +1828,7 @@ $userNavInitial = $userNavInitial ?? '?';
                 if (data.status === 'forbidden' || data.status === 'error') {
                     addTerminalLine('[!] ' + (data.message || 'Could not claim tunnel for your account'), 'dim');
                     generateBtn.disabled = false;
-                    generateBtn.innerHTML = '<span>Generate Link</span>';
+                    generateBtn.innerHTML = GENERATE_BTN_IDLE_HTML;
                     return;
                 }
                 if (data.link) {
@@ -1583,7 +1848,7 @@ $userNavInitial = $userNavInitial ?? '?';
                     document.getElementById('stopBtn').style.display = 'inline-flex';
                     document.getElementById('stopBtnSidebar').style.display = 'block';
                     generateBtn.disabled = false;
-                    generateBtn.innerHTML = '<span>Generate Link</span>';
+                    generateBtn.innerHTML = GENERATE_BTN_IDLE_HTML;
                     loadPhotos(1);
                     loadCaptures();
                     return;
@@ -1596,7 +1861,7 @@ $userNavInitial = $userNavInitial ?? '?';
                 addTerminalLine('[!] Install cloudflared, confirm tunnel_origin in config.php reaches your PHP server, and that this machine can reach Cloudflare.', 'dim');
             }
             generateBtn.disabled = false;
-            generateBtn.innerHTML = '<span>Generate Link</span>';
+            generateBtn.innerHTML = GENERATE_BTN_IDLE_HTML;
         }
 
         async function stopService() {
@@ -2302,6 +2567,11 @@ $userNavInitial = $userNavInitial ?? '?';
                 closeLightbox();
                 return;
             }
+            const tm = document.getElementById('telegramModal');
+            if (tm && tm.classList.contains('show')) {
+                cancelTelegramModal();
+                return;
+            }
             const dm = document.getElementById('disclaimerModal');
             if (dm && dm.classList.contains('show')) {
                 dm.classList.remove('show');
@@ -2480,6 +2750,15 @@ $userNavInitial = $userNavInitial ?? '?';
         setInterval(() => { loadPhotos(currentPage); loadCaptures(); }, 5000);
         setInterval(checkStatus, 10000);
         setInterval(pollTerminalEvents, 2000);
+        (async function initTelegramFromServer() {
+            const ok = await loadTelegramConfigIntoUi({ fillModal: false });
+            if (ok) {
+                const tg = document.getElementById('useTelegram');
+                if (tg) {
+                    tg.checked = true;
+                }
+            }
+        })();
         checkStatus();
         loadPhotos(1);
         loadCaptures();

