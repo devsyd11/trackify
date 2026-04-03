@@ -145,9 +145,9 @@ function trackify_enforce_ip_whitelist(array $server, bool $asJson = false): voi
         .card-inner{position:relative;display:flex;flex-direction:column;gap:16px}
         .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#8b949e;background:rgba(13,148,136,.08);border-radius:999px;padding:3px 9px 4px;border:1px solid rgba(45,212,191,.32);width:max-content}
         .pill-dot{width:7px;height:7px;border-radius:999px;background:radial-gradient(circle at 30% 30%,#bbf7d0,#22c55e)}
-        .headline{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .headline{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
         h1{margin:0;font-size:20px;font-weight:600;letter-spacing:.02em}
-        .ip-tag{font-size:12px;color:#8b949e;padding:3px 9px;border-radius:999px;background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.35);max-width:46%;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+        .ip-tag{font-size:12px;color:#8b949e;padding:3px 9px;border-radius:999px;background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.35);max-width:52%;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
         .body-copy{margin:0;color:#9ca3af;font-size:14px;line-height:1.6}
         .body-copy strong{color:#e5e7eb;font-weight:500}
         .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:2px}
@@ -158,10 +158,16 @@ function trackify_enforce_ip_whitelist(array $server, bool $asJson = false): voi
         .secondary a{color:#93c5fd;text-decoration:none}
         .secondary a:hover{text-decoration:underline}
         @media (max-width:640px){
-            .card{padding:20px 18px 18px;border-radius:14px}
-            h1{font-size:18px}
+            body{padding:16px}
+            .shell{max-width:100%}
+            .card{padding:18px 16px 16px;border-radius:14px}
+            .card-inner{gap:14px}
+            h1{font-size:17px;line-height:1.25}
             .headline{flex-direction:column;align-items:flex-start}
             .ip-tag{max-width:100%}
+            .body-copy{font-size:13.5px}
+            .actions{width:100%}
+            a.button{width:100%;padding:10px 14px}
         }
     </style></head><body><div class="shell"><main class="card"><div class="card-inner"><div class="eyebrow"><span class="pill-dot"></span><span>Restricted access</span></div><div class="headline"><h1>Access to this dashboard is blocked</h1><div class="ip-tag">Your IP: ' . $clientIpEsc . '</div></div><p class="body-copy">' . $safeMessage . '</p><div class="actions"><a class="button" href="https://x.com/devsyd11" target="_blank" rel="noopener noreferrer"><span class="icon">X</span><span>Contact the site owner on X</span></a></div><p class="secondary">If you believe you should have access, please reach out via X at <a href="https://x.com/devsyd11" target="_blank" rel="noopener noreferrer">@devsyd11</a> and include your IP address.</p></div></main></div></body></html>';
     exit;

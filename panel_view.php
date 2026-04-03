@@ -1186,9 +1186,41 @@ $userNavInitial = $userNavInitial ?? '?';
             gap: 28px;
             align-items: flex-start;
         }
+        .phone-layout-columns > * {
+            min-width: 0;
+        }
         @media (max-width: 900px) {
             .phone-layout-columns {
                 grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 820px) {
+            .phone-layout {
+                padding: 16px;
+            }
+            .phone-layout-columns {
+                gap: 16px;
+            }
+            .phone-layout .card {
+                padding: 16px;
+            }
+            .phone-history-list {
+                max-height: 320px;
+            }
+            .phone-lookup-terminal {
+                font-size: 12.5px;
+                overflow-x: auto;
+                max-width: 100%;
+            }
+            .phone-lookup-terminal-line {
+                word-break: break-word;
+            }
+            .phone-lookup-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .phone-lookup-actions .btn {
+                width: 100%;
             }
         }
         .phone-history-title {
@@ -1342,6 +1374,57 @@ $userNavInitial = $userNavInitial ?? '?';
             align-items: center;
             gap: 16px;
         }
+        .top-nav-hamburger {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid rgba(48, 54, 61, 0.9);
+            background: rgba(22, 27, 34, 0.65);
+            color: var(--text);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, transform 0.15s;
+        }
+        .top-nav-hamburger:hover {
+            background: rgba(22, 27, 34, 0.9);
+            border-color: rgba(88, 166, 255, 0.55);
+            transform: translateY(-1px);
+        }
+        .top-nav-hamburger:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+        }
+        .side-nav-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.56);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+            display: none;
+        }
+        .side-nav-overlay.is-open {
+            display: block;
+        }
+        @media (max-width: 820px) {
+            .top-nav { padding: 0 14px; }
+            .top-nav-left { gap: 10px; }
+            .top-nav-hamburger { display: inline-flex; }
+            .side-nav {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                transform: translateX(-110%);
+                transition: transform 0.18s ease;
+                z-index: 1000;
+                box-shadow: 0 18px 45px rgba(0,0,0,0.6);
+            }
+            .side-nav.is-open {
+                transform: translateX(0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -1367,10 +1450,16 @@ $userNavInitial = $userNavInitial ?? '?';
                 </button>
             </div>
         </nav>
+        <div class="side-nav-overlay" id="sideNavOverlay" aria-hidden="true"></div>
 
         <div style="flex:1;display:flex;flex-direction:column;min-height:100vh;">
             <header class="top-nav">
                 <div class="top-nav-left">
+                    <button type="button" class="top-nav-hamburger" id="sideNavToggle" aria-label="Open menu" aria-controls="sideNavOverlay" aria-expanded="false">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
                     <button type="button" class="top-nav-brand" onclick="switchView('trackify')" title="Trackify" aria-label="Trackify">
                         <img src="logos/trackify_logo.png" width="220" height="48" alt="Trackify">
                     </button>
@@ -2023,6 +2112,8 @@ $userNavInitial = $userNavInitial ?? '?';
 
             if (!trackifyLayout || !phoneLayout || !ipLayout || !navTrackify || !navPhone || !navIp) return;
 
+            closeSideNav();
+
             navTrackify.classList.remove('active');
             navPhone.classList.remove('active');
             navIp.classList.remove('active');
@@ -2050,6 +2141,70 @@ $userNavInitial = $userNavInitial ?? '?';
                 navTrackify.classList.add('active');
             }
         }
+
+        function isMobileNavMode() {
+            return window.matchMedia && window.matchMedia('(max-width: 820px)').matches;
+        }
+
+        function setSideNavOpen(open) {
+            const sideNav = document.querySelector('.side-nav');
+            const overlay = document.getElementById('sideNavOverlay');
+            const toggle = document.getElementById('sideNavToggle');
+            if (!sideNav || !overlay || !toggle) return;
+
+            if (open) {
+                sideNav.classList.add('is-open');
+                overlay.classList.add('is-open');
+                toggle.setAttribute('aria-expanded', 'true');
+                toggle.setAttribute('aria-label', 'Close menu');
+            } else {
+                sideNav.classList.remove('is-open');
+                overlay.classList.remove('is-open');
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.setAttribute('aria-label', 'Open menu');
+            }
+        }
+
+        function openSideNav() {
+            if (!isMobileNavMode()) return;
+            setSideNavOpen(true);
+        }
+
+        function closeSideNav() {
+            setSideNavOpen(false);
+        }
+
+        function toggleSideNav() {
+            if (!isMobileNavMode()) return;
+            const sideNav = document.querySelector('.side-nav');
+            const isOpen = !!(sideNav && sideNav.classList.contains('is-open'));
+            setSideNavOpen(!isOpen);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const overlay = document.getElementById('sideNavOverlay');
+            const toggle = document.getElementById('sideNavToggle');
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    toggleSideNav();
+                });
+            }
+            if (overlay) {
+                overlay.addEventListener('click', function () {
+                    closeSideNav();
+                });
+            }
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    closeSideNav();
+                }
+            });
+            window.addEventListener('resize', function () {
+                if (!isMobileNavMode()) {
+                    closeSideNav();
+                }
+            });
+        });
 
         let ipLookupLeafletMap = null;
         let ipLookupLeafletMarker = null;
