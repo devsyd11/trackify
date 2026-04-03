@@ -6,6 +6,9 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/access.php';
+trackify_enforce_ip_whitelist($_SERVER, true);
+
 $action = $_GET['action'] ?? '';
 $authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup'];
 

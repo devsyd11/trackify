@@ -5,6 +5,9 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
+require_once __DIR__ . '/access.php';
+trackify_enforce_ip_whitelist($_SERVER, false);
+
 require_once __DIR__ . '/db.php';
 
 function csrf_token(): string
