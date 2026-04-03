@@ -50,34 +50,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign in — Trackify</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="auth.css">
 </head>
 <body class="auth-page">
-    <main class="auth-card">
-        <div class="auth-brand">
-            <img src="logos/trackify_logo.png" width="280" height="80" alt="Trackify">
-        </div>
-        <h1>Sign in</h1>
-        <p class="auth-lead">Use the email and password you registered with.</p>
+    <div class="auth-page-inner">
+        <main class="auth-card">
+            <header class="auth-header">
+                <div class="auth-brand">
+                    <img src="logos/trackify_logo.png" width="280" height="80" alt="Trackify">
+                </div>
+                <h1>Sign in</h1>
+                <p class="auth-lead">Use the email and password you registered with.</p>
+            </header>
 
-        <?php if ($error !== ''): ?>
-            <div class="auth-alert" role="alert"><?= h($error) ?></div>
-        <?php endif; ?>
+            <?php if ($error !== ''): ?>
+                <div class="auth-alert" role="alert"><?= h($error) ?></div>
+            <?php endif; ?>
 
-        <form method="post" action="" class="auth-form" novalidate>
-            <input type="hidden" name="_csrf" value="<?= h(csrf_token()) ?>">
+            <form method="post" action="" class="auth-form" novalidate>
+                <input type="hidden" name="_csrf" value="<?= h(csrf_token()) ?>">
 
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" autocomplete="email" required
-                   value="<?= h($email) ?>">
+                <div class="auth-field">
+                    <label for="email">Email</label>
+                    <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@example.com"
+                           value="<?= h($email) ?>">
+                </div>
 
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password" autocomplete="current-password" required>
+                <div class="auth-field">
+                    <label for="password">Password</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••">
+                </div>
 
-            <button type="submit" class="auth-btn">Sign in</button>
-        </form>
+                <button type="submit" class="auth-btn">Sign in</button>
+            </form>
 
-        <p class="auth-footer">No account? <a href="sign-up.php">Create one</a></p>
-    </main>
+            <div class="auth-divider">
+                <p class="auth-footer">No account? <a href="sign-up.php">Create one</a></p>
+            </div>
+        </main>
+    </div>
 </body>
 </html>
