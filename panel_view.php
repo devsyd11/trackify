@@ -1080,17 +1080,53 @@ $userNavInitial = $userNavInitial ?? '?';
             box-sizing: border-box;
         }
         .side-nav-logo {
-            width: 40px;
+            width: 52px;
             height: 40px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #58a6ff, #a371f7);
+            padding: 0;
+            border: none;
+            border-radius: 10px;
+            background: #000;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
-            font-size: 18px;
-            color: #fff;
             margin-bottom: 12px;
+            cursor: pointer;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .side-nav-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: 12% center;
+            display: block;
+        }
+        .side-nav-logo:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        .top-nav-brand {
+            display: inline-flex;
+            align-items: center;
+            padding: 0;
+            border: none;
+            background: none;
+            cursor: pointer;
+            line-height: 0;
+            margin: 0;
+            font: inherit;
+        }
+        .top-nav-brand img {
+            height: 34px;
+            width: auto;
+            max-width: min(220px, 46vw);
+            display: block;
+            object-fit: contain;
+        }
+        .top-nav-brand:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 4px;
+            border-radius: 8px;
         }
         .side-nav-item {
             width: 40px;
@@ -1288,17 +1324,14 @@ $userNavInitial = $userNavInitial ?? '?';
             align-items: center;
             gap: 16px;
         }
-        .top-nav-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text);
-        }
     </style>
 </head>
 <body>
     <div class="app-shell">
         <nav class="side-nav" aria-label="Main navigation">
-            <div class="side-nav-logo">T</div>
+            <button type="button" class="side-nav-logo" onclick="switchView('trackify')" title="Trackify — Home" aria-label="Trackify — Home">
+                <img src="logos/trackify_logo.png" width="120" height="48" alt="">
+            </button>
             <button type="button" class="side-nav-item active" id="navItemTrackify" onclick="switchView('trackify')" title="Trackify">
                 🛰
             </button>
@@ -1318,7 +1351,9 @@ $userNavInitial = $userNavInitial ?? '?';
         <div style="flex:1;display:flex;flex-direction:column;min-height:100vh;">
             <header class="top-nav">
                 <div class="top-nav-left">
-                    <span class="top-nav-title">Trackify</span>
+                    <button type="button" class="top-nav-brand" onclick="switchView('trackify')" title="Trackify" aria-label="Trackify">
+                        <img src="logos/trackify_logo.png" width="220" height="48" alt="Trackify">
+                    </button>
                 </div>
                 <div class="user-nav" id="userNav">
                     <button type="button" class="user-nav-trigger" id="userNavTrigger" aria-expanded="false" aria-haspopup="true" aria-controls="userNavMenu">

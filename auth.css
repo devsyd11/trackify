@@ -30,6 +30,22 @@ body.auth-page {
     padding: 1.5rem;
 }
 
+.auth-brand {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 1.35rem;
+    line-height: 0;
+}
+
+.auth-brand img {
+    max-width: 100%;
+    width: min(280px, 100%);
+    height: auto;
+    max-height: 100px;
+    object-fit: contain;
+    display: block;
+}
+
 .auth-card {
     width: 100%;
     max-width: 400px;

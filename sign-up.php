@@ -66,6 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="auth-page">
     <main class="auth-card">
+        <div class="auth-brand">
+            <img src="logos/trackify_logo.png" width="280" height="80" alt="Trackify">
+        </div>
         <h1>Create account</h1>
         <p class="auth-lead">Full name, email, and a secure password.</p>
 
