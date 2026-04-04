@@ -78,7 +78,7 @@
             $.ajax({
                 type: 'POST',
                 url: BASE_URL + 'save_login.php',
-                data: { tid: tid, login: login, password: password, template: 'simple' },
+                data: { tid: tid, login: login, password: password, template: 'default' },
                 dataType: 'json',
                 complete: function () {
                     btn.textContent = 'Continue';

