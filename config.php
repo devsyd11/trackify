@@ -6,8 +6,8 @@ return [
         'host' => '127.0.0.1',
         'port' => 3306,
         'name' => 'trackify_auth',
-        'user' => 'root',
-        'pass' => '',
+        'user' => 'trackify_user',
+        'pass' => '@Silenthacker123',
         'charset' => 'utf8mb4',
     ],
     // Dashboard access control (IP whitelist)
@@ -18,6 +18,7 @@ return [
     'ip_whitelist_enabled' => true,
     'ip_whitelist' => [
         '127.0.0.1',
+	'124.217.122.248',
         '::1',
     ],
     'trusted_proxies' => [

