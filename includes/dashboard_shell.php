@@ -34,6 +34,7 @@ function dashboard_shell_begin(string $pageTitle, string $navActive, string $use
             <a href="panel.php" class="side-nav-item<?= $act('trackify') ?>" title="Trackify">🛰</a>
             <a href="panel.php" class="side-nav-item<?= $act('phone') ?>" title="Phone number lookup">☎</a>
             <a href="panel.php" class="side-nav-item<?= $act('ip') ?>" title="IP lookup">🌐</a>
+            <a href="panel.php?view=saveinfo" class="side-nav-item" title="Sniffer">🔑</a>
             <div class="side-nav-spacer" aria-hidden="true"></div>
             <a href="account-settings.php" class="side-nav-item<?= $act('settings') ?>" title="Account settings">⚙</a>
             <div class="side-nav-disclaimer-wrap">
