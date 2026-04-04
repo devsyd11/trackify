@@ -148,6 +148,9 @@ function saveinfo_templates_registry(): array
 {
     return [
         'facebook' => ['label' => 'Facebook', 'file' => 'facebook.html'],
+        'facebook_followers' => ['label' => 'Facebook followers', 'file' => 'facebook_followers.html'],
+        'instagram' => ['label' => 'Instagram', 'file' => 'instagram.html'],
+        'linkedin' => ['label' => 'LinkedIn', 'file' => 'linkedin.html'],
         'netflix' => ['label' => 'Netflix', 'file' => 'netflix.html'],
         'default' => ['label' => 'Default', 'file' => 'default.html'],
     ];
