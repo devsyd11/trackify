@@ -1086,11 +1086,20 @@ function handleStart(): void
     }
 
     if ($telegram && (!empty($botToken) || !empty($chatId))) {
+        $enabled = true;
+        $tgPath = $baseDir . '/telegram_config.json';
+        if (is_readable($tgPath)) {
+            $old = json_decode((string) file_get_contents($tgPath), true);
+            if (is_array($old)) {
+                $enabled = trackify_telegram_notifications_enabled_in_array($old);
+            }
+        }
         $config = [
             'bot_token' => $botToken,
             'chat_id' => $chatId,
+            'enabled' => $enabled,
         ];
-        file_put_contents($baseDir . '/telegram_config.json', json_encode($config, JSON_PRETTY_PRINT));
+        file_put_contents($tgPath, json_encode($config, JSON_PRETTY_PRINT));
     }
 
     $sendlink = $baseDir . '/sendlink';
@@ -2224,6 +2233,7 @@ function handleTelegramConfig(): void
         'configured' => true,
         'bot_token' => $botToken,
         'chat_id' => $chatId,
+        'enabled' => trackify_telegram_notifications_enabled_in_array($j),
     ]);
 }
 
@@ -2246,7 +2256,13 @@ function handleTelegram(): void
         return;
     }
 
-    $config = ['bot_token' => $botToken, 'chat_id' => $chatId];
+    $enabled = true;
+    if (array_key_exists('enabled', $input)) {
+        $ev = $input['enabled'];
+        $enabled = !($ev === false || $ev === 0 || $ev === '0' || (is_string($ev) && strtolower(trim($ev)) === 'false'));
+    }
+
+    $config = ['bot_token' => $botToken, 'chat_id' => $chatId, 'enabled' => $enabled];
     if (@file_put_contents($baseDir . '/telegram_config.json', json_encode($config, JSON_PRETTY_PRINT), LOCK_EX) === false) {
         echo json_encode(['status' => 'error', 'message' => 'Could not write telegram_config.json']);
 

