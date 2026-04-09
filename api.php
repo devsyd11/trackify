@@ -10,7 +10,7 @@ require_once __DIR__ . '/access.php';
 trackify_enforce_ip_whitelist($_SERVER, true);
 
 $action = $_GET['action'] ?? '';
-$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup', 'saved_info', 'clear_saved_info', 'saveinfo_start', 'saveinfo_link', 'saveinfo_update_payload', 'saveinfo_templates'];
+$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup', 'exiftool', 'saved_info', 'clear_saved_info', 'saveinfo_start', 'saveinfo_link', 'saveinfo_update_payload', 'saveinfo_templates'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Content-Type: application/json');
@@ -94,6 +94,9 @@ switch ($action) {
     case 'ip_lookup':
         handleIpLookup();
         break;
+    case 'exiftool':
+        handleExiftool();
+        break;
     case 'saved_info':
         handleSavedInfo();
         break;
@@ -114,6 +117,122 @@ switch ($action) {
         break;
     default:
         echo json_encode(['status' => 'error', 'message' => 'Unknown action']);
+}
+
+function handleExiftool(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+        return;
+    }
+
+    if (!isset($_FILES['image']) || !is_array($_FILES['image'])) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'No image uploaded']);
+        return;
+    }
+
+    $f = $_FILES['image'];
+    $uploadErr = (int) ($f['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($uploadErr !== UPLOAD_ERR_OK) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Upload failed (error code ' . $uploadErr . ')']);
+        return;
+    }
+
+    $tmp = (string) ($f['tmp_name'] ?? '');
+    if ($tmp === '' || !is_uploaded_file($tmp)) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Upload failed (temporary file missing)']);
+        return;
+    }
+
+    $size = (int) ($f['size'] ?? 0);
+    if ($size <= 0) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Empty file']);
+        return;
+    }
+    if ($size > 25 * 1024 * 1024) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Please upload an image up to 25 MB']);
+        return;
+    }
+
+    $mime = '';
+    if (class_exists('finfo')) {
+        $fi = new finfo(FILEINFO_MIME_TYPE);
+        $mime = (string) @$fi->file($tmp);
+    }
+    if ($mime !== '' && !str_starts_with($mime, 'image/')) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Only image uploads are allowed']);
+        return;
+    }
+
+    require_once __DIR__ . '/bootstrap.php';
+    $cfg = trackify_config();
+    $exiftoolBin = trim((string) ($cfg['exiftool_bin'] ?? 'exiftool'));
+    if ($exiftoolBin === '') {
+        $exiftoolBin = 'exiftool';
+    }
+
+    $dir = __DIR__ . '/data/exiftool_uploads';
+    if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'Server error: cannot create upload directory']);
+        return;
+    }
+
+    $name = (string) ($f['name'] ?? '');
+    $ext = '';
+    $nameLower = strtolower($name);
+    if (preg_match('/\.(jpg|jpeg|png|webp|gif|tif|tiff|heic|heif)$/', $nameLower, $m)) {
+        $ext = '.' . $m[1];
+    }
+
+    $dest = $dir . '/exif_' . bin2hex(random_bytes(16)) . $ext;
+    if (!@move_uploaded_file($tmp, $dest)) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'Server error: failed to store uploaded file']);
+        return;
+    }
+
+    $cmd = escapeshellarg($exiftoolBin) . ' -j -G -a -u -ee ' . escapeshellarg($dest) . ' 2>&1';
+    $lines = [];
+    $exit = 0;
+    @exec($cmd, $lines, $exit);
+    $raw = trim(implode("\n", $lines));
+
+    @unlink($dest);
+
+    if ($exit !== 0) {
+        http_response_code(500);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'EXIFTool failed. Make sure exiftool is installed and reachable (config: exiftool_bin).',
+            'raw' => $raw,
+        ], JSON_UNESCAPED_SLASHES);
+        return;
+    }
+
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded) || !isset($decoded[0]) || !is_array($decoded[0])) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'Could not parse EXIFTool output', 'raw' => $raw], JSON_UNESCAPED_SLASHES);
+        return;
+    }
+
+    $tags = $decoded[0];
+    // Hide noisy/implementation-specific fields from UI + copy.
+    foreach (['SourceFile', 'ExifTool:ExifToolVersion'] as $k) {
+        if (isset($tags[$k])) {
+            unset($tags[$k]);
+        }
+    }
+
+    echo json_encode(['status' => 'success', 'tags' => $tags], JSON_UNESCAPED_SLASHES);
 }
 
 function dashboard_session_user_id(): int

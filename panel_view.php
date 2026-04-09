@@ -709,8 +709,8 @@ $userNavInitial = $userNavInitial ?? '?';
         }
         .toast {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
+            top: 18px;
+            left: 50%;
             padding: 12px 20px;
             background: var(--accent-green);
             color: white;
@@ -718,13 +718,15 @@ $userNavInitial = $userNavInitial ?? '?';
             font-size: 14px;
             font-weight: 500;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transform: translateY(100px);
+            transform: translate(-50%, -12px);
             opacity: 0;
             transition: all 0.3s;
             z-index: 1000;
+            max-width: min(640px, calc(100vw - 28px));
+            text-align: center;
         }
         .toast.show {
-            transform: translateY(0);
+            transform: translate(-50%, 0);
             opacity: 1;
         }
         .side-nav-spacer {
@@ -1555,6 +1557,9 @@ $userNavInitial = $userNavInitial ?? '?';
             <button type="button" class="side-nav-item" id="navItemSaveInfo" onclick="switchView('saveinfo')" title="Sniffer">
                 🔑
             </button>
+            <button type="button" class="side-nav-item" id="navItemExiftool" onclick="switchView('exiftool')" title="EXIFTool (image metadata)">
+                📷
+            </button>
             <div class="side-nav-spacer" aria-hidden="true"></div>
             <a href="account-settings.php" class="side-nav-item" title="Account settings">⚙</a>
             <div class="side-nav-disclaimer-wrap">
@@ -1756,6 +1761,78 @@ $userNavInitial = $userNavInitial ?? '?';
                         <div class="card" style="margin-top:20px">
                             <h2>Map</h2>
                             <div id="ipLookupMap" class="ip-lookup-map ip-lookup-map--empty">No location yet. Coordinates appear here when FindIP returns latitude/longitude.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="exiftoolLayout" class="phone-layout" style="display:none" aria-label="EXIFTool viewer">
+            <div class="phone-layout-inner">
+                <div class="phone-layout-columns">
+                    <div>
+                        <div class="card">
+                            <h2>EXIFTool Viewer</h2>
+                            <p class="subtitle card-view-desc">Upload an image and extract the complete EXIF/metadata (grouped) using EXIFTool.</p>
+                            <div class="phone-lookup-input-wrap">
+                                <label for="exiftoolFile">Image file</label>
+                                <input type="file" id="exiftoolFile" accept="image/*">
+                            </div>
+                            <div id="exiftoolError" class="phone-lookup-error" role="alert" hidden></div>
+                            <div class="phone-lookup-actions">
+                                <button class="btn btn-secondary" type="button" id="exiftoolExtractBtn" onclick="exiftoolExtract()">Extract</button>
+                            </div>
+                            <div class="phone-lookup-results" aria-live="polite">
+                                <div class="phone-lookup-terminal" id="exiftoolTerminal">
+                                    <div class="phone-lookup-terminal-line"><span class="hint">[*]</span> Choose an image and press <span class="link">Extract</span> to view metadata.</div>
+                                    <div class="phone-lookup-terminal-line"><span class="prompt">root@trackify:exif# </span><span class="terminal-cursor"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h2>Results</h2>
+                            <div style="display:flex;gap:10px;align-items:stretch;flex-wrap:wrap">
+                                <input type="text" id="exiftoolFilter" placeholder="Filter tags (GPS, Make, Lens, DateTimeOriginal…)" style="flex:1;min-width:240px;height:44px;margin:0;padding:0 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:inherit;line-height:44px" autocomplete="off" oninput="exiftoolApplyFilter()">
+                                <button class="btn btn-secondary" type="button" onclick="exiftoolCopyJson()" style="height:44px;margin:0">Copy JSON</button>
+                            </div>
+                            <div id="exiftoolTableWrap" style="margin-top:14px;display:none;max-height:420px;overflow:auto;border:1px solid var(--border);border-radius:12px">
+                                <table style="width:100%;border-collapse:collapse">
+                                    <thead>
+                                        <tr>
+                                            <th style="text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text-muted);font-size:12px">Tag</th>
+                                            <th style="text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text-muted);font-size:12px">Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="exiftoolTbody"></tbody>
+                                </table>
+                            </div>
+                            <p id="exiftoolEmpty" style="margin-top:12px;color:var(--text-muted);font-size:13px">Run an extract to see a filterable tag list.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card" style="margin-bottom:20px">
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                                <h2 style="margin-bottom:0">Image Preview</h2>
+                                <div style="display:flex;gap:8px;align-items:center">
+                                    <button class="btn btn-secondary" type="button" id="exifPreviewZoomIn" onclick="exiftoolPreviewZoom(1.2)" title="Zoom in" aria-label="Zoom in" style="width:44px;padding:0">+</button>
+                                    <button class="btn btn-secondary" type="button" id="exifPreviewZoomOut" onclick="exiftoolPreviewZoom(1/1.2)" title="Zoom out" aria-label="Zoom out" style="width:44px;padding:0">−</button>
+                                    <button class="btn btn-secondary" type="button" id="exifPreviewReset" onclick="exiftoolPreviewReset()" title="Reset zoom" aria-label="Reset zoom" style="width:44px;padding:0">↺</button>
+                                </div>
+                            </div>
+                            <div id="exifPreviewStage" style="margin-top:14px;background:rgba(33,38,45,.5);border:1px solid var(--border);border-radius:12px;min-height:240px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative">
+                                <div id="exifPreviewEmpty" style="color:var(--text-muted);font-size:13px;padding:18px;text-align:center">Choose an image to preview it here.</div>
+                                <img id="exifPreviewImg" src="" alt="Selected image preview" style="display:none;max-width:100%;max-height:320px;transform-origin:center center;transition:transform 0.12s ease">
+                            </div>
+                            <div id="exifPreviewMeta" style="margin-top:12px;display:none;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:rgba(13,17,23,.35)">
+                                <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px">
+                                    <div style="color:var(--text-muted)">File size:</div>
+                                    <div id="exifPreviewSize" style="font-family:'JetBrains Mono', monospace"></div>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;margin-top:8px">
+                                    <div style="color:var(--text-muted)">Type:</div>
+                                    <div id="exifPreviewType" style="font-family:'JetBrains Mono', monospace"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2417,10 +2494,12 @@ $userNavInitial = $userNavInitial ?? '?';
             const phoneLayout = document.getElementById('phoneLayout');
             const ipLayout = document.getElementById('ipLayout');
             const saveInfoLayout = document.getElementById('saveInfoLayout');
+            const exiftoolLayout = document.getElementById('exiftoolLayout');
             const navTrackify = document.getElementById('navItemTrackify');
             const navPhone = document.getElementById('navItemPhone');
             const navIp = document.getElementById('navItemIp');
             const navSaveInfo = document.getElementById('navItemSaveInfo');
+            const navExiftool = document.getElementById('navItemExiftool');
 
             if (!trackifyLayout || !phoneLayout || !ipLayout || !navTrackify || !navPhone || !navIp) return;
 
@@ -2429,6 +2508,9 @@ $userNavInitial = $userNavInitial ?? '?';
             navTrackify.classList.remove('active');
             navPhone.classList.remove('active');
             navIp.classList.remove('active');
+            if (navExiftool) {
+                navExiftool.classList.remove('active');
+            }
             if (navSaveInfo) {
                 navSaveInfo.classList.remove('active');
             }
@@ -2437,6 +2519,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 trackifyLayout.style.display = 'none';
                 phoneLayout.style.display = 'block';
                 ipLayout.style.display = 'none';
+                if (exiftoolLayout) {
+                    exiftoolLayout.style.display = 'none';
+                }
                 if (saveInfoLayout) {
                     saveInfoLayout.style.display = 'none';
                 }
@@ -2446,6 +2531,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 trackifyLayout.style.display = 'none';
                 phoneLayout.style.display = 'none';
                 ipLayout.style.display = 'block';
+                if (exiftoolLayout) {
+                    exiftoolLayout.style.display = 'none';
+                }
                 if (saveInfoLayout) {
                     saveInfoLayout.style.display = 'none';
                 }
@@ -2455,10 +2543,22 @@ $userNavInitial = $userNavInitial ?? '?';
                         try { ipLookupLeafletMap.invalidateSize(); } catch (e) {}
                     }
                 }, 250);
+            } else if (which === 'exiftool' && exiftoolLayout && navExiftool) {
+                trackifyLayout.style.display = 'none';
+                phoneLayout.style.display = 'none';
+                ipLayout.style.display = 'none';
+                if (saveInfoLayout) {
+                    saveInfoLayout.style.display = 'none';
+                }
+                exiftoolLayout.style.display = 'block';
+                navExiftool.classList.add('active');
             } else if (which === 'saveinfo' && saveInfoLayout && navSaveInfo) {
                 trackifyLayout.style.display = 'none';
                 phoneLayout.style.display = 'none';
                 ipLayout.style.display = 'none';
+                if (exiftoolLayout) {
+                    exiftoolLayout.style.display = 'none';
+                }
                 saveInfoLayout.style.display = 'block';
                 navSaveInfo.classList.add('active');
                 loadSaveInfoTemplates();
@@ -2467,11 +2567,20 @@ $userNavInitial = $userNavInitial ?? '?';
                 trackifyLayout.style.display = 'grid';
                 phoneLayout.style.display = 'none';
                 ipLayout.style.display = 'none';
+                if (exiftoolLayout) {
+                    exiftoolLayout.style.display = 'none';
+                }
                 if (saveInfoLayout) {
                     saveInfoLayout.style.display = 'none';
                 }
                 navTrackify.classList.add('active');
             }
+
+            try {
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, '', 'panel.php');
+                }
+            } catch (e) {}
         }
 
         function isMobileNavMode() {
@@ -2517,7 +2626,7 @@ $userNavInitial = $userNavInitial ?? '?';
             try {
                 const params = new URLSearchParams(window.location.search);
                 const view = (params.get('view') || '').toLowerCase();
-                if (view === 'saveinfo' || view === 'phone' || view === 'ip') {
+                if (view === 'saveinfo' || view === 'phone' || view === 'ip' || view === 'exiftool') {
                     switchView(view);
                 }
             } catch (e) {}
@@ -2548,6 +2657,222 @@ $userNavInitial = $userNavInitial ?? '?';
         let ipLookupLeafletMap = null;
         let ipLookupLeafletMarker = null;
         let leafletLoadPromise = null;
+
+        let exiftoolLastJson = '';
+        let exiftoolPreviewScale = 1;
+
+        function exiftoolSetError(msg) {
+            const el = document.getElementById('exiftoolError');
+            if (!el) return;
+            if (msg) {
+                el.textContent = String(msg);
+                el.hidden = false;
+            } else {
+                el.textContent = '';
+                el.hidden = true;
+            }
+        }
+
+        function exiftoolSetTerminal(msg) {
+            const term = document.getElementById('exiftoolTerminal');
+            if (!term) return;
+            const line = document.createElement('div');
+            line.className = 'phone-lookup-terminal-line';
+            line.textContent = String(msg);
+            term.insertBefore(line, term.lastElementChild);
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function exiftoolHumanBytes(bytes) {
+            const n = Number(bytes || 0);
+            if (!isFinite(n) || n <= 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let v = n;
+            let i = 0;
+            while (v >= 1024 && i < units.length - 1) {
+                v = v / 1024;
+                i++;
+            }
+            const s = (Math.round(v * 100) / 100).toFixed(v < 10 && i > 0 ? 2 : (v < 100 && i > 0 ? 1 : 0));
+            return s.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1') + ' ' + units[i];
+        }
+
+        function exiftoolRenderPreview(file) {
+            const img = document.getElementById('exifPreviewImg');
+            const empty = document.getElementById('exifPreviewEmpty');
+            const meta = document.getElementById('exifPreviewMeta');
+            const sizeEl = document.getElementById('exifPreviewSize');
+            const typeEl = document.getElementById('exifPreviewType');
+            if (!img || !empty || !meta || !sizeEl || !typeEl) return;
+
+            if (!file) {
+                img.src = '';
+                img.style.display = 'none';
+                empty.style.display = 'block';
+                meta.style.display = 'none';
+                exiftoolPreviewScale = 1;
+                img.style.transform = 'scale(1)';
+                return;
+            }
+
+            sizeEl.textContent = exiftoolHumanBytes(file.size || 0);
+            typeEl.textContent = String(file.type || 'unknown');
+            meta.style.display = 'block';
+
+            empty.style.display = 'none';
+            img.style.display = 'block';
+            exiftoolPreviewScale = 1;
+            img.style.transform = 'scale(1)';
+
+            try {
+                const url = URL.createObjectURL(file);
+                img.onload = function () {
+                    try { URL.revokeObjectURL(url); } catch (e) {}
+                };
+                img.src = url;
+            } catch (e) {
+                empty.style.display = 'block';
+                img.style.display = 'none';
+                meta.style.display = 'none';
+            }
+        }
+
+        function exiftoolPreviewZoom(mult) {
+            const img = document.getElementById('exifPreviewImg');
+            if (!img || img.style.display === 'none') return;
+            exiftoolPreviewScale = Math.max(0.25, Math.min(6, exiftoolPreviewScale * Number(mult || 1)));
+            img.style.transform = 'scale(' + exiftoolPreviewScale + ')';
+        }
+
+        function exiftoolPreviewReset() {
+            const img = document.getElementById('exifPreviewImg');
+            if (!img) return;
+            exiftoolPreviewScale = 1;
+            img.style.transform = 'scale(1)';
+        }
+
+        async function exiftoolExtract() {
+            const fileEl = document.getElementById('exiftoolFile');
+            const btn = document.getElementById('exiftoolExtractBtn');
+            if (!fileEl || !btn) return;
+            const file = fileEl.files && fileEl.files[0];
+            if (!file) {
+                exiftoolSetError('Choose an image first.');
+                return;
+            }
+
+            exiftoolSetError('');
+            btn.disabled = true;
+            const prev = btn.textContent;
+            btn.textContent = 'Extracting…';
+
+            const fd = new FormData();
+            fd.append('image', file);
+
+            try {
+                exiftoolSetTerminal('[*] Uploading ' + file.name + '…');
+                const res = await fetch('api.php?action=exiftool', {
+                    method: 'POST',
+                    body: fd,
+                    credentials: 'same-origin'
+                });
+                const data = await res.json().catch(function () { return {}; });
+                if (!data || data.status !== 'success' || !data.tags) {
+                    exiftoolSetError((data && data.message) ? data.message : 'EXIFTool failed.');
+                    if (data && data.raw) {
+                        exiftoolSetTerminal(String(data.raw).slice(0, 1200));
+                    }
+                    return;
+                }
+
+                const tags = data.tags;
+                exiftoolLastJson = JSON.stringify(tags, null, 2);
+
+                const tableWrap = document.getElementById('exiftoolTableWrap');
+                const tbody = document.getElementById('exiftoolTbody');
+                const empty = document.getElementById('exiftoolEmpty');
+                if (tableWrap && tbody && empty) {
+                    empty.style.display = 'none';
+                    tableWrap.style.display = 'block';
+                    tbody.innerHTML = '';
+
+                    Object.keys(tags).forEach(function (k) {
+                        const v = tags[k];
+                        let val = v;
+                        if (val === null) val = 'null';
+                        else if (typeof val === 'boolean') val = val ? 'true' : 'false';
+                        else if (typeof val === 'object') {
+                            try { val = JSON.stringify(val); } catch (e) { val = '[unprintable]'; }
+                        } else {
+                            val = String(val);
+                        }
+
+                        const tr = document.createElement('tr');
+                        tr.className = 'exiftoolRow';
+                        tr.setAttribute('data-hay', (String(k) + ' ' + String(val)).toLowerCase());
+                        const tdK = document.createElement('td');
+                        tdK.style.padding = '10px 12px';
+                        tdK.style.borderBottom = '1px solid var(--border)';
+                        tdK.style.fontFamily = "'JetBrains Mono', monospace";
+                        tdK.textContent = String(k);
+                        const tdV = document.createElement('td');
+                        tdV.style.padding = '10px 12px';
+                        tdV.style.borderBottom = '1px solid var(--border)';
+                        tdV.textContent = String(val);
+                        tr.appendChild(tdK);
+                        tr.appendChild(tdV);
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                exiftoolSetTerminal('[+] Extracted ' + Object.keys(tags).length + ' tags.');
+                exiftoolApplyFilter();
+            } catch (e) {
+                exiftoolSetError('Network error — try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = prev;
+            }
+        }
+
+        function exiftoolApplyFilter() {
+            const qEl = document.getElementById('exiftoolFilter');
+            const q = (qEl && qEl.value ? qEl.value : '').trim().toLowerCase();
+            const rows = document.querySelectorAll('.exiftoolRow');
+            rows.forEach(function (r) {
+                const hay = r.getAttribute('data-hay') || '';
+                r.style.display = (q === '' || hay.indexOf(q) !== -1) ? '' : 'none';
+            });
+        }
+
+        function exiftoolCopyJson() {
+            if (!exiftoolLastJson) return;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(exiftoolLastJson).then(function () {
+                    showCopyResult(true);
+                }).catch(function () {
+                    showCopyResult(copyViaHiddenTextarea(exiftoolLastJson));
+                });
+                return;
+            }
+            const ta = document.createElement('textarea');
+            ta.value = exiftoolLastJson;
+            document.body.appendChild(ta);
+            ta.select();
+            let ok = false;
+            try { ok = document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta);
+            showCopyResult(ok);
+        }
+
+        (function initExiftoolPreview() {
+            const fileEl = document.getElementById('exiftoolFile');
+            if (!fileEl) return;
+            fileEl.addEventListener('change', function () {
+                const f = fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+                exiftoolRenderPreview(f);
+            });
+        })();
 
         function destroyIpLookupMap() {
             if (ipLookupLeafletMap) {

@@ -34,4 +34,7 @@ return [
     // IP Lookup (https://findip.net/) — API base + token from your FindIP dashboard
     'findip_api_base' => 'https://api.findip.net',
     'findip_token' => '12e7fe0b019e408a81e9868009940aa2',
+    // EXIFTool integration (used by exiftool.php)
+    // - Install exiftool and ensure it's in PATH, or set an absolute path here (e.g. "C:\\tools\\exiftool\\exiftool.exe")
+    'exiftool_bin' => 'exiftool',
 ];

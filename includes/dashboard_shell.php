@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Opens HTML document with shared dashboard sidebar + top bar.
  *
  * @param string $pageTitle   Browser tab title (without suffix)
- * @param string $navActive   trackify | phone | ip | settings
+ * @param string $navActive   trackify | phone | ip | exiftool | settings
  * @param string $userNavName Display name in header menu
  * @param string $userNavInitial Single character avatar letter
  */
@@ -35,6 +35,7 @@ function dashboard_shell_begin(string $pageTitle, string $navActive, string $use
             <a href="panel.php" class="side-nav-item<?= $act('phone') ?>" title="Phone number lookup">☎</a>
             <a href="panel.php" class="side-nav-item<?= $act('ip') ?>" title="IP lookup">🌐</a>
             <a href="panel.php?view=saveinfo" class="side-nav-item" title="Sniffer">🔑</a>
+            <a href="panel.php?view=exiftool" class="side-nav-item<?= $act('exiftool') ?>" title="EXIFTool viewer">📷</a>
             <div class="side-nav-spacer" aria-hidden="true"></div>
             <a href="account-settings.php" class="side-nav-item<?= $act('settings') ?>" title="Account settings">⚙</a>
             <div class="side-nav-disclaimer-wrap">
