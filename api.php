@@ -226,7 +226,7 @@ function handleExiftool(): void
 
     $tags = $decoded[0];
     // Hide noisy/implementation-specific fields from UI + copy.
-    foreach (['SourceFile', 'ExifTool:ExifToolVersion'] as $k) {
+    foreach (['SourceFile', 'ExifTool:ExifToolVersion', 'File:Directory'] as $k) {
         if (isset($tags[$k])) {
             unset($tags[$k]);
         }
