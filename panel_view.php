@@ -1578,9 +1578,6 @@ $userNavInitial = $userNavInitial ?? '?';
                             <path d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
                     </button>
-                    <button type="button" class="top-nav-brand" onclick="switchView('trackify')" title="Trackify" aria-label="Trackify">
-                        <img src="logos/trackify_logo.png" width="220" height="48" alt="Trackify">
-                    </button>
                 </div>
                 <div class="user-nav" id="userNav">
                     <button type="button" class="user-nav-trigger" id="userNavTrigger" aria-expanded="false" aria-haspopup="true" aria-controls="userNavMenu">
