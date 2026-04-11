@@ -1487,6 +1487,35 @@ $userNavInitial = $userNavInitial ?? '?';
             color: var(--text);
             margin-bottom: 10px;
         }
+        .fb-monitor-pagination {
+            margin-top: 12px;
+        }
+        .fb-monitor-pagination-inner {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px 16px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .fb-monitor-pagination-info {
+            min-width: 0;
+        }
+        .fb-monitor-pagination-btns {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .fb-monitor-pagination-page {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .fb-monitor-pagination-btns .btn {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
         .fb-monitor-log-terminal {
             margin: 0;
             padding: 16px 18px 18px;
@@ -2404,7 +2433,6 @@ $userNavInitial = $userNavInitial ?? '?';
                                 <h2>Account Checker</h2>
                                 <p class="subtitle card-view-desc fb-monitor-desc" style="color:var(--text-muted);margin:0">
                                     Watch Facebook profiles or pages and get Telegram alerts when something you monitor becomes accessible again.
-                                    Configure cookies in <a href="account-settings.php" style="color:var(--accent)">Account Settings → Facebook Tools</a>.
                                 </p>
                             </div>
                             <div class="fb-monitor-page-actions">
@@ -2443,6 +2471,7 @@ $userNavInitial = $userNavInitial ?? '?';
                                     <tbody id="fbMonitorTableBody" class="fb-monitor-tbody" aria-live="polite"></tbody>
                                 </table>
                             </div>
+                            <nav class="fb-monitor-pagination" id="fbMonitorPagination" aria-label="Monitored profiles list pages" hidden></nav>
                         </div>
                     </div>
                 </div>
@@ -3110,6 +3139,9 @@ $userNavInitial = $userNavInitial ?? '?';
             setFbToolsNavExpanded(g.classList.contains('is-collapsed'));
         }
 
+        var fbMonitorListState = { page: 1, perPage: 10, q: '' };
+        var fbMonitorSearchDebounceTimer = null;
+
         function switchView(which) {
             const trackifyLayout = document.getElementById('trackifyLayout');
             const phoneLayout = document.getElementById('phoneLayout');
@@ -3223,6 +3255,10 @@ $userNavInitial = $userNavInitial ?? '?';
                     grpFbTools.classList.remove('is-collapsed');
                 }
                 setFbToolsNavExpanded(true);
+                var fbSearchInp = document.getElementById('fbMonitorSearch');
+                if (fbSearchInp) {
+                    fbMonitorListState.q = (fbSearchInp.value || '').trim();
+                }
                 loadFbMonitorList();
                 fbMonitorStartListAutoRefresh();
             } else {
@@ -3977,31 +4013,68 @@ $userNavInitial = $userNavInitial ?? '?';
             }
         }
 
-        function fbMonitorSearchBlob(m) {
-            const parts = [
-                m.label || '',
-                m.profile_url || '',
-                m.last_status || '',
-                fbStatusLabel(m.last_status || '')
-            ];
-            return parts.join(' ').toLowerCase();
+        function fbMonitorRenderPagination(meta) {
+            const el = document.getElementById('fbMonitorPagination');
+            if (!el) return;
+            const total = meta.total || 0;
+            const page = meta.page || 1;
+            const perPage = meta.per_page || 10;
+            const totalPages = meta.total_pages || 0;
+            if (total === 0) {
+                el.innerHTML = '';
+                el.hidden = true;
+                return;
+            }
+            el.hidden = false;
+            const start = (page - 1) * perPage + 1;
+            const end = Math.min(page * perPage, total);
+            const info = 'Showing ' + start + '–' + end + ' of ' + total;
+            const prevDisabled = page <= 1;
+            const nextDisabled = totalPages <= 1 || page >= totalPages;
+            el.innerHTML =
+                '<div class="fb-monitor-pagination-inner">' +
+                '<span class="fb-monitor-pagination-info">' + escHtml(info) + '</span>' +
+                '<div class="fb-monitor-pagination-btns">' +
+                '<button type="button" class="btn btn-secondary" id="fbMonitorPagePrev"' + (prevDisabled ? ' disabled' : '') + '>Previous</button>' +
+                '<span class="fb-monitor-pagination-page">Page ' + page + ' of ' + (totalPages || 1) + '</span>' +
+                '<button type="button" class="btn btn-secondary" id="fbMonitorPageNext"' + (nextDisabled ? ' disabled' : '') + '>Next</button>' +
+                '</div>' +
+                '</div>';
+            const prev = document.getElementById('fbMonitorPagePrev');
+            const next = document.getElementById('fbMonitorPageNext');
+            if (prev && !prevDisabled) {
+                prev.addEventListener('click', function () {
+                    fbMonitorListState.page = Math.max(1, page - 1);
+                    void loadFbMonitorList();
+                });
+            }
+            if (next && !nextDisabled) {
+                next.addEventListener('click', function () {
+                    fbMonitorListState.page = Math.min(totalPages, page + 1);
+                    void loadFbMonitorList();
+                });
+            }
         }
 
-        function fbMonitorFilterTable() {
+        function fbMonitorSearchApply() {
             const inp = document.getElementById('fbMonitorSearch');
-            const needle = (inp && inp.value ? inp.value : '').trim().toLowerCase();
-            document.querySelectorAll('#fbMonitorTableBody tr[data-search]').forEach(function (tr) {
-                const hay = tr.getAttribute('data-search') || '';
-                tr.style.display = (!needle || hay.indexOf(needle) !== -1) ? '' : 'none';
-            });
+            fbMonitorListState.q = (inp && inp.value ? inp.value : '').trim();
+            fbMonitorListState.page = 1;
+            void loadFbMonitorList();
         }
 
         (function bindFbMonitorSearch() {
             const inp = document.getElementById('fbMonitorSearch');
             if (!inp || inp._fbSearchBound) return;
             inp._fbSearchBound = true;
-            inp.addEventListener('input', fbMonitorFilterTable);
-            inp.addEventListener('search', fbMonitorFilterTable);
+            inp.addEventListener('input', function () {
+                clearTimeout(fbMonitorSearchDebounceTimer);
+                fbMonitorSearchDebounceTimer = setTimeout(fbMonitorSearchApply, 320);
+            });
+            inp.addEventListener('search', function () {
+                clearTimeout(fbMonitorSearchDebounceTimer);
+                fbMonitorSearchApply();
+            });
         })();
 
         var fbMonitorListAutoRefreshTimer = null;
@@ -4041,17 +4114,42 @@ $userNavInitial = $userNavInitial ?? '?';
 
         async function loadFbMonitorList() {
             const tbody = document.getElementById('fbMonitorTableBody');
+            const pagEl = document.getElementById('fbMonitorPagination');
             if (!tbody) return;
             try {
-                const res = await fetch('api.php?action=fb_monitor_list', { credentials: 'same-origin' });
+                const qs = new URLSearchParams();
+                qs.set('action', 'fb_monitor_list');
+                qs.set('page', String(fbMonitorListState.page));
+                qs.set('per_page', String(fbMonitorListState.perPage));
+                if (fbMonitorListState.q) {
+                    qs.set('q', fbMonitorListState.q);
+                }
+                const res = await fetch('api.php?' + qs.toString(), { credentials: 'same-origin' });
                 const data = await res.json().catch(() => ({}));
                 if (data.status !== 'success') {
+                    if (pagEl) {
+                        pagEl.innerHTML = '';
+                        pagEl.hidden = true;
+                    }
                     tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:#f07178;padding:16px">' + escHtml(data.message || 'Failed to load') + '</td></tr>';
                     return;
                 }
+                if (typeof data.page === 'number' && data.page > 0) {
+                    fbMonitorListState.page = data.page;
+                }
                 const monitors = data.monitors || [];
+                const total = typeof data.total === 'number' ? data.total : 0;
+                const qActive = !!(fbMonitorListState.q && fbMonitorListState.q.length);
                 if (monitors.length === 0) {
-                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:var(--text-muted);padding:16px">No profiles or pages monitored yet.</td></tr>';
+                    if (pagEl) {
+                        pagEl.innerHTML = '';
+                        pagEl.hidden = true;
+                    }
+                    let emptyMsg = 'No profiles or pages monitored yet.';
+                    if (total === 0 && qActive) {
+                        emptyMsg = 'No matches for your search.';
+                    }
+                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:var(--text-muted);padding:16px">' + emptyMsg + '</td></tr>';
                     return;
                 }
                 tbody.innerHTML = monitors.map(function (m) {
@@ -4061,11 +4159,10 @@ $userNavInitial = $userNavInitial ?? '?';
                     const checked = m.last_checked_at ? escHtml(fbMonitorFormatDisplayDateTime(m.last_checked_at)) : 'Never';
                     const statusLbl = fbStatusLabel(m.last_status);
                     const statusTagClass = fbMonitorStatusTagClass(m.last_status);
-                    const searchAttr = escHtml(fbMonitorSearchBlob(m));
                     const checkSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>';
                     const logsSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>';
                     const trashSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>';
-                    return '<tr data-search="' + searchAttr + '">'
+                    return '<tr>'
                         + '<td style="font-weight:600;max-width:12rem">' + labelCell + '</td>'
                         + '<td><a href="' + escHtml(m.profile_url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--link);word-break:break-all;font-size:12px">' + urlFull + '</a></td>'
                         + '<td class="fb-monitor-status-cell"><span class="' + statusTagClass + '">' + escHtml(statusLbl) + '</span></td>'
@@ -4086,8 +4183,12 @@ $userNavInitial = $userNavInitial ?? '?';
                         + '</td>'
                         + '</tr>';
                 }).join('');
-                fbMonitorFilterTable();
+                fbMonitorRenderPagination(data);
             } catch (e) {
+                if (pagEl) {
+                    pagEl.innerHTML = '';
+                    pagEl.hidden = true;
+                }
                 tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:#f07178;padding:16px">Network error</td></tr>';
             }
         }
@@ -4122,6 +4223,7 @@ $userNavInitial = $userNavInitial ?? '?';
                 if (urlInput) urlInput.value = '';
                 if (labelInput) labelInput.value = '';
                 fbMonitorCloseAddModal();
+                fbMonitorListState.page = 1;
                 await loadFbMonitorList();
             } catch (e) {
                 if (errEl) { errEl.textContent = 'Network error — try again.'; errEl.hidden = false; }

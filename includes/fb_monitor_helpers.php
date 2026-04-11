@@ -104,6 +104,32 @@ function fb_monitor_urls_match(string $a, string $b): bool
     return rtrim($a, '/') === rtrim($b, '/');
 }
 
+/**
+ * True if two Facebook profile/page URLs refer to the same destination
+ * (after host/path normalization used elsewhere in FB Tools).
+ */
+function fb_monitor_profile_urls_equivalent(string $a, string $b): bool
+{
+    $a = trim($a);
+    $b = trim($b);
+    if ($a === '' || $b === '') {
+        return false;
+    }
+    if (fb_monitor_urls_match($a, $b)) {
+        return true;
+    }
+    $ca = rtrim(fb_url_to_mbasic($a), '/');
+    $cb = rtrim(fb_url_to_mbasic($b), '/');
+
+    return strcasecmp($ca, $cb) === 0;
+}
+
+/** Escape special LIKE wildcards in user-supplied search strings. */
+function fb_monitor_sql_like_escape(string $s): string
+{
+    return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $s);
+}
+
 function fb_monitor_append_activity(
     int $uid,
     string $source,

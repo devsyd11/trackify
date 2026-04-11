@@ -2553,14 +2553,47 @@ function handleFbMonitorList(): void
         echo json_encode(['status' => 'error', 'message' => 'Database not available']);
         return;
     }
+    $perPage = max(5, min(30, (int) ($_GET['per_page'] ?? 10)));
+    $page    = max(1, (int) ($_GET['page'] ?? 1));
+    $q       = trim((string) ($_GET['q'] ?? ''));
+
     try {
-        $stmt = $pdo->prepare(
-            'SELECT id, profile_url, label, last_status, last_checked_at, last_changed_at, created_at
-             FROM facebook_monitor WHERE user_id = ? ORDER BY created_at DESC'
-        );
-        $stmt->execute([$uid]);
+        $where  = 'user_id = :uid';
+        $params = [':uid' => $uid];
+        if ($q !== '') {
+            $like = '%' . fb_monitor_sql_like_escape($q) . '%';
+            $where .= ' AND (profile_url LIKE :like1 OR label LIKE :like2)';
+            $params[':like1'] = $like;
+            $params[':like2'] = $like;
+        }
+
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM facebook_monitor WHERE $where");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 0;
+        if ($totalPages > 0 && $page > $totalPages) {
+            $page = $totalPages;
+        }
+        $offset = ($page - 1) * $perPage;
+        $lim    = (int) $perPage;
+        $off    = (int) $offset;
+
+        $selectSql = "SELECT id, profile_url, label, last_status, last_checked_at, last_changed_at, created_at
+             FROM facebook_monitor WHERE $where
+             ORDER BY created_at DESC LIMIT $lim OFFSET $off";
+        $stmt = $pdo->prepare($selectSql);
+        $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode(['status' => 'success', 'monitors' => $rows ?: []]);
+
+        echo json_encode([
+            'status'      => 'success',
+            'monitors'    => $rows ?: [],
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $perPage,
+            'total_pages' => $totalPages,
+        ]);
     } catch (PDOException $e) {
         echo json_encode(['status' => 'error', 'message' => 'DB error — run the facebook_monitor migration: ' . $e->getMessage()]);
     }
@@ -2601,6 +2634,14 @@ function handleFbMonitorAdd(): void
         if ((int) $countStmt->fetchColumn() >= 20) {
             echo json_encode(['status' => 'error', 'message' => 'Maximum 20 monitors per account.']);
             return;
+        }
+        $dupStmt = $pdo->prepare('SELECT profile_url FROM facebook_monitor WHERE user_id = ?');
+        $dupStmt->execute([$uid]);
+        foreach ($dupStmt->fetchAll(PDO::FETCH_COLUMN) as $existing) {
+            if (fb_monitor_profile_urls_equivalent((string) $existing, $url)) {
+                echo json_encode(['status' => 'error', 'message' => 'This profile URL is already in your list.']);
+                return;
+            }
         }
         $ins = $pdo->prepare(
             'INSERT INTO facebook_monitor (user_id, profile_url, label, last_status, created_at)
