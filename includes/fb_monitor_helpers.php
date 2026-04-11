@@ -305,9 +305,10 @@ function fb_monitor_playwright_should_run(): bool
 }
 
 /**
- * Run the Playwright worker (stdin JSON → stdout JSON). Returns null to fall back to HTTP.
+ * Run the Playwright worker (stdin JSON → stdout JSON).
  *
- * @return array{html: string, http_code: int, effective_url: string}|null
+ * @return null Playwright not installed or disabled in config — caller may use HTTP fetch.
+ * @return array{ok: bool, html: string, visible_text: string, http_code: int, effective_url: string, error?: string}
  */
 function fb_monitor_try_playwright(string $url, string $cookieString): ?array
 {
@@ -322,31 +323,67 @@ function fb_monitor_try_playwright(string $url, string $cookieString): ?array
     $root = dirname(__DIR__);
     $payload = json_encode(['profileUrl' => $url, 'cookies' => $cookieString], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     if ($payload === false) {
-        return null;
+        return [
+            'ok'            => false,
+            'error'         => 'Could not encode request for Playwright',
+            'html'          => '',
+            'visible_text'  => '',
+            'http_code'     => 0,
+            'effective_url' => '',
+        ];
     }
     $cmd = escapeshellarg($node) . ' ' . escapeshellarg($script);
     $des = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
     $proc = @proc_open($cmd, $des, $pipes, $root);
     if (!is_resource($proc)) {
-        return null;
+        return [
+            'ok'            => false,
+            'error'         => 'Could not start Playwright process (is Node in PATH?)',
+            'html'          => '',
+            'visible_text'  => '',
+            'http_code'     => 0,
+            'effective_url' => '',
+        ];
     }
     fwrite($pipes[0], $payload);
     fclose($pipes[0]);
     $stdout = (string) stream_get_contents($pipes[1]);
-    $stderr = (string) stream_get_contents($pipes[2]);
+    $stderr = trim((string) stream_get_contents($pipes[2]));
     fclose($pipes[1]);
     fclose($pipes[2]);
     proc_close($proc);
-    if ($stdout === '' && $stderr !== '') {
-        return null;
+
+    $fail = static function (string $err) use ($stderr): array {
+        if ($err === '' && $stderr !== '') {
+            $err = $stderr;
+        }
+        if ($err === '') {
+            $err = 'Playwright did not return ok. Run: npm ci && npx playwright install chromium';
+        }
+
+        return [
+            'ok'            => false,
+            'error'         => $err,
+            'html'          => '',
+            'visible_text'  => '',
+            'http_code'     => 0,
+            'effective_url' => '',
+        ];
+    };
+
+    if ($stdout === '') {
+        return $fail($stderr !== '' ? $stderr : 'Playwright produced no output on stdout');
     }
 
     $decoded = json_decode($stdout, true);
     if (!is_array($decoded) || empty($decoded['ok'])) {
-        return null;
+        $msg = is_array($decoded) ? trim((string) ($decoded['error'] ?? '')) : '';
+
+        return $fail($msg);
     }
 
     return [
+        'ok'            => true,
         'html'          => (string) ($decoded['html'] ?? ''),
         'visible_text'  => (string) ($decoded['visible_text'] ?? ''),
         'http_code'     => (int) ($decoded['http_code'] ?? 0),
@@ -355,11 +392,159 @@ function fb_monitor_try_playwright(string $url, string $cookieString): ?array
 }
 
 /**
+ * Decode \\uXXXX sequences (Facebook embeds error copy inside JSON in HTML).
+ */
+function fb_monitor_decode_json_unicode_escapes(string $s): string
+{
+    $out = $s;
+    for ($i = 0; $i < 8; $i++) {
+        $next = preg_replace_callback(
+            '/(?<!\\\\)\\\\u([0-9a-fA-F]{4})/',
+            static function (array $m): string {
+                $cp = hexdec($m[1]);
+                if ($cp <= 0) {
+                    return $m[0];
+                }
+                // Surrogates and invalid scalars make mb_chr() return false — that would TypeError the callback (PHP 8+).
+                if ($cp >= 0xd800 && $cp <= 0xdfff) {
+                    return $m[0];
+                }
+                if (function_exists('mb_chr')) {
+                    $ch = mb_chr($cp, 'UTF-8');
+                    if ($ch !== false && $ch !== '') {
+                        return $ch;
+                    }
+
+                    return $m[0];
+                }
+                if ($cp < 128) {
+                    return chr($cp);
+                }
+
+                return $m[0];
+            },
+            $out
+        );
+        if ($next === $out) {
+            break;
+        }
+        $out = $next;
+    }
+
+    return $out;
+}
+
+/**
+ * True if HTML/visible text matches Facebook’s “content not available” / restricted / deleted UI.
+ * Decodes entities + JSON \\uXXXX so isn&#039;t / embedded JSON copy match; checks Relay markers.
+ */
+function fb_profile_page_shows_content_unavailable(string $html, string $visibleText): bool
+{
+    $scan = html_entity_decode($html . "\n" . $visibleText, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $scan = fb_monitor_decode_json_unicode_escapes($scan);
+    $lower = strtolower($scan);
+    $normalised = str_replace(
+        ["\xe2\x80\x99", '&#8217;', '&#x2019;', '&rsquo;', '\u2019'],
+        "'",
+        $lower
+    );
+
+    $phrases = [
+        "this content isn't available right now",
+        "this content isn't available",
+        'this content isnt available right now',
+        'this content isnt available',
+        'content not available',
+        'page not found',
+        "sorry, this page isn't available",
+        'the page you requested cannot be displayed',
+        'the link you followed may be broken',
+        "when this happens, it's usually because",
+        'only shared it with a small group of people',
+        "changed who can see it or it's been deleted",
+        'when this happens, its usually because',
+        'changed who can see it or its been deleted',
+        // Common variants / “not visible” copy
+        "this page isn't available",
+        "this page isn't visible",
+        "isn't visible right now",
+        "can't view this",
+        "cannot view this",
+        "can't find this account",
+        "cannot find this account",
+        'no longer available',
+        'profile unavailable',
+        "this profile can't be viewed",
+        "this profile cannot be viewed",
+        'page is not visible',
+        'content is not visible',
+    ];
+    foreach ($phrases as $p) {
+        if (strpos($normalised, $p) !== false) {
+            return true;
+        }
+    }
+
+    // Flexible: apostrophe / HTML entity / narrow no-break variants in “isn’t”
+    if (preg_match('/this\s+content\s+isn[\x{0027}\x{2019}]?t\s+available/iu', $normalised)) {
+        return true;
+    }
+    if (preg_match('/this\s+content\s+is\s+not\s+available/iu', $normalised)) {
+        return true;
+    }
+    if (preg_match('/content\s+not\s+available/iu', $normalised)) {
+        return true;
+    }
+    if (preg_match('/this\s+page\s+isn[\x{0027}\x{2019}]?t\s+(available|visible)/iu', $normalised)) {
+        return true;
+    }
+
+    // Embedded GraphQL / Relay-style markers (big JSON blobs; avoid generic class names)
+    if (preg_match('/"(ProfileCannotBeAccessed|CannotRenderTimeline)"/i', $html . $visibleText)) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * True if the browser landed on a URL whose path/query matches the monitored profile identifier.
+ * Used after Playwright navigation when HTML/SPA does not repeat "/username" in the body.
+ */
+function fb_profile_final_url_matches_identifier(string $finalUrl, array $want): bool
+{
+    if ($want['type'] === 'none') {
+        return false;
+    }
+    $finalUrl = trim($finalUrl);
+    if ($finalUrl === '') {
+        return false;
+    }
+    $host = strtolower((string) parse_url($finalUrl, PHP_URL_HOST));
+    if ($host === '' || strpos($host, 'facebook.com') === false) {
+        return false;
+    }
+
+    if ($want['type'] === 'id') {
+        $q = (string) parse_url($finalUrl, PHP_URL_QUERY);
+        parse_str($q, $qs);
+
+        return isset($qs['id']) && (string) $qs['id'] === (string) $want['value'];
+    }
+
+    $path = (string) parse_url($finalUrl, PHP_URL_PATH);
+    $path = trim($path, '/');
+    $first = strtolower((string) (strtok($path, '/') ?: $path));
+
+    return $first !== '' && $first === strtolower((string) $want['value']);
+}
+
+/**
  * Classify profile from fetched HTML (HTTP or Playwright).
  *
- * @return array{status: string, detail: string, http_code: int}
+ * @return array{status: string, detail: string, http_code: int, update_last_status?: bool}
  */
-function fb_classify_fetched_profile(string $html, string $finalUrl, string $originalUrl, int $code, string $curlErr = '', string $visibleText = ''): array
+function fb_classify_fetched_profile(string $html, string $finalUrl, string $originalUrl, int $code, string $curlErr = '', string $visibleText = '', bool $playwrightBrowserCheck = false): array
 {
     if ($code === 0 && $curlErr !== '') {
         return ['status' => 'unknown', 'detail' => 'Connection failed: ' . ($curlErr ?: 'unknown error'), 'http_code' => 0];
@@ -378,9 +563,9 @@ function fb_classify_fetched_profile(string $html, string $finalUrl, string $ori
         return ['status' => 'unknown', 'detail' => "Facebook returned HTTP {$code}", 'http_code' => $code];
     }
 
-    // Include visible text (Playwright) so "content not available" is found even when it is client-rendered.
+    // Decode entities for login/unavailable checks (raw HTML often has isn&#039;t, etc.).
     $scan = $html . "\n" . $visibleText;
-    $lower = strtolower($scan);
+    $lower = strtolower(html_entity_decode($scan, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 
     // Redirects/landings that indicate auth issues (cookies invalid / checkpoint)
     $finalLower = strtolower($finalUrl);
@@ -406,23 +591,8 @@ function fb_classify_fetched_profile(string $html, string $finalUrl, string $ori
         return ['status' => 'unknown', 'detail' => 'Facebook returned a generic error page — try again later or refresh cookies', 'http_code' => $code];
     }
 
-    $unavailablePhrases = [
-        "this content isn't available right now",
-        "this content isn't available",
-        "content not available",
-        "page not found",
-        "sorry, this page isn't available",
-        "the page you requested cannot be displayed",
-        "the link you followed may be broken",
-        // Full-screen “unavailable” copy (often only in visible text, not raw HTML)
-        "when this happens, it's usually because",
-        "only shared it with a small group of people",
-        "changed who can see it or it's been deleted",
-    ];
-    foreach ($unavailablePhrases as $p) {
-        if (strpos($normalised, $p) !== false) {
-            return ['status' => 'unavailable', 'detail' => 'Facebook returned “content not available” (private/restricted/deleted)', 'http_code' => $code];
-        }
+    if (fb_profile_page_shows_content_unavailable($html, $visibleText)) {
+        return ['status' => 'unavailable', 'detail' => 'Facebook returned “content not available” (private/restricted/deleted)', 'http_code' => $code];
     }
 
     if (
@@ -459,8 +629,15 @@ function fb_classify_fetched_profile(string $html, string $finalUrl, string $ori
     $onProfileAfterRedirect = ($needle !== '' && strpos($finalLowerUrl, strtolower($needle)) !== false);
 
     // Do NOT treat URL path alone as “active”: /username URLs also serve “content isn’t available” with HTTP 200.
-    // Require at least one content match for the identifier in HTML + visible text.
+    // Error pages still contain profile links/meta — re-check before marking active.
     if ($linkCount >= 1) {
+        if (fb_profile_page_shows_content_unavailable($html, $visibleText)) {
+            return [
+                'status'    => 'unavailable',
+                'detail'    => 'Facebook shows “content not available” (links to this profile still appear in markup)',
+                'http_code' => $code,
+            ];
+        }
         $detail = 'Profile content matches the monitored identifier (' . $linkCount . '× "' . $needle . '") — account appears active';
         if ($onProfileAfterRedirect) {
             $detail = 'Profile page loaded and content matches the monitored profile — account appears active';
@@ -473,12 +650,27 @@ function fb_classify_fetched_profile(string $html, string $finalUrl, string $ori
         ];
     }
 
-    // Inconclusive: page loaded but identifier not found in HTML/visible text (SPA, layout changes, etc.).
-    // Treat as active so the UI does not show a false “inactive” when we simply could not parse proof either way.
+    // Playwright: real browser reached a URL whose path matches the profile; SPA often omits "/user" in static HTML.
+    if (
+        $playwrightBrowserCheck
+        && fb_profile_final_url_matches_identifier($finalUrl, $want)
+        && !fb_profile_page_shows_content_unavailable($html, $visibleText)
+    ) {
+        return [
+            'status'    => 'active',
+            'detail'    => 'Playwright loaded the profile URL; location matches the monitored identifier — account appears active',
+            'http_code' => $code,
+        ];
+    }
+
+    // Inconclusive: page loaded but identifier not found (SPA shell, layout changes, restricted HTML).
+    // Do not assume active — that produced false “active” for unavailable/hidden profiles.
+    // Caller should persist `unknown` to DB (unlike transient network/cookie unknowns).
     return [
-        'status'    => 'active',
-        'detail'    => 'Active — page loaded; identifier not detected in text (inconclusive parse; counted as active)',
-        'http_code' => $code,
+        'status'             => 'unknown',
+        'detail'             => 'Could not confirm profile visibility — identifier not found in response (inconclusive parse)',
+        'http_code'          => $code,
+        'update_last_status' => true,
     ];
 }
 
@@ -695,13 +887,23 @@ function fb_check_profile_url(string $url, string $cookieString): array
 
     $pw = fb_monitor_try_playwright($url, $cookieString);
     if ($pw !== null) {
+        if (empty($pw['ok'])) {
+            return [
+                'status'        => 'unknown',
+                'detail'        => 'Playwright: ' . (string) ($pw['error'] ?? 'check failed'),
+                'http_code'     => 0,
+                'preview_image' => '',
+            ];
+        }
+
         $out = fb_classify_fetched_profile(
             $pw['html'],
             $pw['effective_url'],
             $url,
             $pw['http_code'],
             '',
-            $pw['visible_text'] ?? ''
+            $pw['visible_text'] ?? '',
+            true
         );
         $out['preview_image'] = fb_monitor_extract_page_image($pw['html']);
 
@@ -711,7 +913,7 @@ function fb_check_profile_url(string $url, string $cookieString): array
     if (!function_exists('curl_init')) {
         return [
             'status'    => 'unknown',
-            'detail'    => 'Playwright not available and cURL missing. Install Node, run: npm ci && npx playwright install chromium, or enable PHP cURL.',
+            'detail'    => 'Playwright not installed (npm ci && npx playwright install chromium) and cURL is missing.',
             'http_code' => 0,
             'preview_image' => '',
         ];

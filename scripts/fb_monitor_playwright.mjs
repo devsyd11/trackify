@@ -15,6 +15,24 @@ import { chromium } from 'playwright';
 
 const MAX_HTML = 900000;
 
+/** Prefer desktop www host so profile path matches monitored URLs. */
+function normalizeFacebookProfileUrl(raw) {
+  const u = String(raw || '').trim();
+  try {
+    const x = new URL(u);
+    if (!/facebook\.com$/i.test(x.hostname) && !/\.facebook\.com$/i.test(x.hostname)) {
+      return u;
+    }
+    x.protocol = 'https:';
+    if (x.hostname === 'm.facebook.com' || x.hostname === 'mbasic.facebook.com' || x.hostname === 'mobile.facebook.com') {
+      x.hostname = 'www.facebook.com';
+    }
+    return x.toString();
+  } catch {
+    return u;
+  }
+}
+
 function readStdin() {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -76,13 +94,15 @@ async function main() {
     return;
   }
 
-  const profileUrl = String(input.profileUrl || '').trim();
+  let profileUrl = String(input.profileUrl || '').trim();
   const cookiesRaw = input.cookies != null ? String(input.cookies) : '';
 
   if (!profileUrl || !/^https?:\/\//i.test(profileUrl)) {
     process.stdout.write(JSON.stringify({ ok: false, error: 'profileUrl required' }));
     return;
   }
+
+  profileUrl = normalizeFacebookProfileUrl(profileUrl);
 
   const flat = normalizeCookieString(cookiesRaw);
   if (!flat) {
@@ -115,8 +135,8 @@ async function main() {
     let response;
     try {
       response = await page.goto(profileUrl, {
-        waitUntil: 'domcontentloaded',
-        timeout: 75000,
+        waitUntil: 'load',
+        timeout: 90000,
       });
     } catch (navErr) {
       await browser.close();
@@ -127,9 +147,14 @@ async function main() {
     }
 
     const httpCode = response ? response.status() : 0;
-    await new Promise((r) => setTimeout(r, 1500));
-    // Let client-rendered “content not available” / profile chrome appear in the DOM
+    try {
+      await page.waitForSelector('[role="main"], [data-pagelet="root"], #mount_0_0', { timeout: 12000 });
+    } catch (_) {
+      /* SPA may use other roots */
+    }
     await new Promise((r) => setTimeout(r, 2000));
+    // Let client-rendered “content not available” / profile chrome appear in the DOM
+    await new Promise((r) => setTimeout(r, 2500));
 
     const effectiveUrl = page.url();
     let html = await page.content();

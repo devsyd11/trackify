@@ -2786,7 +2786,9 @@ function handleFbMonitorCheck(): void
         $rowLabel   = (string) ($row['label'] ?? '');
         $profileUrl = (string) $row['profile_url'];
 
-        if ($newStatus === 'unknown') {
+        // Transient unknown (network, cookies): keep last_status so a blip does not wipe a known state.
+        // Inconclusive parse sets update_last_status so we replace a false “active” with unknown.
+        if ($newStatus === 'unknown' && empty($check['update_last_status'])) {
             $results[] = ['id' => (int) $row['id'], 'status' => 'unknown', 'detail' => $detail, 'changed' => false];
             fb_monitor_append_activity($uid, 'dashboard', 'unknown', $detail, $rowLabel, $profileUrl);
             continue;
@@ -2823,7 +2825,11 @@ function handleFbMonitorCheck(): void
         fb_monitor_append_activity($uid, 'dashboard', $newStatus, $detail, $rowLabel, $profileUrl);
     }
 
-    echo json_encode(['status' => 'success', 'results' => $results]);
+    $payload = json_encode(
+        ['status' => 'success', 'results' => $results],
+        JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE
+    );
+    echo $payload !== false ? $payload : json_encode(['status' => 'error', 'message' => 'Response encoding failed']);
 }
 
 function handleFbMonitorLogs(): void
@@ -2897,7 +2903,8 @@ function handleFbMonitorDebug(): void
 
     $cookieRaw = (string) ($cfg['cookies'] ?? '');
     $pw = fb_monitor_try_playwright($url, $cookieRaw);
-    if ($pw !== null) {
+    $playwrightError = '';
+    if ($pw !== null && !empty($pw['ok'])) {
         $html = $pw['html'];
         $code = $pw['http_code'];
         $effectiveUrl = $pw['effective_url'];
@@ -2905,6 +2912,15 @@ function handleFbMonitorDebug(): void
         $checkUrl = $url;
         $attemptedUrls = ['playwright'];
         $fetchMode = 'playwright';
+    } elseif ($pw !== null) {
+        $playwrightError = (string) ($pw['error'] ?? 'Playwright failed');
+        $html = '';
+        $code = 0;
+        $effectiveUrl = '';
+        $curlErr = $playwrightError;
+        $checkUrl = $url;
+        $attemptedUrls = ['playwright'];
+        $fetchMode = 'playwright_error';
     } else {
         $fetch = fb_monitor_fetch_facebook_html($url, $cookieRaw);
         $html = $fetch['html'];
@@ -2966,11 +2982,12 @@ function handleFbMonitorDebug(): void
         'http_code'     => $code,
         'effective_url' => $effectiveUrl,
         'curl_error'    => $curlErr,
+        'playwright_error' => $playwrightError !== '' ? $playwrightError : null,
         'response_len'  => strlen($html),
         'checker_status' => $check['status'] ?? null,
         'checker_detail' => $check['detail'] ?? null,
         'phrases_found' => $found,
         'title'         => $title,
         'body_text'     => substr($bodyText, 0, 3000),
-    ], JSON_UNESCAPED_UNICODE);
+    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
 }

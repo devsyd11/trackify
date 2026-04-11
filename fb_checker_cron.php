@@ -95,8 +95,8 @@ foreach ($userDirs as $dir) {
         $newStatus  = $check['status'];
         $detail     = $check['detail'];
 
-        if ($newStatus === 'unknown') {
-            // Network/cookie error — update checked_at so we don't hammer, leave status unchanged
+        if ($newStatus === 'unknown' && empty($check['update_last_status'])) {
+            // Transient unknown — bump checked_at only, leave last_status unchanged
             $pdo->prepare('UPDATE facebook_monitor SET last_checked_at = NOW() WHERE id = ?')
                 ->execute([(int) $row['id']]);
             echo "[fb_cron] unknown uid={$uid} id={$row['id']}: {$detail}\n";

@@ -4492,7 +4492,17 @@ $userNavInitial = $userNavInitial ?? '?';
                     body: JSON.stringify({}),
                     credentials: 'same-origin'
                 });
-                const data = await res.json().catch(() => ({}));
+                const text = await res.text();
+                let data = {};
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseErr) {
+                    fbMonitorToast(
+                        'Check failed (HTTP ' + res.status + '). Server did not return JSON — see PHP error log.',
+                        true
+                    );
+                    return;
+                }
                 if (data.status !== 'success') {
                     fbMonitorToast(data.message || 'Check failed.', true);
                 } else {
@@ -4534,7 +4544,17 @@ $userNavInitial = $userNavInitial ?? '?';
                     body: JSON.stringify({ id: id }),
                     credentials: 'same-origin'
                 });
-                const data = await res.json().catch(() => ({}));
+                const text = await res.text();
+                let data = {};
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseErr) {
+                    fbMonitorToast(
+                        'Check failed (HTTP ' + res.status + '). Server did not return JSON — see PHP error log.',
+                        true
+                    );
+                    return;
+                }
                 if (data.status !== 'success') {
                     fbMonitorToast(data.message || 'Check failed.', true);
                 } else {
