@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * Facebook Monitor — shared helpers.
  * Required by api.php and fb_checker_cron.php.
- * Assumes trackify_capture.php is already loaded (provides trackify_pdo, trackify_send_telegram_html).
+ * Assumes trackify_capture.php is already loaded (provides trackify_pdo, trackify_send_telegram_html, trackify_send_telegram_photo_url).
  */
 
 // ---------------------------------------------------------------------------
@@ -456,15 +456,101 @@ function fb_classify_fetched_profile(string $html, string $finalUrl, string $ori
     ];
 }
 
+/**
+ * Normalize image URL for Telegram sendPhoto (HTTPS only; upgrade http → https).
+ */
+function fb_monitor_normalize_telegram_photo_url(string $raw): string
+{
+    $u = trim(html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    if ($u === '' || strlen($u) > 2048) {
+        return '';
+    }
+    if (preg_match('#^http://#i', $u)) {
+        $u = 'https://' . preg_replace('#^http://#i', '', $u);
+    }
+    if (!preg_match('#^https://#i', $u)) {
+        return '';
+    }
+
+    return $u;
+}
+
+/**
+ * Fallback: first plausible Facebook CDN image in HTML (mbasic often has profile thumbs in img src).
+ */
+function fb_monitor_extract_fbcdn_img_fallback(string $html): string
+{
+    if (!preg_match_all('#https://[a-z0-9.-]+\.fbcdn\.net/[^\s"\'<>]+#i', $html, $matches)) {
+        return '';
+    }
+    $best = '';
+    foreach ($matches[0] as $raw) {
+        $u = fb_monitor_normalize_telegram_photo_url($raw);
+        if ($u === '') {
+            continue;
+        }
+        if (preg_match('#/(s\d+x\d+/|/v/t\d+\.\d+-\d+/)#', $u) || preg_match('#\d+x\d+#', $u)) {
+            return $u;
+        }
+        if ($best === '') {
+            $best = $u;
+        }
+    }
+
+    return $best;
+}
+
+/**
+ * Best-effort profile/page image URL from fetched Facebook HTML (og:image, then CDN img).
+ */
+function fb_monitor_extract_page_image(string $html): string
+{
+    if ($html === '') {
+        return '';
+    }
+    foreach (['og:image:secure_url', 'og:image', 'twitter:image'] as $prop) {
+        $q = preg_quote($prop, '/');
+        if (preg_match('/<meta\s[^>]*property\s*=\s*["\']' . $q . '["\'][^>]*\bcontent\s*=\s*["\']([^"\']+)["\']/is', $html, $m)) {
+            $u = fb_monitor_normalize_telegram_photo_url($m[1]);
+            if ($u !== '') {
+                return $u;
+            }
+        }
+        if (preg_match('/<meta\s[^>]*\bcontent\s*=\s*["\']([^"\']+)["\'][^>]*property\s*=\s*["\']' . $q . '["\']/is', $html, $m)) {
+            $u = fb_monitor_normalize_telegram_photo_url($m[1]);
+            if ($u !== '') {
+                return $u;
+            }
+        }
+    }
+    foreach (['og:image', 'twitter:image'] as $name) {
+        $q = preg_quote($name, '/');
+        if (preg_match('/<meta\s[^>]*name\s*=\s*["\']' . $q . '["\'][^>]*\bcontent\s*=\s*["\']([^"\']+)["\']/is', $html, $m)) {
+            $u = fb_monitor_normalize_telegram_photo_url($m[1]);
+            if ($u !== '') {
+                return $u;
+            }
+        }
+    }
+    if (preg_match('/<link\s[^>]*rel\s*=\s*["\']image_src["\'][^>]*\bhref\s*=\s*["\']([^"\']+)["\']/is', $html, $m)) {
+        $u = fb_monitor_normalize_telegram_photo_url($m[1]);
+        if ($u !== '') {
+            return $u;
+        }
+    }
+
+    return fb_monitor_extract_fbcdn_img_fallback($html);
+}
+
 function fb_check_profile_url(string $url, string $cookieString): array
 {
     if (fb_cookies_normalize($cookieString) === '') {
-        return ['status' => 'unknown', 'detail' => 'Cookie string is empty after normalization', 'http_code' => 0];
+        return ['status' => 'unknown', 'detail' => 'Cookie string is empty after normalization', 'http_code' => 0, 'preview_image' => ''];
     }
 
     $pw = fb_monitor_try_playwright($url, $cookieString);
     if ($pw !== null) {
-        return fb_classify_fetched_profile(
+        $out = fb_classify_fetched_profile(
             $pw['html'],
             $pw['effective_url'],
             $url,
@@ -472,6 +558,9 @@ function fb_check_profile_url(string $url, string $cookieString): array
             '',
             $pw['visible_text'] ?? ''
         );
+        $out['preview_image'] = fb_monitor_extract_page_image($pw['html']);
+
+        return $out;
     }
 
     if (!function_exists('curl_init')) {
@@ -479,18 +568,21 @@ function fb_check_profile_url(string $url, string $cookieString): array
             'status'    => 'unknown',
             'detail'    => 'Playwright not available and cURL missing. Install Node, run: npm ci && npx playwright install chromium, or enable PHP cURL.',
             'http_code' => 0,
+            'preview_image' => '',
         ];
     }
 
     $fetch = fb_monitor_fetch_facebook_html($url, $cookieString);
-
-    return fb_classify_fetched_profile(
+    $out = fb_classify_fetched_profile(
         $fetch['html'],
         $fetch['effective_url'],
         $url,
         $fetch['http_code'],
         $fetch['curl_error']
     );
+    $out['preview_image'] = fb_monitor_extract_page_image($fetch['html']);
+
+    return $out;
 }
 
 /**
@@ -653,19 +745,44 @@ function fb_monitor_fetch_facebook_html(string $url, string $cookieString): arra
 // Telegram alert
 // ---------------------------------------------------------------------------
 
-function fb_monitor_send_active_alert(string $url, string $label): void
+function fb_monitor_send_active_alert(string $url, string $label, string $previewImageUrl = ''): void
 {
-    $esc  = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    $disp = $label !== ''
-        ? $esc($label) . "\n<code>" . $esc($url) . '</code>'
-        : '<code>' . $esc($url) . '</code>';
+    $esc = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $u = trim($url);
+    if ($u === '') {
+        return;
+    }
     $when = $esc(gmdate('Y-m-d H:i:s') . ' UTC');
+    $href = $esc($u);
 
-    $html = "&#128065; <b>FB Monitor · Active</b>\n\n"
-          . "A monitored Facebook profile or page is accessible again.\n\n"
-          . "<b>URL</b>\n{$disp}\n\n"
-          . "<b>Detected at</b>\n<code>{$when}</code>\n\n"
-          . "<i>Trackify FB Monitor</i>";
+    $lines = [
+        '✅ <b>Account Checker · profile accessible</b>',
+        '',
+        'A monitored Facebook profile or page is loading again (no longer restricted or unavailable).',
+        '',
+    ];
+    if ($label !== '') {
+        $lines[] = '<b>Label</b>';
+        $lines[] = $esc($label);
+        $lines[] = '';
+    }
+    $lines[] = '<b>Profile</b>';
+    $lines[] = '<a href="' . $href . '">' . $href . '</a>';
+    $lines[] = '';
+    $lines[] = '<b>Detected at</b>';
+    $lines[] = '<code>' . $when . '</code>';
+    $lines[] = '';
+    $lines[] = '<i>Trackify · Facebook Tools</i>';
 
-    trackify_send_telegram_html($html);
+    $html = implode("\n", $lines);
+    if (strlen($html) > 4000) {
+        $html = trackify_trunc_utf8($html, 3990) . '…';
+    }
+
+    $img = fb_monitor_normalize_telegram_photo_url($previewImageUrl);
+    if ($img !== '' && trackify_send_telegram_photo_url($img, $html)) {
+        return;
+    }
+
+    trackify_send_telegram_html($html, false);
 }

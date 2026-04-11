@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Opens HTML document with shared dashboard sidebar + top bar.
  *
  * @param string $pageTitle   Browser tab title (without suffix)
- * @param string $navActive   trackify | phone | ip | exiftool | settings
+ * @param string $navActive   trackify | phone | ip | exiftool | fbmonitor | settings
  * @param string $userNavName Display name in header menu
  * @param string $userNavInitial Single character avatar letter
  */
@@ -28,19 +28,59 @@ function dashboard_shell_begin(string $pageTitle, string $navActive, string $use
 <body class="dashboard-shell-body">
     <div class="app-shell">
         <nav class="side-nav" aria-label="Main navigation">
-            <a href="panel.php" class="side-nav-logo" title="Trackify — Home" aria-label="Trackify — Home">
-                <img src="logos/trackify_logo.png" width="120" height="48" alt="">
+            <div class="side-nav-brand">
+                <a href="panel.php" class="side-nav-logo" title="Trackify — Home" aria-label="Trackify — Home">
+                    <img src="logos/trackify_logo.png" width="120" height="48" alt="">
+                </a>
+                <span class="side-nav-product">Trackify</span>
+            </div>
+            <div class="side-nav-section-label" role="presentation">Workspace</div>
+            <a href="panel.php" class="side-nav-item<?= $act('trackify') ?>" title="Dashboard">
+                <span class="side-nav-item-icon" aria-hidden="true">🛰</span>
+                <span class="side-nav-item-label">Dashboard</span>
             </a>
-            <a href="panel.php" class="side-nav-item<?= $act('trackify') ?>" title="Trackify">🛰</a>
-            <a href="panel.php" class="side-nav-item<?= $act('phone') ?>" title="Phone number lookup">☎</a>
-            <a href="panel.php" class="side-nav-item<?= $act('ip') ?>" title="IP lookup">🌐</a>
-            <a href="panel.php?view=saveinfo" class="side-nav-item" title="Sniffer">🔑</a>
-            <a href="panel.php?view=exiftool" class="side-nav-item<?= $act('exiftool') ?>" title="EXIFTool viewer">📷</a>
+            <a href="panel.php?view=phone" class="side-nav-item<?= $act('phone') ?>" title="Phone lookup">
+                <span class="side-nav-item-icon" aria-hidden="true">☎</span>
+                <span class="side-nav-item-label">Phone lookup</span>
+            </a>
+            <a href="panel.php?view=ip" class="side-nav-item<?= $act('ip') ?>" title="IP lookup">
+                <span class="side-nav-item-icon" aria-hidden="true">🌐</span>
+                <span class="side-nav-item-label">IP lookup</span>
+            </a>
+            <a href="panel.php?view=saveinfo" class="side-nav-item" title="Sniffer">
+                <span class="side-nav-item-icon" aria-hidden="true">🔑</span>
+                <span class="side-nav-item-label">Sniffer</span>
+            </a>
+            <a href="panel.php?view=exiftool" class="side-nav-item<?= $act('exiftool') ?>" title="EXIF tool">
+                <span class="side-nav-item-icon" aria-hidden="true">📷</span>
+                <span class="side-nav-item-label">EXIF tool</span>
+            </a>
+            <div class="side-nav-group<?= $navActive === 'fbmonitor' ? ' has-active-child' : '' ?>">
+                <span class="side-nav-group-label" role="presentation">
+                    <svg class="side-nav-fb-logo" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    Facebook Tools
+                </span>
+                <div class="side-nav-submenu" role="group" aria-label="Facebook Tools">
+                    <a href="panel.php?view=fbmonitor" class="side-nav-item side-nav-item--sub<?= $navActive === 'fbmonitor' ? ' active' : '' ?>" title="Account Checker">
+                        <span class="side-nav-item-icon" aria-hidden="true">👁</span>
+                        <span class="side-nav-item-label">Account Checker</span>
+                    </a>
+                </div>
+            </div>
             <div class="side-nav-spacer" aria-hidden="true"></div>
-            <a href="account-settings.php" class="side-nav-item<?= $act('settings') ?>" title="Account settings">⚙</a>
+            <div class="side-nav-section-label" role="presentation">Account</div>
+            <a href="account-settings.php" class="side-nav-item<?= $act('settings') ?>" title="Settings">
+                <span class="side-nav-item-icon" aria-hidden="true">⚙</span>
+                <span class="side-nav-item-label">Settings</span>
+            </a>
             <div class="side-nav-disclaimer-wrap">
-                <button type="button" class="disclaimer-link disclaimer-link--rail" onclick="openDisclaimer()" title="Disclaimer" aria-label="Disclaimer">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                <button type="button" class="side-nav-item" onclick="openDisclaimer()" title="Disclaimer">
+                    <span class="side-nav-item-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    </span>
+                    <span class="side-nav-item-label">Disclaimer</span>
                 </button>
             </div>
         </nav>

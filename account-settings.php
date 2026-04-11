@@ -64,7 +64,7 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                 <nav class="settings-nav" role="tablist" aria-label="Settings categories">
                                     <button type="button" class="settings-nav-tab" role="tab" id="settings-tab-password" aria-controls="settings-panel-password" aria-selected="true">Change password</button>
                                     <button type="button" class="settings-nav-tab" role="tab" id="settings-tab-notifications" aria-controls="settings-panel-notifications" aria-selected="false" tabindex="-1">Notifications</button>
-                                    <button type="button" class="settings-nav-tab" role="tab" id="settings-tab-fbmonitor" aria-controls="settings-panel-fbmonitor" aria-selected="false" tabindex="-1">FB Monitor</button>
+                                    <button type="button" class="settings-nav-tab" role="tab" id="settings-tab-fbmonitor" aria-controls="settings-panel-fbmonitor" aria-selected="false" tabindex="-1">Facebook Tools</button>
                                 </nav>
                             </aside>
 
@@ -127,7 +127,7 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
 
                     <div id="settings-panel-fbmonitor" role="tabpanel" aria-labelledby="settings-tab-fbmonitor" class="settings-tab-panel" hidden>
                         <div class="card">
-                            <h2>Facebook Monitor</h2>
+                            <h2>Facebook Tools</h2>
                             <p class="settings-telegram-lead">Paste your Facebook session cookies (the full <code>Cookie:</code> header value, e.g. <code>c_user=…; xs=…; datr=…</code>). Used for checks on profiles and pages you add in the dashboard. Stored server-side and never echoed back to the browser.</p>
                             <p class="settings-telegram-status" id="fb_monitor_config_status" aria-live="polite">Loading…</p>
 
@@ -387,7 +387,7 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                         return;
                                     }
                                     if (fbCookiesEl) fbCookiesEl.value = '';
-                                    setFbOk(data.message || 'FB Monitor config saved.');
+                                    setFbOk(data.message || 'Facebook Tools config saved.');
                                     void loadFbMonitorConfig();
                                 } catch (err) {
                                     setFbErr('Network error — try again.');

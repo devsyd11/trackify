@@ -384,8 +384,11 @@ HTML;
 
 /**
  * Send HTML message via Telegram Bot API (silent on missing config / failure; logs API errors).
+ *
+ * @param bool $disableWebPagePreview When true (default), Telegram hides link previews (used for Sniffer alerts).
+ *                                    Pass false to allow previews (e.g. Facebook profile URLs in Account Checker alerts).
  */
-function trackify_send_telegram_html(string $html): void
+function trackify_send_telegram_html(string $html, bool $disableWebPagePreview = true): void
 {
     $creds = trackify_read_telegram_credentials();
     if ($creds === null) {
@@ -396,7 +399,7 @@ function trackify_send_telegram_html(string $html): void
         'chat_id' => $creds['chat_id'],
         'text' => $html,
         'parse_mode' => 'HTML',
-        'disable_web_page_preview' => true,
+        'disable_web_page_preview' => $disableWebPagePreview,
     ], JSON_UNESCAPED_UNICODE);
     if ($payload === false) {
         return;
@@ -422,6 +425,65 @@ function trackify_send_telegram_html(string $html): void
     if (is_array($json) && empty($json['ok']) && isset($json['description']) && is_string($json['description'])) {
         @error_log('Trackify Telegram (Sniffer): ' . $json['description'] . "\n", 3, trackify_project_root() . '/telegram_error.log');
     }
+}
+
+/**
+ * Send a photo using an HTTPS URL (Telegram fetches the image). Caption supports HTML; max length 1024.
+ *
+ * @return bool True if Telegram accepted the message
+ */
+function trackify_send_telegram_photo_url(string $photoUrl, string $captionHtml): bool
+{
+    $creds = trackify_read_telegram_credentials();
+    if ($creds === null) {
+        return false;
+    }
+    $photoUrl = trim($photoUrl);
+    if ($photoUrl === '' || strlen($photoUrl) > 2048) {
+        return false;
+    }
+    if (!preg_match('#^https://#i', $photoUrl)) {
+        return false;
+    }
+    if (strlen($captionHtml) > 1024) {
+        $captionHtml = trackify_trunc_utf8($captionHtml, 1020) . '…';
+    }
+    $api = 'https://api.telegram.org/bot' . rawurlencode($creds['bot_token']) . '/sendPhoto';
+    $payload = json_encode([
+        'chat_id' => $creds['chat_id'],
+        'photo' => $photoUrl,
+        'caption' => $captionHtml,
+        'parse_mode' => 'HTML',
+    ], JSON_UNESCAPED_UNICODE);
+    if ($payload === false) {
+        return false;
+    }
+    $ctx = stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/json\r\n",
+            'content' => $payload,
+            'timeout' => 35,
+            'ignore_errors' => true,
+        ],
+        'ssl' => [
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+        ],
+    ]);
+    $raw = @file_get_contents($api, false, $ctx);
+    if ($raw === false || $raw === '') {
+        return false;
+    }
+    $json = json_decode($raw, true);
+    if (is_array($json) && !empty($json['ok'])) {
+        return true;
+    }
+    if (is_array($json) && isset($json['description']) && is_string($json['description'])) {
+        @error_log('Trackify Telegram (photo): ' . $json['description'] . "\n", 3, trackify_project_root() . '/telegram_error.log');
+    }
+
+    return false;
 }
 
 function trackify_notify_sniffer_capture_telegram(

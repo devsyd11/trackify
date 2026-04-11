@@ -124,7 +124,7 @@ foreach ($userDirs as $dir) {
 
         if ($changed && $newStatus === 'active'
                 && in_array($prevStatus, ['inactive', 'unavailable', 'unknown'], true)) {
-            fb_monitor_send_active_alert($url, (string) ($row['label'] ?? ''));
+            fb_monitor_send_active_alert($url, (string) ($row['label'] ?? ''), (string) ($check['preview_image'] ?? ''));
             echo "[fb_cron] ALERT sent — user {$uid} profile active: {$url}\n";
         } else {
             echo "[fb_cron] uid={$uid} id={$row['id']} status={$newStatus}" . ($changed ? " (was {$prevStatus})" : '') . " — {$detail}\n";

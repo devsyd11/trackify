@@ -2538,7 +2538,7 @@ function handleFbMonitorSaveConfig(): void
     ]);
     echo json_encode([
         'status'  => $ok ? 'success' : 'error',
-        'message' => $ok ? 'FB Monitor config saved.' : 'Could not write config file.',
+        'message' => $ok ? 'Facebook Tools config saved.' : 'Could not write config file.',
     ]);
 }
 
@@ -2652,7 +2652,7 @@ function handleFbMonitorCheck(): void
     $cfg     = fb_monitor_read_config($uid);
     $cookies = $cfg['cookies'];
     if ($cookies === '') {
-        echo json_encode(['status' => 'error', 'message' => 'No Facebook cookies configured. Add them in Account Settings → FB Monitor.']);
+        echo json_encode(['status' => 'error', 'message' => 'No Facebook cookies configured. Add them in Account Settings → Facebook Tools.']);
         return;
     }
 
@@ -2711,7 +2711,11 @@ function handleFbMonitorCheck(): void
 
         if ($changed && $newStatus === 'active'
                 && in_array($prevStatus, ['inactive', 'unavailable', 'unknown'], true)) {
-            fb_monitor_send_active_alert((string) $row['profile_url'], (string) ($row['label'] ?? ''));
+            fb_monitor_send_active_alert(
+                (string) $row['profile_url'],
+                (string) ($row['label'] ?? ''),
+                (string) ($check['preview_image'] ?? '')
+            );
         }
 
         $results[] = ['id' => (int) $row['id'], 'status' => $newStatus, 'detail' => $detail, 'changed' => $changed];
