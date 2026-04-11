@@ -53,6 +53,104 @@ function fb_monitor_write_config(int $uid, array $cfg): bool
     return true;
 }
 
+/**
+ * Append-only activity log for the FB Monitor dashboard (cron + manual checks).
+ *
+ * @return list<array{at: string, source: string, status: string, detail: string, label: string, profile_url: string}>
+ */
+function fb_monitor_read_activity_log(int $uid): array
+{
+    $path = fb_monitor_user_dir($uid) . '/activity_log.json';
+    if (!is_readable($path)) {
+        return [];
+    }
+    $raw = file_get_contents($path);
+    if ($raw === false || $raw === '') {
+        return [];
+    }
+    $data = json_decode($raw, true);
+    if (!is_array($data)) {
+        return [];
+    }
+    $out = [];
+    foreach ($data as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $out[] = [
+            'at'          => (string) ($row['at'] ?? ''),
+            'source'      => (string) ($row['source'] ?? ''),
+            'status'      => (string) ($row['status'] ?? 'unknown'),
+            'detail'      => (string) ($row['detail'] ?? ''),
+            'label'       => (string) ($row['label'] ?? ''),
+            'profile_url' => (string) ($row['profile_url'] ?? ''),
+        ];
+    }
+
+    return $out;
+}
+
+function fb_monitor_urls_match(string $a, string $b): bool
+{
+    $a = trim($a);
+    $b = trim($b);
+    if ($a === '' || $b === '') {
+        return false;
+    }
+    if ($a === $b) {
+        return true;
+    }
+
+    return rtrim($a, '/') === rtrim($b, '/');
+}
+
+function fb_monitor_append_activity(
+    int $uid,
+    string $source,
+    string $status,
+    string $detail,
+    string $label = '',
+    string $profileUrl = ''
+): void {
+    $path = fb_monitor_user_dir($uid) . '/activity_log.json';
+    $entry = [
+        'at'          => gmdate('Y-m-d\TH:i:s\Z'),
+        'source'      => $source,
+        'status'      => $status,
+        'detail'      => $detail,
+        'label'       => $label,
+        'profile_url' => $profileUrl,
+    ];
+
+    $fp = @fopen($path, 'c+');
+    if ($fp === false) {
+        return;
+    }
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return;
+    }
+    rewind($fp);
+    $raw = stream_get_contents($fp);
+    $list = [];
+    if (is_string($raw) && $raw !== '') {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            $list = $decoded;
+        }
+    }
+    array_unshift($list, $entry);
+    if (count($list) > 120) {
+        $list = array_slice($list, 0, 120);
+    }
+    rewind($fp);
+    ftruncate($fp, 0);
+    fwrite($fp, (string) json_encode($list, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+}
+
 // ---------------------------------------------------------------------------
 // Cookie format normalizer
 //
@@ -563,9 +661,9 @@ function fb_monitor_send_active_alert(string $url, string $label): void
         : '<code>' . $esc($url) . '</code>';
     $when = $esc(gmdate('Y-m-d H:i:s') . ' UTC');
 
-    $html = "&#128065; <b>FB Monitor · Account Active</b>\n\n"
-          . "A monitored Facebook profile is accessible again.\n\n"
-          . "<b>Profile</b>\n{$disp}\n\n"
+    $html = "&#128065; <b>FB Monitor · Active</b>\n\n"
+          . "A monitored Facebook profile or page is accessible again.\n\n"
+          . "<b>URL</b>\n{$disp}\n\n"
           . "<b>Detected at</b>\n<code>{$when}</code>\n\n"
           . "<i>Trackify FB Monitor</i>";
 

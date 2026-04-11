@@ -128,7 +128,7 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                     <div id="settings-panel-fbmonitor" role="tabpanel" aria-labelledby="settings-tab-fbmonitor" class="settings-tab-panel" hidden>
                         <div class="card">
                             <h2>Facebook Monitor</h2>
-                            <p class="settings-telegram-lead">Paste your Facebook session cookies (the full <code>Cookie:</code> header value, e.g. <code>c_user=…; xs=…; datr=…</code>). Stored server-side and never echoed back to the browser.</p>
+                            <p class="settings-telegram-lead">Paste your Facebook session cookies (the full <code>Cookie:</code> header value, e.g. <code>c_user=…; xs=…; datr=…</code>). Used for checks on profiles and pages you add in the dashboard. Stored server-side and never echoed back to the browser.</p>
                             <p class="settings-telegram-status" id="fb_monitor_config_status" aria-live="polite">Loading…</p>
 
                             <label for="fb_monitor_cookies">Facebook cookies</label>

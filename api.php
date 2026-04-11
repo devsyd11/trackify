@@ -10,7 +10,7 @@ require_once __DIR__ . '/access.php';
 trackify_enforce_ip_whitelist($_SERVER, true);
 
 $action = $_GET['action'] ?? '';
-$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup', 'exiftool', 'saved_info', 'clear_saved_info', 'saveinfo_start', 'saveinfo_link', 'saveinfo_update_payload', 'saveinfo_templates', 'fb_monitor_list', 'fb_monitor_add', 'fb_monitor_remove', 'fb_monitor_check', 'fb_monitor_config', 'fb_monitor_save_config', 'fb_monitor_debug'];
+$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup', 'exiftool', 'saved_info', 'clear_saved_info', 'saveinfo_start', 'saveinfo_link', 'saveinfo_update_payload', 'saveinfo_templates', 'fb_monitor_list', 'fb_monitor_add', 'fb_monitor_remove', 'fb_monitor_check', 'fb_monitor_logs', 'fb_monitor_config', 'fb_monitor_save_config', 'fb_monitor_debug'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Content-Type: application/json');
@@ -127,6 +127,9 @@ switch ($action) {
         break;
     case 'fb_monitor_check':
         handleFbMonitorCheck();
+        break;
+    case 'fb_monitor_logs':
+        handleFbMonitorLogs();
         break;
     case 'fb_monitor_config':
         handleFbMonitorConfig();
@@ -2679,9 +2682,12 @@ function handleFbMonitorCheck(): void
         $check      = fb_check_profile_url((string) $row['profile_url'], $cookies);
         $newStatus  = $check['status'];
         $detail     = $check['detail'];
+        $rowLabel   = (string) ($row['label'] ?? '');
+        $profileUrl = (string) $row['profile_url'];
 
         if ($newStatus === 'unknown') {
             $results[] = ['id' => (int) $row['id'], 'status' => 'unknown', 'detail' => $detail, 'changed' => false];
+            fb_monitor_append_activity($uid, 'dashboard', 'unknown', $detail, $rowLabel, $profileUrl);
             continue;
         }
 
@@ -2699,6 +2705,7 @@ function handleFbMonitorCheck(): void
             $upd->execute([$newStatus, $now, $newStatus, $now, (int) $row['id'], $uid]);
         } catch (PDOException $e) {
             $results[] = ['id' => (int) $row['id'], 'status' => 'error', 'detail' => $e->getMessage(), 'changed' => false];
+            fb_monitor_append_activity($uid, 'dashboard', 'error', $e->getMessage(), $rowLabel, $profileUrl);
             continue;
         }
 
@@ -2708,9 +2715,64 @@ function handleFbMonitorCheck(): void
         }
 
         $results[] = ['id' => (int) $row['id'], 'status' => $newStatus, 'detail' => $detail, 'changed' => $changed];
+        fb_monitor_append_activity($uid, 'dashboard', $newStatus, $detail, $rowLabel, $profileUrl);
     }
 
     echo json_encode(['status' => 'success', 'results' => $results]);
+}
+
+function handleFbMonitorLogs(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        echo json_encode(['status' => 'error', 'message' => 'GET required']);
+        return;
+    }
+    $uid = dashboard_session_user_id();
+    $entries = fb_monitor_read_activity_log($uid);
+
+    $monitorId = isset($_GET['monitor_id']) ? (int) $_GET['monitor_id'] : 0;
+    if ($monitorId > 0) {
+        $pdo = trackify_pdo();
+        if (!$pdo instanceof PDO) {
+            echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+            return;
+        }
+        try {
+            $stmt = $pdo->prepare('SELECT profile_url, label FROM facebook_monitor WHERE id = ? AND user_id = ? LIMIT 1');
+            $stmt->execute([$monitorId, $uid]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'DB error']);
+            return;
+        }
+        if (!is_array($row)) {
+            echo json_encode(['status' => 'error', 'message' => 'Monitor not found']);
+            return;
+        }
+        $wantUrl = (string) ($row['profile_url'] ?? '');
+        $filtered = [];
+        foreach ($entries as $e) {
+            if (!is_array($e)) {
+                continue;
+            }
+            $u = (string) ($e['profile_url'] ?? '');
+            if (fb_monitor_urls_match($u, $wantUrl)) {
+                $filtered[] = $e;
+            }
+        }
+        echo json_encode([
+            'status'  => 'success',
+            'entries' => $filtered,
+            'context' => [
+                'profile_url' => $wantUrl,
+                'label'       => (string) ($row['label'] ?? ''),
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return;
+    }
+
+    echo json_encode(['status' => 'success', 'entries' => $entries]);
 }
 
 function handleFbMonitorDebug(): void

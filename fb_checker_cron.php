@@ -99,6 +99,14 @@ foreach ($userDirs as $dir) {
             $pdo->prepare('UPDATE facebook_monitor SET last_checked_at = NOW() WHERE id = ?')
                 ->execute([(int) $row['id']]);
             echo "[fb_cron] unknown uid={$uid} id={$row['id']}: {$detail}\n";
+            fb_monitor_append_activity(
+                $uid,
+                'cron',
+                'unknown',
+                $detail,
+                (string) ($row['label'] ?? ''),
+                $url
+            );
             continue;
         }
 
@@ -121,6 +129,15 @@ foreach ($userDirs as $dir) {
         } else {
             echo "[fb_cron] uid={$uid} id={$row['id']} status={$newStatus}" . ($changed ? " (was {$prevStatus})" : '') . " — {$detail}\n";
         }
+
+        fb_monitor_append_activity(
+            $uid,
+            'cron',
+            $newStatus,
+            $detail,
+            (string) ($row['label'] ?? ''),
+            $url
+        );
     }
 }
 

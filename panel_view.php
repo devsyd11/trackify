@@ -501,7 +501,12 @@ $userNavInitial = $userNavInitial ?? '?';
             color: var(--text-muted);
             margin-bottom: 8px;
         }
-        select, input[type="text"], input[type="password"] {
+        select,
+        input[type="text"],
+        input[type="password"],
+        input[type="url"],
+        input[type="email"],
+        input[type="search"] {
             width: 100%;
             padding: 12px 16px;
             background: var(--bg-input);
@@ -512,9 +517,11 @@ $userNavInitial = $userNavInitial ?? '?';
             font-family: inherit;
             margin-bottom: 16px;
         }
-        select:focus, input:focus {
+        select:focus,
+        input:focus {
             outline: none;
             border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(88, 166, 255, 0.2);
         }
         .btn {
             display: inline-flex;
@@ -1303,10 +1310,12 @@ $userNavInitial = $userNavInitial ?? '?';
             align-items: stretch;
             gap: 10px;
             flex-wrap: wrap;
+            max-width: 28rem;
         }
         .fb-monitor-search-wrap {
-            flex: 1;
-            min-width: 200px;
+            flex: 1 1 auto;
+            min-width: 0;
+            max-width: 100%;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -1332,22 +1341,14 @@ $userNavInitial = $userNavInitial ?? '?';
             color: var(--text);
             font-size: 14px;
             padding: 10px 0;
+            margin-bottom: 0;
+            box-shadow: none;
             font-family: inherit;
             outline: none;
         }
-        .fb-monitor-search-btn {
-            background: var(--accent);
-            color: #0d1117;
+        .fb-monitor-search-wrap input[type="search"]:focus {
+            box-shadow: none;
             border: none;
-            font-weight: 600;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 13px;
-        }
-        .fb-monitor-search-btn:hover {
-            filter: brightness(1.06);
         }
         .fb-monitor-table-card {
             margin-top: 16px;
@@ -1357,6 +1358,88 @@ $userNavInitial = $userNavInitial ?? '?';
             font-weight: 600;
             color: var(--text);
             margin-bottom: 10px;
+        }
+        .fb-monitor-logs-card {
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .fb-monitor-logs-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 18px 22px 14px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(13, 17, 23, 0.35);
+        }
+        .fb-monitor-logs-head h3 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .fb-monitor-logs-badge {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .fb-monitor-logs-actions .btn {
+            font-size: 12px;
+            padding: 8px 14px;
+        }
+        .fb-monitor-log-terminal {
+            margin: 0;
+            padding: 16px 18px 18px;
+            background: linear-gradient(180deg, #0a0e14 0%, #070a10 100%);
+            box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.06);
+            max-height: min(340px, 42vh);
+            overflow: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.55;
+        }
+        .fb-monitor-log-line {
+            margin: 0 0 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(48, 54, 61, 0.45);
+        }
+        .fb-monitor-log-line:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .fb-monitor-log-meta {
+            display: block;
+            font-size: 10px;
+            color: #626a73;
+            margin-bottom: 4px;
+            letter-spacing: 0.02em;
+        }
+        .fb-monitor-log-status {
+            font-weight: 700;
+        }
+        .fb-monitor-log-detail {
+            color: #9da7b3;
+            font-weight: 400;
+        }
+        .fb-monitor-log-empty {
+            margin: 0;
+            color: #626a73;
+            font-size: 12px;
+            line-height: 1.5;
         }
         .fb-monitor-modal-fields .phone-lookup-input-wrap {
             margin-bottom: 14px;
@@ -1371,6 +1454,152 @@ $userNavInitial = $userNavInitial ?? '?';
         }
         .fb-monitor-modal-actions .btn {
             flex: 1;
+        }
+        .fb-monitor-action-cell {
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+        .fb-monitor-action-btns {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .fb-monitor-check-btn,
+        .fb-monitor-remove-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 12px;
+            font-family: inherit;
+            font-weight: 500;
+            padding: 7px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+        .fb-monitor-check-btn {
+            background: rgba(88, 166, 255, 0.12);
+            color: var(--text);
+            border-color: rgba(88, 166, 255, 0.35);
+        }
+        .fb-monitor-check-btn:hover:not(:disabled) {
+            background: rgba(88, 166, 255, 0.2);
+            border-color: rgba(88, 166, 255, 0.55);
+        }
+        .fb-monitor-check-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.85;
+        }
+        .fb-monitor-check-btn svg {
+            flex-shrink: 0;
+        }
+        .fb-monitor-check-btn .fb-monitor-check-idle,
+        .fb-monitor-check-btn .fb-monitor-check-busy {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .fb-monitor-check-btn .fb-monitor-check-busy {
+            display: none;
+        }
+        .fb-monitor-check-btn.is-loading .fb-monitor-check-idle {
+            display: none;
+        }
+        .fb-monitor-check-btn.is-loading .fb-monitor-check-busy {
+            display: inline-flex;
+        }
+        .fb-monitor-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: fb-monitor-spin 0.65s linear infinite;
+        }
+        @keyframes fb-monitor-spin {
+            to { transform: rotate(360deg); }
+        }
+        .fb-monitor-remove-btn {
+            background: rgba(248, 81, 73, 0.1);
+            color: var(--accent-red);
+            border-color: rgba(248, 81, 73, 0.45);
+        }
+        .fb-monitor-remove-btn:hover:not(:disabled) {
+            color: #ff8a82;
+            border-color: rgba(248, 81, 73, 0.75);
+            background: rgba(248, 81, 73, 0.18);
+        }
+        .fb-monitor-remove-btn svg {
+            flex-shrink: 0;
+            opacity: 1;
+        }
+        .fb-monitor-logs-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 12px;
+            font-family: inherit;
+            font-weight: 500;
+            padding: 7px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid rgba(210, 153, 34, 0.45);
+            background: rgba(210, 153, 34, 0.1);
+            color: var(--accent-yellow);
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+        .fb-monitor-logs-btn:hover:not(:disabled) {
+            background: rgba(210, 153, 34, 0.2);
+            border-color: rgba(210, 153, 34, 0.65);
+            color: #e3c88c;
+        }
+        .fb-monitor-logs-btn svg {
+            flex-shrink: 0;
+            opacity: 0.95;
+        }
+        .fb-monitor-row-log-terminal {
+            margin: 0;
+        }
+        .fb-monitor-status-cell {
+            vertical-align: middle;
+        }
+        .fb-monitor-status-tag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            padding: 5px 11px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            line-height: 1.2;
+        }
+        .fb-monitor-status-tag--active {
+            color: #9eea88;
+            background: rgba(127, 217, 98, 0.14);
+            border-color: rgba(127, 217, 98, 0.38);
+        }
+        .fb-monitor-status-tag--inactive {
+            color: #ff9a96;
+            background: rgba(248, 81, 73, 0.12);
+            border-color: rgba(248, 81, 73, 0.42);
+        }
+        .fb-monitor-status-tag--unavailable {
+            color: #ffc266;
+            background: rgba(255, 180, 84, 0.12);
+            border-color: rgba(255, 180, 84, 0.42);
+        }
+        .fb-monitor-status-tag--unknown {
+            color: #8b949e;
+            background: rgba(139, 148, 158, 0.12);
+            border-color: rgba(139, 148, 158, 0.38);
         }
         .saved-info-col-time {
             min-width: 12.5rem;
@@ -2048,7 +2277,7 @@ $userNavInitial = $userNavInitial ?? '?';
                 </div>
             </div>
         </section>
-        <section id="fbmonitorLayout" class="phone-layout" style="display:none" aria-label="Facebook Monitor">
+        <section id="fbmonitorLayout" class="phone-layout" style="display:none" aria-label="Facebook Monitor — profiles and pages">
             <div class="phone-layout-inner">
                 <div class="phone-layout-columns phone-layout-columns--fbmonitor">
                     <div class="card fb-monitor-card">
@@ -2056,45 +2285,56 @@ $userNavInitial = $userNavInitial ?? '?';
                             <div>
                                 <h2>Facebook Monitor</h2>
                                 <p class="subtitle card-view-desc fb-monitor-desc" style="color:var(--text-muted);margin:0">
-                                    Monitor Facebook profiles and get Telegram alerts when a profile becomes accessible again.
+                                    Watch Facebook profiles or pages and get Telegram alerts when something you monitor becomes accessible again.
                                     Configure cookies in <a href="account-settings.php" style="color:var(--accent)">Account Settings → FB Monitor</a>.
                                 </p>
                             </div>
                             <div class="fb-monitor-page-actions">
-                                <button type="button" class="fb-monitor-btn-add" onclick="fbMonitorOpenAddModal()">+ Add profile</button>
+                                <button type="button" class="fb-monitor-btn-add" onclick="fbMonitorOpenAddModal()">+ Add profile or page</button>
                                 <button type="button" class="btn btn-primary" id="fbMonitorCheckAllBtn" onclick="fbMonitorCheckAll()">Check all</button>
                             </div>
                         </div>
-                        <div id="fbMonitorCheckResult" role="status" aria-live="polite" style="margin-top:12px;font-size:13px" hidden></div>
 
                         <div class="fb-monitor-search-card">
-                            <span class="fb-monitor-search-label">Filter profiles</span>
+                            <span class="fb-monitor-search-label">Filter list</span>
                             <div class="fb-monitor-search-row">
                                 <label for="fbMonitorSearch" class="fb-monitor-search-wrap">
                                     <span class="fb-monitor-search-icon" aria-hidden="true">🔍</span>
-                                    <input type="search" id="fbMonitorSearch" placeholder="What are you looking for? Search by label, URL, or status…" autocomplete="off">
+                                    <input type="search" id="fbMonitorSearch" placeholder="Search by label, URL, or status…" autocomplete="off">
                                 </label>
-                                <button type="button" class="fb-monitor-search-btn" onclick="fbMonitorFilterTable()">Search</button>
                             </div>
                         </div>
 
                         <div class="fb-monitor-table-card">
-                            <div class="fb-monitor-table-title">Monitored profiles</div>
+                            <div class="fb-monitor-table-title">Monitored profiles &amp; pages</div>
                             <div class="saved-info-table-scroll" id="fbMonitorTableWrap" style="max-height:min(520px,55vh)">
-                                <table class="saved-info-table" id="fbMonitorTable" aria-label="Monitored Facebook profiles">
+                                <table class="saved-info-table" id="fbMonitorTable" aria-label="Monitored Facebook profiles and pages">
                                     <thead>
                                         <tr>
                                             <th scope="col">Label</th>
-                                            <th scope="col">Profile URL</th>
+                                            <th scope="col">Facebook URL</th>
                                             <th scope="col">Status</th>
                                             <th scope="col" class="saved-info-col-time">Last checked</th>
-                                            <th scope="col" style="min-width:9.5rem">Actions</th>
+                                            <th scope="col" style="min-width:15rem">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="fbMonitorTableBody" class="fb-monitor-tbody" aria-live="polite"></tbody>
                                 </table>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="card fb-monitor-logs-card" aria-label="Facebook Monitor activity log">
+                        <div class="fb-monitor-logs-head">
+                            <h3>
+                                Activity log
+                                <span class="fb-monitor-logs-badge">Recent checks</span>
+                            </h3>
+                            <div class="fb-monitor-logs-actions">
+                                <button type="button" class="btn btn-secondary" id="fbMonitorLogsRefreshBtn" onclick="loadFbMonitorLogs()">Refresh</button>
+                            </div>
+                        </div>
+                        <pre class="fb-monitor-log-terminal" id="fbMonitorLogTerminal" role="log" aria-live="polite"><span class="fb-monitor-log-empty" id="fbMonitorLogEmpty">Loading…</span></pre>
                     </div>
                 </div>
             </div>
@@ -2122,13 +2362,13 @@ $userNavInitial = $userNavInitial ?? '?';
 
     <div class="modal-overlay" id="fbMonitorAddModal" role="dialog" aria-modal="true" aria-labelledby="fbMonitorAddModalTitle" onclick="fbMonitorCloseAddModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width:440px">
-            <h2 class="modal-title" id="fbMonitorAddModalTitle">Add profile</h2>
-            <p style="font-size:13px;color:var(--text-muted);margin:-8px 0 16px;line-height:1.45">Enter the Facebook profile URL and an optional label for your list.</p>
+            <h2 class="modal-title" id="fbMonitorAddModalTitle">Add profile or page</h2>
+            <p style="font-size:13px;color:var(--text-muted);margin:-8px 0 16px;line-height:1.45">Enter a Facebook profile or page URL and an optional label for your list.</p>
             <div class="fb-monitor-modal-fields">
                 <div class="phone-lookup-input-wrap">
-                    <label for="fbMonitorUrlInput">Facebook profile URL</label>
+                    <label for="fbMonitorUrlInput">Facebook URL</label>
                     <input type="url" id="fbMonitorUrlInput"
-                           placeholder="https://www.facebook.com/username"
+                           placeholder="https://www.facebook.com/username or …/pagename"
                            autocomplete="off">
                 </div>
                 <div class="phone-lookup-input-wrap">
@@ -2143,6 +2383,15 @@ $userNavInitial = $userNavInitial ?? '?';
                 <button type="button" class="btn btn-primary" onclick="fbMonitorAdd()">Save</button>
                 <button type="button" class="btn btn-secondary" onclick="fbMonitorCloseAddModal()">Cancel</button>
             </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="fbMonitorRowLogModal" role="dialog" aria-modal="true" aria-labelledby="fbMonitorRowLogModalTitle" onclick="fbMonitorCloseRowLogModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:520px">
+            <h2 class="modal-title" id="fbMonitorRowLogModalTitle">Check log</h2>
+            <p id="fbMonitorRowLogModalSub" style="font-size:12px;color:var(--text-muted);margin:-6px 0 12px;word-break:break-all;line-height:1.45"></p>
+            <pre class="fb-monitor-log-terminal fb-monitor-row-log-terminal" id="fbMonitorRowLogTerminal" style="max-height:min(360px,50vh);margin:0"></pre>
+            <button type="button" class="btn btn-secondary" style="width:100%;margin-top:14px" onclick="fbMonitorCloseRowLogModal()">Close</button>
         </div>
     </div>
 
@@ -3372,6 +3621,11 @@ $userNavInitial = $userNavInitial ?? '?';
             var m = document.getElementById('fbMonitorAddModal');
             if (m && m.classList.contains('show')) {
                 m.classList.remove('show');
+                return;
+            }
+            var rowLog = document.getElementById('fbMonitorRowLogModal');
+            if (rowLog && rowLog.classList.contains('show')) {
+                rowLog.classList.remove('show');
             }
         });
 
@@ -3380,7 +3634,173 @@ $userNavInitial = $userNavInitial ?? '?';
         }
 
         function fbStatusLabel(status) {
-            return {active: 'Active', inactive: 'Inactive', unavailable: 'Unavailable', unknown: 'Unknown'}[status] || status;
+            return {active: 'Active', inactive: 'Inactive', unavailable: 'Unavailable', unknown: 'Unknown', error: 'Error'}[status] || status;
+        }
+
+        function fbMonitorStatusTagClass(status) {
+            const s = String(status || 'unknown');
+            if (s === 'active' || s === 'inactive' || s === 'unavailable' || s === 'unknown') {
+                return 'fb-monitor-status-tag fb-monitor-status-tag--' + s;
+            }
+            return 'fb-monitor-status-tag fb-monitor-status-tag--unknown';
+        }
+
+        function fbMonitorShortUrl(u) {
+            const s = String(u || '');
+            if (!s) return '—';
+            try {
+                const x = new URL(s);
+                const t = x.hostname + (x.pathname && x.pathname !== '/' ? x.pathname : '');
+                return t.length > 56 ? t.slice(0, 53) + '…' : t;
+            } catch (e) {
+                return s.length > 56 ? s.slice(0, 53) + '…' : s;
+            }
+        }
+
+        /** Parse MySQL datetime (UTC) or ISO-8601 string into a Date (display uses local timezone). */
+        function fbMonitorParseStoredDate(s) {
+            const t = String(s == null ? '' : s).trim();
+            if (!t) return null;
+            if (t.indexOf('T') !== -1 || t.endsWith('Z')) {
+                const d = new Date(t);
+                return isNaN(d.getTime()) ? null : d;
+            }
+            const m = t.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+            if (m) {
+                return new Date(Date.UTC(
+                    parseInt(m[1], 10),
+                    parseInt(m[2], 10) - 1,
+                    parseInt(m[3], 10),
+                    parseInt(m[4], 10),
+                    parseInt(m[5], 10),
+                    parseInt(m[6], 10)
+                ));
+            }
+            const d2 = new Date(t);
+            return isNaN(d2.getTime()) ? null : d2;
+        }
+
+        /** e.g. April 11 2026 9:56 PM */
+        function fbMonitorFormatNiceDateTime(d) {
+            if (!d || isNaN(d.getTime())) return '';
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const mo = months[d.getMonth()];
+            const day = d.getDate();
+            const y = d.getFullYear();
+            let h24 = d.getHours();
+            const min = d.getMinutes();
+            const ampm = h24 >= 12 ? 'PM' : 'AM';
+            let h = h24 % 12;
+            if (h === 0) h = 12;
+            const minStr = min < 10 ? '0' + min : String(min);
+            return mo + ' ' + day + ' ' + y + ' ' + h + ':' + minStr + ' ' + ampm;
+        }
+
+        function fbMonitorFormatDisplayDateTime(s) {
+            const d = fbMonitorParseStoredDate(s);
+            if (!d) return s ? String(s) : '';
+            return fbMonitorFormatNiceDateTime(d);
+        }
+
+        function fbMonitorFormatActivityTime(at) {
+            return fbMonitorFormatDisplayDateTime(at);
+        }
+
+        function fbMonitorSourceLabel(src) {
+            if (src === 'cron') return 'cron';
+            if (src === 'dashboard') return 'dashboard';
+            return src || '—';
+        }
+
+        function fbMonitorFormatLogEntriesHtml(entries, opt) {
+            opt = opt || {};
+            const hideUrlInMeta = !!opt.hideUrlInMeta;
+            if (!Array.isArray(entries) || entries.length === 0) {
+                return '';
+            }
+            return entries.map(function (e) {
+                const st = String(e.status || 'unknown');
+                const statusColor = st === 'error' ? '#f07178' : fbStatusColor(st);
+                const lbl = st === 'error' ? 'Error' : fbStatusLabel(st);
+                const detail = e.detail ? ' — ' + e.detail : '';
+                const metaParts = [
+                    fbMonitorSourceLabel(e.source),
+                    fbMonitorFormatActivityTime(e.at)
+                ];
+                const labelPart = (e.label && String(e.label).trim()) ? String(e.label).trim() : '';
+                if (labelPart) metaParts.push(labelPart);
+                if (!hideUrlInMeta) {
+                    const urlPart = fbMonitorShortUrl(e.profile_url);
+                    if (urlPart && urlPart !== '—') metaParts.push(urlPart);
+                }
+                const meta = metaParts.join(' · ');
+                return '<div class="fb-monitor-log-line">'
+                    + '<span class="fb-monitor-log-meta">' + escHtml(meta) + '</span>'
+                    + '<span class="fb-monitor-log-status" style="color:' + statusColor + '">' + escHtml(lbl) + '</span>'
+                    + '<span class="fb-monitor-log-detail">' + escHtml(detail) + '</span>'
+                    + '</div>';
+            }).join('');
+        }
+
+        async function loadFbMonitorLogs() {
+            const term = document.getElementById('fbMonitorLogTerminal');
+            if (!term) return;
+            term.innerHTML = '<span class="fb-monitor-log-empty">Loading…</span>';
+            try {
+                const res = await fetch('api.php?action=fb_monitor_logs', { credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success' || !Array.isArray(data.entries)) {
+                    term.innerHTML = '<span class="fb-monitor-log-empty">Could not load activity log.</span>';
+                    return;
+                }
+                const entries = data.entries;
+                if (entries.length === 0) {
+                    term.innerHTML = '<span class="fb-monitor-log-empty">No activity yet. Use <strong>Check all</strong> or wait for the scheduled cron — checks for profiles and pages appear here.</span>';
+                    return;
+                }
+                term.innerHTML = fbMonitorFormatLogEntriesHtml(entries, {});
+            } catch (err) {
+                term.innerHTML = '<span class="fb-monitor-log-empty">Network error loading log.</span>';
+            }
+        }
+
+        function fbMonitorCloseRowLogModal(event) {
+            const m = document.getElementById('fbMonitorRowLogModal');
+            if (!m || !m.classList.contains('show')) return;
+            if (event && event.target !== event.currentTarget) return;
+            m.classList.remove('show');
+        }
+
+        async function fbMonitorOpenRowLogs(id) {
+            const modal = document.getElementById('fbMonitorRowLogModal');
+            const titleEl = document.getElementById('fbMonitorRowLogModalTitle');
+            const subEl = document.getElementById('fbMonitorRowLogModalSub');
+            const pre = document.getElementById('fbMonitorRowLogTerminal');
+            if (!modal || !pre) return;
+            modal.classList.add('show');
+            pre.innerHTML = '<span class="fb-monitor-log-empty">Loading…</span>';
+            if (titleEl) titleEl.textContent = 'Check log';
+            if (subEl) subEl.textContent = '';
+            try {
+                const res = await fetch('api.php?action=fb_monitor_logs&monitor_id=' + encodeURIComponent(String(id)), { credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    pre.innerHTML = '<span class="fb-monitor-log-empty">' + escHtml(data.message || 'Could not load log.') + '</span>';
+                    return;
+                }
+                const ctx = data.context || {};
+                const lbl = (ctx.label && String(ctx.label).trim()) ? String(ctx.label).trim() : '';
+                if (titleEl) titleEl.textContent = lbl ? lbl : 'Check log';
+                if (subEl) subEl.textContent = ctx.profile_url ? String(ctx.profile_url) : '';
+                const entries = data.entries || [];
+                if (entries.length === 0) {
+                    pre.innerHTML = '<span class="fb-monitor-log-empty">No logged checks for this URL yet. Run <strong>Check</strong> or wait for cron.</span>';
+                    return;
+                }
+                pre.innerHTML = fbMonitorFormatLogEntriesHtml(entries, { hideUrlInMeta: true });
+            } catch (e) {
+                pre.innerHTML = '<span class="fb-monitor-log-empty">Network error loading log.</span>';
+            }
         }
 
         function fbMonitorSearchBlob(m) {
@@ -3412,7 +3832,10 @@ $userNavInitial = $userNavInitial ?? '?';
 
         async function loadFbMonitorList() {
             const tbody = document.getElementById('fbMonitorTableBody');
-            if (!tbody) return;
+            if (!tbody) {
+                loadFbMonitorLogs();
+                return;
+            }
             try {
                 const res = await fetch('api.php?action=fb_monitor_list', { credentials: 'same-origin' });
                 const data = await res.json().catch(() => ({}));
@@ -3422,31 +3845,46 @@ $userNavInitial = $userNavInitial ?? '?';
                 }
                 const monitors = data.monitors || [];
                 if (monitors.length === 0) {
-                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:var(--text-muted);padding:16px">No profiles monitored yet.</td></tr>';
+                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:var(--text-muted);padding:16px">No profiles or pages monitored yet.</td></tr>';
                     return;
                 }
                 tbody.innerHTML = monitors.map(function (m) {
                     const id = parseInt(m.id, 10);
                     const labelCell = m.label ? escHtml(m.label) : '<span style="color:var(--text-muted)">—</span>';
                     const urlFull = escHtml(m.profile_url);
-                    const checked = m.last_checked_at ? escHtml(m.last_checked_at) : 'Never';
-                    const color = fbStatusColor(m.last_status);
+                    const checked = m.last_checked_at ? escHtml(fbMonitorFormatDisplayDateTime(m.last_checked_at)) : 'Never';
                     const statusLbl = fbStatusLabel(m.last_status);
+                    const statusTagClass = fbMonitorStatusTagClass(m.last_status);
                     const searchAttr = escHtml(fbMonitorSearchBlob(m));
+                    const checkSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>';
+                    const logsSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>';
+                    const trashSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>';
                     return '<tr data-search="' + searchAttr + '">'
                         + '<td style="font-weight:600;max-width:12rem">' + labelCell + '</td>'
                         + '<td><a href="' + escHtml(m.profile_url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--link);word-break:break-all;font-size:12px">' + urlFull + '</a></td>'
-                        + '<td style="color:' + color + ';font-weight:600;white-space:nowrap">' + escHtml(statusLbl) + '</td>'
+                        + '<td class="fb-monitor-status-cell"><span class="' + statusTagClass + '">' + escHtml(statusLbl) + '</span></td>'
                         + '<td class="saved-info-col-time" style="font-size:12px;color:var(--text-muted)">' + checked + '</td>'
-                        + '<td style="white-space:nowrap">'
-                        +   '<button type="button" class="btn btn-secondary" style="font-size:11px;padding:4px 10px;margin-right:6px" onclick="fbMonitorCheckOne(' + id + ')">Check</button>'
-                        +   '<button type="button" class="btn" style="font-size:11px;padding:4px 10px;background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border);border-radius:6px;cursor:pointer" onclick="fbMonitorRemove(' + id + ')">Remove</button>'
+                        + '<td class="fb-monitor-action-cell">'
+                        +   '<div class="fb-monitor-action-btns">'
+                        +   '<button type="button" class="fb-monitor-check-btn" data-monitor-id="' + id + '" onclick="fbMonitorCheckOne(' + id + ', this)" aria-label="Check this URL now">'
+                        +     '<span class="fb-monitor-check-idle">' + checkSvg + ' <span>Check</span></span>'
+                        +     '<span class="fb-monitor-check-busy" aria-hidden="true"><span class="fb-monitor-spinner"></span><span>Checking…</span></span>'
+                        +   '</button>'
+                        +   '<button type="button" class="fb-monitor-logs-btn" data-monitor-id="' + id + '" onclick="fbMonitorOpenRowLogs(' + id + ')" aria-label="View check log for this URL">'
+                        +     logsSvg + ' <span>Logs</span>'
+                        +   '</button>'
+                        +   '<button type="button" class="fb-monitor-remove-btn" data-monitor-id="' + id + '" onclick="fbMonitorRemove(' + id + ')" aria-label="Remove from list">'
+                        +     trashSvg + ' <span>Remove</span>'
+                        +   '</button>'
+                        +   '</div>'
                         + '</td>'
                         + '</tr>';
                 }).join('');
                 fbMonitorFilterTable();
             } catch (e) {
                 tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:#f07178;padding:16px">Network error</td></tr>';
+            } finally {
+                loadFbMonitorLogs();
             }
         }
 
@@ -3462,7 +3900,7 @@ $userNavInitial = $userNavInitial ?? '?';
             const label = (labelInput ? labelInput.value : '').trim();
             if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
             if (!url) {
-                if (errEl) { errEl.textContent = 'Please enter a Facebook URL.'; errEl.hidden = false; }
+                if (errEl) { errEl.textContent = 'Please enter a Facebook profile or page URL.'; errEl.hidden = false; }
                 return;
             }
             try {
@@ -3486,23 +3924,22 @@ $userNavInitial = $userNavInitial ?? '?';
             }
         }
 
-        function fbMonitorShowResult(msg, isError) {
-            var el = document.getElementById('fbMonitorCheckResult');
-            if (!el) return;
-            el.textContent = msg;
-            el.style.color = isError ? '#f07178' : '#7fd962';
-            el.hidden = false;
-        }
-        function fbMonitorHideResult() {
-            var el = document.getElementById('fbMonitorCheckResult');
-            if (el) el.hidden = true;
+        function fbMonitorToast(msg, isError) {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            toast.textContent = msg;
+            toast.style.background = isError ? 'var(--accent-red)' : '';
+            toast.classList.add('show');
+            setTimeout(function () {
+                toast.classList.remove('show');
+                toast.style.background = '';
+            }, isError ? 3800 : 2200);
         }
 
         async function fbMonitorCheckAll() {
             const btn = document.getElementById('fbMonitorCheckAllBtn');
             const prev = btn ? btn.textContent : '';
             if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
-            fbMonitorHideResult();
             try {
                 const res = await fetch('api.php?action=fb_monitor_check', {
                     method: 'POST',
@@ -3512,37 +3949,31 @@ $userNavInitial = $userNavInitial ?? '?';
                 });
                 const data = await res.json().catch(() => ({}));
                 if (data.status !== 'success') {
-                    fbMonitorShowResult(data.message || 'Check failed.', true);
+                    fbMonitorToast(data.message || 'Check failed.', true);
                 } else {
                     const results = data.results || [];
                     if (results.length === 0) {
-                        fbMonitorShowResult('No profiles to check. Add a URL first.', false);
-                    } else {
-                        const lines = results.map(function (r) {
-                            const color = fbStatusColor(r.status);
-                            const lbl   = fbStatusLabel(r.status);
-                            const detail = r.detail ? ' — ' + r.detail : '';
-                            return '<span style="color:' + color + ';font-weight:600">' + escHtml(lbl) + '</span>'
-                                 + '<span style="color:var(--text-muted)">' + escHtml(detail) + '</span>';
-                        });
-                        var el = document.getElementById('fbMonitorCheckResult');
-                        if (el) {
-                            el.innerHTML = lines.join('<br>');
-                            el.style.color = '';
-                            el.hidden = false;
-                        }
+                        fbMonitorToast('Nothing to check. Add a profile or page URL first.', false);
                     }
                     await loadFbMonitorList();
                 }
             } catch (e) {
-                fbMonitorShowResult('Network error — try again.', true);
+                fbMonitorToast('Network error — try again.', true);
             } finally {
                 if (btn) { btn.disabled = false; btn.textContent = prev; }
             }
         }
 
-        async function fbMonitorCheckOne(id) {
-            fbMonitorHideResult();
+        function fbMonitorSetCheckLoading(btn, loading) {
+            if (!btn || !btn.classList || !btn.classList.contains('fb-monitor-check-btn')) return;
+            btn.classList.toggle('is-loading', !!loading);
+            btn.disabled = !!loading;
+            btn.setAttribute('aria-busy', loading ? 'true' : 'false');
+        }
+
+        async function fbMonitorCheckOne(id, btn) {
+            const el = btn && btn.closest ? btn.closest('button.fb-monitor-check-btn') : null;
+            if (el) fbMonitorSetCheckLoading(el, true);
             try {
                 const res = await fetch('api.php?action=fb_monitor_check', {
                     method: 'POST',
@@ -3552,30 +3983,21 @@ $userNavInitial = $userNavInitial ?? '?';
                 });
                 const data = await res.json().catch(() => ({}));
                 if (data.status !== 'success') {
-                    fbMonitorShowResult(data.message || 'Check failed.', true);
+                    fbMonitorToast(data.message || 'Check failed.', true);
                 } else {
-                    const r = (data.results || [])[0];
-                    if (r) {
-                        const color  = fbStatusColor(r.status);
-                        const lbl    = fbStatusLabel(r.status);
-                        const detail = r.detail ? ' — ' + r.detail : '';
-                        var el = document.getElementById('fbMonitorCheckResult');
-                        if (el) {
-                            el.innerHTML = '<span style="color:' + color + ';font-weight:600">' + escHtml(lbl) + '</span>'
-                                         + '<span style="color:var(--text-muted)">' + escHtml(detail) + '</span>';
-                            el.style.color = '';
-                            el.hidden = false;
-                        }
-                    }
                     await loadFbMonitorList();
                 }
             } catch (e) {
-                fbMonitorShowResult('Network error — try again.', true);
+                fbMonitorToast('Network error — try again.', true);
+            } finally {
+                if (el && el.isConnected) {
+                    fbMonitorSetCheckLoading(el, false);
+                }
             }
         }
 
         async function fbMonitorRemove(id) {
-            if (!confirm('Remove this profile from monitoring?')) return;
+            if (!confirm('Remove this URL from monitoring?')) return;
             try {
                 await fetch('api.php?action=fb_monitor_remove', {
                     method: 'POST',
