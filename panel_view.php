@@ -2515,6 +2515,17 @@ $userNavInitial = $userNavInitial ?? '?';
         </div>
     </div>
 
+    <div class="modal-overlay" id="galleryDeleteModal" role="dialog" aria-modal="true" aria-labelledby="galleryDeleteModalTitle" onclick="galleryDeleteCloseModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:400px">
+            <h2 class="modal-title" id="galleryDeleteModalTitle">Delete capture?</h2>
+            <p id="galleryDeleteModalBody" style="font-size:14px;color:var(--text-muted);margin:-6px 0 20px;line-height:1.55"></p>
+            <div class="fb-monitor-modal-actions" style="margin-top:0">
+                <button type="button" class="btn btn-danger" onclick="galleryDeleteConfirm()">Delete</button>
+                <button type="button" class="btn btn-secondary" onclick="galleryDeleteCloseModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div class="support-float" aria-live="polite">
         <div class="support-prompt" id="supportPrompt">
             If you want to support this project and help continue development, you can support me on Ko-fi.
@@ -4379,6 +4390,54 @@ $userNavInitial = $userNavInitial ?? '?';
             updateGalleryBulkDeleteBtn();
         }
 
+        var galleryDeletePendingPaths = null;
+
+        function galleryDeleteOpenModal(paths) {
+            if (!paths || !paths.length) {
+                return;
+            }
+            galleryDeletePendingPaths = paths.slice();
+            var modal = document.getElementById('galleryDeleteModal');
+            var titleEl = document.getElementById('galleryDeleteModalTitle');
+            var bodyEl = document.getElementById('galleryDeleteModalBody');
+            if (!modal || !titleEl || !bodyEl) {
+                return;
+            }
+            var n = galleryDeletePendingPaths.length;
+            if (n === 1) {
+                titleEl.textContent = 'Delete this capture?';
+                bodyEl.textContent = 'This image will be removed from your gallery. This action cannot be undone.';
+            } else {
+                titleEl.textContent = 'Delete selected captures?';
+                bodyEl.textContent = 'Delete ' + n + ' selected capture(s) from your gallery. This action cannot be undone.';
+            }
+            modal.classList.add('show');
+        }
+
+        function galleryDeleteCloseModal(event) {
+            var m = document.getElementById('galleryDeleteModal');
+            if (!m || !m.classList.contains('show')) {
+                return;
+            }
+            if (event !== undefined && event !== null && event.target !== event.currentTarget) {
+                return;
+            }
+            m.classList.remove('show');
+            galleryDeletePendingPaths = null;
+        }
+
+        function galleryDeleteConfirm() {
+            var paths = galleryDeletePendingPaths;
+            galleryDeletePendingPaths = null;
+            var m = document.getElementById('galleryDeleteModal');
+            if (m) {
+                m.classList.remove('show');
+            }
+            if (paths && paths.length) {
+                deletePhotosByPaths(paths);
+            }
+        }
+
         async function deletePhotosByPaths(paths) {
             if (!paths || !paths.length) return;
             try {
@@ -4537,8 +4596,7 @@ $userNavInitial = $userNavInitial ?? '?';
                     .map(function (cb) { return cb.getAttribute('data-path'); })
                     .filter(Boolean);
                 if (!paths.length) return;
-                if (!confirm('Delete ' + paths.length + ' capture(s)?')) return;
-                deletePhotosByPaths(paths);
+                galleryDeleteOpenModal(paths);
             });
             grid.addEventListener('click', function (e) {
                 const btn = e.target.closest('.gallery-delete-one');
@@ -4547,8 +4605,7 @@ $userNavInitial = $userNavInitial ?? '?';
                 e.preventDefault();
                 const path = btn.getAttribute('data-path');
                 if (!path) return;
-                if (!confirm('Delete this capture?')) return;
-                deletePhotosByPaths([path]);
+                galleryDeleteOpenModal([path]);
             });
         })();
 
@@ -4558,6 +4615,11 @@ $userNavInitial = $userNavInitial ?? '?';
             }
             if (document.getElementById('lightbox').classList.contains('show')) {
                 closeLightbox();
+                return;
+            }
+            const gdm = document.getElementById('galleryDeleteModal');
+            if (gdm && gdm.classList.contains('show')) {
+                galleryDeleteCloseModal();
                 return;
             }
             const dm = document.getElementById('disclaimerModal');
