@@ -64,6 +64,7 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                 <nav class="settings-nav" role="tablist" aria-label="Settings categories">
                                     <button type="button" class="settings-nav-tab" role="tab" id="settings-tab-password" aria-controls="settings-panel-password" aria-selected="true">Change password</button>
                                     <button type="button" class="settings-nav-tab" role="tab" id="settings-tab-notifications" aria-controls="settings-panel-notifications" aria-selected="false" tabindex="-1">Notifications</button>
+                                    <button type="button" class="settings-nav-tab" role="tab" id="settings-tab-fbmonitor" aria-controls="settings-panel-fbmonitor" aria-selected="false" tabindex="-1">FB Monitor</button>
                                 </nav>
                             </aside>
 
@@ -124,6 +125,34 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                         </div>
                     </div>
 
+                    <div id="settings-panel-fbmonitor" role="tabpanel" aria-labelledby="settings-tab-fbmonitor" class="settings-tab-panel" hidden>
+                        <div class="card">
+                            <h2>Facebook Monitor</h2>
+                            <p class="settings-telegram-lead">Paste your Facebook session cookies (the full <code>Cookie:</code> header value, e.g. <code>c_user=…; xs=…; datr=…</code>). Stored server-side and never echoed back to the browser.</p>
+                            <p class="settings-telegram-status" id="fb_monitor_config_status" aria-live="polite">Loading…</p>
+
+                            <label for="fb_monitor_cookies">Facebook cookies</label>
+                            <textarea id="fb_monitor_cookies" rows="3" autocomplete="off"
+                                      placeholder="c_user=123; xs=abc; datr=xyz"
+                                      style="width:100%;resize:vertical;font-family:monospace;font-size:13px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);box-sizing:border-box"></textarea>
+
+                            <label for="fb_monitor_interval" style="margin-top:14px">Check interval (for cron)</label>
+                            <select id="fb_monitor_interval" style="width:100%;padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px">
+                                <option value="5">Every 5 minutes</option>
+                                <option value="15" selected>Every 15 minutes</option>
+                                <option value="30">Every 30 minutes</option>
+                                <option value="60">Every 60 minutes</option>
+                            </select>
+
+                            <p class="settings-alert" id="fb_monitor_settings_error" role="alert" hidden></p>
+                            <p class="settings-success" id="fb_monitor_settings_ok" role="status" hidden></p>
+
+                            <div class="settings-telegram-actions">
+                                <button type="button" class="btn btn-primary" id="fb_monitor_save_btn">Save</button>
+                            </div>
+                        </div>
+                    </div>
+
                             </div>
                         </div>
                     </div>
@@ -133,21 +162,35 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                         var API = 'api.php';
                         var tabPwd = document.getElementById('settings-tab-password');
                         var tabNotify = document.getElementById('settings-tab-notifications');
+                        var tabFbMonitor = document.getElementById('settings-tab-fbmonitor');
                         var panelPwd = document.getElementById('settings-panel-password');
                         var panelNotify = document.getElementById('settings-panel-notifications');
+                        var panelFbMonitor = document.getElementById('settings-panel-fbmonitor');
                         if (!tabPwd || !tabNotify || !panelPwd || !panelNotify) return;
 
                         function activateTab(which) {
-                            var isPwd = which === 'password';
+                            var isPwd    = which === 'password';
+                            var isNotify = which === 'notifications';
+                            var isFb     = which === 'fbmonitor';
                             tabPwd.setAttribute('aria-selected', isPwd ? 'true' : 'false');
-                            tabNotify.setAttribute('aria-selected', isPwd ? 'false' : 'true');
-                            tabPwd.tabIndex = isPwd ? 0 : -1;
-                            tabNotify.tabIndex = isPwd ? -1 : 0;
-                            panelPwd.hidden = !isPwd;
-                            panelNotify.hidden = isPwd;
+                            tabNotify.setAttribute('aria-selected', isNotify ? 'true' : 'false');
+                            tabPwd.tabIndex    = isPwd    ? 0 : -1;
+                            tabNotify.tabIndex = isNotify ? 0 : -1;
+                            panelPwd.hidden    = !isPwd;
+                            panelNotify.hidden = !isNotify;
+                            if (tabFbMonitor) {
+                                tabFbMonitor.setAttribute('aria-selected', isFb ? 'true' : 'false');
+                                tabFbMonitor.tabIndex = isFb ? 0 : -1;
+                            }
+                            if (panelFbMonitor) {
+                                panelFbMonitor.hidden = !isFb;
+                            }
                         }
                         tabPwd.addEventListener('click', function () { activateTab('password'); });
                         tabNotify.addEventListener('click', function () { activateTab('notifications'); });
+                        if (tabFbMonitor) {
+                            tabFbMonitor.addEventListener('click', function () { activateTab('fbmonitor'); });
+                        }
 
                         var statusEl = document.getElementById('telegram_config_status');
                         var enableEl = document.getElementById('telegram_enabled');
@@ -275,6 +318,86 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                         });
 
                         void loadTelegramConfig();
+
+                        // ---- FB Monitor config ----
+                        var fbStatusEl  = document.getElementById('fb_monitor_config_status');
+                        var fbCookiesEl = document.getElementById('fb_monitor_cookies');
+                        var fbIntervalEl = document.getElementById('fb_monitor_interval');
+                        var fbErrEl     = document.getElementById('fb_monitor_settings_error');
+                        var fbOkEl      = document.getElementById('fb_monitor_settings_ok');
+                        var fbSaveBtn   = document.getElementById('fb_monitor_save_btn');
+
+                        function setFbErr(msg) {
+                            if (fbErrEl) {
+                                fbErrEl.textContent = msg ? String(msg) : '';
+                                fbErrEl.hidden = !msg;
+                            }
+                            if (fbOkEl) { fbOkEl.hidden = true; fbOkEl.textContent = ''; }
+                        }
+                        function setFbOk(msg) {
+                            if (fbOkEl) { fbOkEl.textContent = String(msg); fbOkEl.hidden = false; }
+                            setFbErr('');
+                        }
+
+                        async function loadFbMonitorConfig() {
+                            try {
+                                var res = await fetch(API + '?action=fb_monitor_config', { credentials: 'same-origin' });
+                                var data = await res.json().catch(function () { return {}; });
+                                if (data.status === 'success') {
+                                    if (fbStatusEl) {
+                                        fbStatusEl.textContent = data.cookies_set
+                                            ? 'Status: cookies saved — paste new cookies to replace them.'
+                                            : 'Status: no cookies saved yet — paste your Facebook cookies and save.';
+                                    }
+                                    if (fbIntervalEl && data.check_interval_minutes) {
+                                        var val = String(data.check_interval_minutes);
+                                        for (var i = 0; i < fbIntervalEl.options.length; i++) {
+                                            if (fbIntervalEl.options[i].value === val) {
+                                                fbIntervalEl.selectedIndex = i;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    if (fbStatusEl) fbStatusEl.textContent = 'Status: could not load config.';
+                                }
+                            } catch (e) {
+                                if (fbStatusEl) fbStatusEl.textContent = 'Status: network error.';
+                            }
+                        }
+
+                        if (fbSaveBtn) {
+                            fbSaveBtn.addEventListener('click', async function () {
+                                setFbErr('');
+                                fbSaveBtn.disabled = true;
+                                var cookies  = fbCookiesEl ? (fbCookiesEl.value || '').trim() : '';
+                                var interval = fbIntervalEl ? parseInt(fbIntervalEl.value, 10) : 15;
+                                try {
+                                    var body = { check_interval_minutes: interval };
+                                    if (cookies !== '') body.cookies = cookies;
+                                    var res = await fetch(API + '?action=fb_monitor_save_config', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(body),
+                                        credentials: 'same-origin'
+                                    });
+                                    var data = await res.json().catch(function () { return {}; });
+                                    if (data.status !== 'success') {
+                                        setFbErr(data.message || 'Could not save.');
+                                        return;
+                                    }
+                                    if (fbCookiesEl) fbCookiesEl.value = '';
+                                    setFbOk(data.message || 'FB Monitor config saved.');
+                                    void loadFbMonitorConfig();
+                                } catch (err) {
+                                    setFbErr('Network error — try again.');
+                                } finally {
+                                    fbSaveBtn.disabled = false;
+                                }
+                            });
+                        }
+
+                        void loadFbMonitorConfig();
                     })();
                     </script>
 <?php

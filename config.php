@@ -6,8 +6,8 @@ return [
         'host' => '127.0.0.1',
         'port' => 3306,
         'name' => 'trackify_auth',
-        'user' => 'trackify_user',
-        'pass' => '@Silenthacker123',
+        'user' => 'root',
+        'pass' => '',
         'charset' => 'utf8mb4',
     ],
     // Dashboard access control (IP whitelist)
@@ -37,4 +37,8 @@ return [
     // EXIFTool integration (used by exiftool.php)
     // - Install exiftool and ensure it's in PATH, or set an absolute path here (e.g. "C:\\tools\\exiftool\\exiftool.exe")
     'exiftool_bin' => 'exiftool',
+
+    // Facebook Monitor — Playwright (optional; npm ci && npx playwright install chromium)
+    'fb_monitor_use_playwright' => true,
+    'fb_monitor_node' => 'node',
 ];

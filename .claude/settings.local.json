@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /c/laragon/www/trackify/*.php)",
+      "Bash(grep -n \"CREATE TABLE\\\\|CREATE TABLE\" /c/laragon/www/trackify/*.php)",
+      "Bash(grep -n \"function trackify_config\\\\b\" /c/laragon/www/trackify/*.php)",
+      "Bash(mysql -u trackify_user -p@Silenthacker123 trackify_auth -e ':*)",
+      "Bash(mysql -h 127.0.0.1 -P 3306 -u trackify_user -p@Silenthacker123 trackify_auth -e ':*)",
+      "Bash(sc query:*)",
+      "Bash(tasklist)",
+      "Read(//c/laragon/bin/mysql/**)",
+      "Read(//c/laragon/bin/**)",
+      "Bash(C:/laragon/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe -h 127.0.0.1 -P 3306 -u trackify_user -p@Silenthacker123 trackify_auth -e ':*)"
+    ]
+  }
+}
