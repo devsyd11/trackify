@@ -8,13 +8,14 @@ declare(strict_types=1);
  * that are due according to their configured check_interval_minutes.
  * Sends a Telegram alert when a previously unavailable profile becomes active.
  *
- * Schedule (Linux/macOS crontab):
- *   *\/5 * * * * php /path/to/trackify/fb_checker_cron.php >> /tmp/fb_cron.log 2>&1
+ * Schedule (Linux/macOS crontab) — run at least as often as your shortest check interval
+ * (e.g. every minute if you use “Every 1 minute” in Facebook Tools):
+ *   * * * * * php /path/to/trackify/fb_checker_cron.php >> /tmp/fb_cron.log 2>&1
  *
  * Schedule (Windows Task Scheduler):
  *   Program: php.exe
  *   Arguments: C:\laragon\www\trackify\fb_checker_cron.php
- *   Trigger: Every 5 minutes
+ *   Trigger: Every 1 minute (if using 1-minute checks) or every 5 minutes, etc.
  */
 
 $root = __DIR__;
@@ -74,7 +75,7 @@ foreach ($userDirs as $dir) {
         continue;  // User has not configured cookies — skip
     }
 
-    $interval = max(5, (int) ($cfg['check_interval_minutes'] ?? 15));
+    $interval = max(1, (int) ($cfg['check_interval_minutes'] ?? 15));
 
     // Fetch monitors that are due (never checked, or last check older than interval)
     $stmt = $pdo->prepare(

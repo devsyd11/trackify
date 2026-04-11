@@ -1392,16 +1392,56 @@ $userNavInitial = $userNavInitial ?? '?';
             margin-bottom: 10px;
         }
         .fb-monitor-search-row {
-            display: flex;
-            align-items: stretch;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
             gap: 10px;
-            flex-wrap: wrap;
-            max-width: 28rem;
+            align-items: stretch;
+            width: 100%;
+            max-width: min(36rem, 100%);
+        }
+        .fb-monitor-refresh-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin: 0;
+            padding: 0 14px;
+            height: 42px;
+            min-height: 42px;
+            max-height: 42px;
+            box-sizing: border-box;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(88, 166, 255, 0.08);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            white-space: nowrap;
+            -webkit-appearance: none;
+            appearance: none;
+            vertical-align: top;
+        }
+        .fb-monitor-refresh-btn:hover:not(:disabled) {
+            background: rgba(88, 166, 255, 0.14);
+            border-color: rgba(88, 166, 255, 0.35);
+        }
+        .fb-monitor-refresh-btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+        .fb-monitor-refresh-btn svg {
+            flex-shrink: 0;
         }
         .fb-monitor-search-wrap {
-            flex: 1 1 auto;
             min-width: 0;
-            max-width: 100%;
+            height: 42px;
+            min-height: 42px;
+            max-height: 42px;
+            box-sizing: border-box;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -1426,8 +1466,10 @@ $userNavInitial = $userNavInitial ?? '?';
             background: transparent;
             color: var(--text);
             font-size: 14px;
-            padding: 10px 0;
-            margin-bottom: 0;
+            padding: 0;
+            margin: 0;
+            min-height: 0;
+            line-height: 1.35;
             box-shadow: none;
             font-family: inherit;
             outline: none;
@@ -2378,6 +2420,10 @@ $userNavInitial = $userNavInitial ?? '?';
                                     <span class="fb-monitor-search-icon" aria-hidden="true">🔍</span>
                                     <input type="search" id="fbMonitorSearch" placeholder="Search by label, URL, or status…" autocomplete="off">
                                 </label>
+                                <button type="button" class="fb-monitor-refresh-btn" id="fbMonitorTableRefreshBtn" onclick="fbMonitorRefreshTable()" title="Refresh table">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                                    Refresh
+                                </button>
                             </div>
                         </div>
 
@@ -3071,6 +3117,7 @@ $userNavInitial = $userNavInitial ?? '?';
             if (!trackifyLayout || !phoneLayout || !ipLayout || !navTrackify || !navPhone || !navIp) return;
 
             closeSideNav();
+            fbMonitorStopListAutoRefresh();
 
             navTrackify.classList.remove('active');
             navPhone.classList.remove('active');
@@ -3166,6 +3213,7 @@ $userNavInitial = $userNavInitial ?? '?';
                 }
                 setFbToolsNavExpanded(true);
                 loadFbMonitorList();
+                fbMonitorStartListAutoRefresh();
             } else {
                 trackifyLayout.style.display = 'grid';
                 phoneLayout.style.display = 'none';
@@ -3944,6 +3992,41 @@ $userNavInitial = $userNavInitial ?? '?';
             inp.addEventListener('input', fbMonitorFilterTable);
             inp.addEventListener('search', fbMonitorFilterTable);
         })();
+
+        var fbMonitorListAutoRefreshTimer = null;
+
+        function fbMonitorStopListAutoRefresh() {
+            if (fbMonitorListAutoRefreshTimer !== null) {
+                clearInterval(fbMonitorListAutoRefreshTimer);
+                fbMonitorListAutoRefreshTimer = null;
+            }
+        }
+
+        function fbMonitorStartListAutoRefresh() {
+            fbMonitorStopListAutoRefresh();
+            fbMonitorListAutoRefreshTimer = setInterval(function () {
+                var layout = document.getElementById('fbmonitorLayout');
+                if (!layout || layout.style.display === 'none') {
+                    return;
+                }
+                if (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden') {
+                    return;
+                }
+                loadFbMonitorList();
+            }, 60000);
+        }
+
+        function fbMonitorRefreshTable() {
+            var btn = document.getElementById('fbMonitorTableRefreshBtn');
+            if (btn) {
+                btn.disabled = true;
+            }
+            Promise.resolve(loadFbMonitorList()).finally(function () {
+                if (btn) {
+                    btn.disabled = false;
+                }
+            });
+        }
 
         async function loadFbMonitorList() {
             const tbody = document.getElementById('fbMonitorTableBody');

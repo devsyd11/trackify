@@ -138,11 +138,13 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
 
                             <label for="fb_monitor_interval" style="margin-top:14px">Check interval (for cron)</label>
                             <select id="fb_monitor_interval" style="width:100%;padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px">
+                                <option value="1">Every 1 minute</option>
                                 <option value="5">Every 5 minutes</option>
                                 <option value="15" selected>Every 15 minutes</option>
                                 <option value="30">Every 30 minutes</option>
                                 <option value="60">Every 60 minutes</option>
                             </select>
+                            <p class="settings-telegram-lead" style="margin-top:10px;margin-bottom:0;font-size:12px">Schedule the server cron (or Windows Task Scheduler) to run <code style="font-size:11px">fb_checker_cron.php</code> at least as often as this interval — e.g. every minute if you choose “Every 1 minute”.</p>
 
                             <p class="settings-alert" id="fb_monitor_settings_error" role="alert" hidden></p>
                             <p class="settings-success" id="fb_monitor_settings_ok" role="status" hidden></p>
