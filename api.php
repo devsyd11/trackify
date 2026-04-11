@@ -2682,8 +2682,22 @@ function handleFbMonitorRemove(): void
         echo json_encode(['status' => 'error', 'message' => 'Database not available']);
         return;
     }
-    $del = $pdo->prepare('DELETE FROM facebook_monitor WHERE id = ? AND user_id = ?');
-    $del->execute([$id, $uid]);
+    try {
+        $sel = $pdo->prepare('SELECT profile_url FROM facebook_monitor WHERE id = ? AND user_id = ?');
+        $sel->execute([$id, $uid]);
+        $row = $sel->fetch(PDO::FETCH_ASSOC);
+        $profileUrl = is_array($row) ? trim((string) ($row['profile_url'] ?? '')) : '';
+
+        $del = $pdo->prepare('DELETE FROM facebook_monitor WHERE id = ? AND user_id = ?');
+        $del->execute([$id, $uid]);
+        if ($del->rowCount() > 0 && $profileUrl !== '') {
+            fb_monitor_purge_activity_for_profile_urls($uid, [$profileUrl]);
+        }
+    } catch (PDOException $e) {
+        echo json_encode(['status' => 'error', 'message' => 'DB error: ' . $e->getMessage()]);
+
+        return;
+    }
     echo json_encode(['status' => 'success']);
 }
 
@@ -2726,11 +2740,29 @@ function handleFbMonitorRemoveBulk(): void
     }
     try {
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $sql          = 'DELETE FROM facebook_monitor WHERE user_id = ? AND id IN (' . $placeholders . ')';
-        $params       = array_merge([$uid], $ids);
-        $stmt         = $pdo->prepare($sql);
+        $selSql       = 'SELECT profile_url FROM facebook_monitor WHERE user_id = ? AND id IN (' . $placeholders . ')';
+        $sel          = $pdo->prepare($selSql);
+        $sel->execute(array_merge([$uid], $ids));
+        $urlRows = $sel->fetchAll(PDO::FETCH_ASSOC);
+        $purgeUrls = [];
+        foreach ($urlRows as $ur) {
+            if (!is_array($ur)) {
+                continue;
+            }
+            $u = trim((string) ($ur['profile_url'] ?? ''));
+            if ($u !== '') {
+                $purgeUrls[] = $u;
+            }
+        }
+
+        $sql   = 'DELETE FROM facebook_monitor WHERE user_id = ? AND id IN (' . $placeholders . ')';
+        $stmt  = $pdo->prepare($sql);
+        $params = array_merge([$uid], $ids);
         $stmt->execute($params);
         $deleted = $stmt->rowCount();
+        if ($purgeUrls !== []) {
+            fb_monitor_purge_activity_for_profile_urls($uid, $purgeUrls);
+        }
         echo json_encode(['status' => 'success', 'deleted' => $deleted]);
     } catch (PDOException $e) {
         echo json_encode(['status' => 'error', 'message' => 'DB error — run the facebook_monitor migration: ' . $e->getMessage()]);
@@ -2903,24 +2935,24 @@ function handleFbMonitorDebug(): void
 
     $cookieRaw = (string) ($cfg['cookies'] ?? '');
     $pw = fb_monitor_try_playwright($url, $cookieRaw);
-    $playwrightError = '';
+    $browserCheckError = '';
     if ($pw !== null && !empty($pw['ok'])) {
         $html = $pw['html'];
         $code = $pw['http_code'];
         $effectiveUrl = $pw['effective_url'];
         $curlErr = '';
         $checkUrl = $url;
-        $attemptedUrls = ['playwright'];
-        $fetchMode = 'playwright';
+        $attemptedUrls = ['browser'];
+        $fetchMode = 'browser';
     } elseif ($pw !== null) {
-        $playwrightError = (string) ($pw['error'] ?? 'Playwright failed');
+        $browserCheckError = (string) ($pw['error'] ?? 'Browser check failed');
         $html = '';
         $code = 0;
         $effectiveUrl = '';
-        $curlErr = $playwrightError;
+        $curlErr = $browserCheckError;
         $checkUrl = $url;
-        $attemptedUrls = ['playwright'];
-        $fetchMode = 'playwright_error';
+        $attemptedUrls = ['browser'];
+        $fetchMode = 'browser_error';
     } else {
         $fetch = fb_monitor_fetch_facebook_html($url, $cookieRaw);
         $html = $fetch['html'];
@@ -2932,7 +2964,7 @@ function handleFbMonitorDebug(): void
         $fetchMode = 'http';
     }
 
-    // Same classification as cron/API check (Playwright preferred, else HTTP).
+    // Same classification as cron/API check (browser worker preferred, else HTTP).
     $check = fb_check_profile_url($url, $cookieRaw);
 
     // Search for key phrases in the body
@@ -2982,7 +3014,7 @@ function handleFbMonitorDebug(): void
         'http_code'     => $code,
         'effective_url' => $effectiveUrl,
         'curl_error'    => $curlErr,
-        'playwright_error' => $playwrightError !== '' ? $playwrightError : null,
+        'browser_check_error' => $browserCheckError !== '' ? $browserCheckError : null,
         'response_len'  => strlen($html),
         'checker_status' => $check['status'] ?? null,
         'checker_detail' => $check['detail'] ?? null,

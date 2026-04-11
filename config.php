@@ -38,7 +38,7 @@ return [
     // - Install exiftool and ensure it's in PATH, or set an absolute path here (e.g. "C:\\tools\\exiftool\\exiftool.exe")
     'exiftool_bin' => 'exiftool',
 
-    // Facebook Monitor — Playwright (optional; npm ci && npx playwright install chromium)
+    // Facebook Monitor — headless browser check (optional; npm ci + install Chromium for the worker)
     'fb_monitor_use_playwright' => true,
     'fb_monitor_node' => 'node',
 ];

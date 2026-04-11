@@ -1,5 +1,5 @@
 /**
- * Facebook Monitor — Playwright fetch (stdin JSON → stdout JSON).
+ * Facebook Monitor — headless browser fetch (stdin JSON → stdout JSON).
  *
  * Input (stdin, one JSON object):
  *   { "profileUrl": "https://www.facebook.com/username", "cookies": "..." }

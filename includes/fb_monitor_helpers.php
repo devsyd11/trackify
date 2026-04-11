@@ -177,6 +177,73 @@ function fb_monitor_append_activity(
     fclose($fp);
 }
 
+/**
+ * Remove activity log entries tied to one or more profile URLs (e.g. after deleting monitors).
+ *
+ * @param list<string> $profileUrls
+ */
+function fb_monitor_purge_activity_for_profile_urls(int $uid, array $profileUrls): void
+{
+    $want = [];
+    foreach ($profileUrls as $u) {
+        $u = trim((string) $u);
+        if ($u !== '') {
+            $want[$u] = true;
+        }
+    }
+    if ($want === []) {
+        return;
+    }
+    $keys = array_keys($want);
+
+    $path = fb_monitor_user_dir($uid) . '/activity_log.json';
+    $fp   = @fopen($path, 'c+');
+    if ($fp === false) {
+        return;
+    }
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+
+        return;
+    }
+    rewind($fp);
+    $raw = stream_get_contents($fp);
+    $list = [];
+    if (is_string($raw) && $raw !== '') {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            $list = $decoded;
+        }
+    }
+
+    $kept = [];
+    foreach ($list as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $pu = trim((string) ($entry['profile_url'] ?? ''));
+        $drop = false;
+        if ($pu !== '') {
+            foreach ($keys as $k) {
+                if (fb_monitor_urls_match($pu, $k)) {
+                    $drop = true;
+                    break;
+                }
+            }
+        }
+        if (!$drop) {
+            $kept[] = $entry;
+        }
+    }
+
+    rewind($fp);
+    ftruncate($fp, 0);
+    fwrite($fp, (string) json_encode($kept, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+}
+
 // ---------------------------------------------------------------------------
 // Cookie format normalizer
 //
@@ -305,9 +372,9 @@ function fb_monitor_playwright_should_run(): bool
 }
 
 /**
- * Run the Playwright worker (stdin JSON → stdout JSON).
+ * Run the headless browser worker (stdin JSON → stdout JSON).
  *
- * @return null Playwright not installed or disabled in config — caller may use HTTP fetch.
+ * @return null Worker not installed or disabled in config — caller may use HTTP fetch.
  * @return array{ok: bool, html: string, visible_text: string, http_code: int, effective_url: string, error?: string}
  */
 function fb_monitor_try_playwright(string $url, string $cookieString): ?array
@@ -325,7 +392,7 @@ function fb_monitor_try_playwright(string $url, string $cookieString): ?array
     if ($payload === false) {
         return [
             'ok'            => false,
-            'error'         => 'Could not encode request for Playwright',
+            'error'         => 'Could not encode request for browser worker',
             'html'          => '',
             'visible_text'  => '',
             'http_code'     => 0,
@@ -338,7 +405,7 @@ function fb_monitor_try_playwright(string $url, string $cookieString): ?array
     if (!is_resource($proc)) {
         return [
             'ok'            => false,
-            'error'         => 'Could not start Playwright process (is Node in PATH?)',
+            'error'         => 'Could not start browser worker (is Node in PATH?)',
             'html'          => '',
             'visible_text'  => '',
             'http_code'     => 0,
@@ -358,7 +425,7 @@ function fb_monitor_try_playwright(string $url, string $cookieString): ?array
             $err = $stderr;
         }
         if ($err === '') {
-            $err = 'Playwright did not return ok. Run: npm ci && npx playwright install chromium';
+            $err = 'Browser check did not complete. Install dependencies (npm ci) and Chromium for the monitor worker.';
         }
 
         return [
@@ -372,7 +439,7 @@ function fb_monitor_try_playwright(string $url, string $cookieString): ?array
     };
 
     if ($stdout === '') {
-        return $fail($stderr !== '' ? $stderr : 'Playwright produced no output on stdout');
+        return $fail($stderr !== '' ? $stderr : 'Browser worker produced no output');
     }
 
     $decoded = json_decode($stdout, true);
@@ -509,7 +576,7 @@ function fb_profile_page_shows_content_unavailable(string $html, string $visible
 
 /**
  * True if the browser landed on a URL whose path/query matches the monitored profile identifier.
- * Used after Playwright navigation when HTML/SPA does not repeat "/username" in the body.
+ * Used after a real browser navigation when HTML/SPA does not repeat "/username" in the body.
  */
 function fb_profile_final_url_matches_identifier(string $finalUrl, array $want): bool
 {
@@ -540,11 +607,11 @@ function fb_profile_final_url_matches_identifier(string $finalUrl, array $want):
 }
 
 /**
- * Classify profile from fetched HTML (HTTP or Playwright).
+ * Classify profile from fetched HTML (HTTP or browser worker).
  *
  * @return array{status: string, detail: string, http_code: int, update_last_status?: bool}
  */
-function fb_classify_fetched_profile(string $html, string $finalUrl, string $originalUrl, int $code, string $curlErr = '', string $visibleText = '', bool $playwrightBrowserCheck = false): array
+function fb_classify_fetched_profile(string $html, string $finalUrl, string $originalUrl, int $code, string $curlErr = '', string $visibleText = '', bool $browserUrlConfirmation = false): array
 {
     if ($code === 0 && $curlErr !== '') {
         return ['status' => 'unknown', 'detail' => 'Connection failed: ' . ($curlErr ?: 'unknown error'), 'http_code' => 0];
@@ -650,15 +717,15 @@ function fb_classify_fetched_profile(string $html, string $finalUrl, string $ori
         ];
     }
 
-    // Playwright: real browser reached a URL whose path matches the profile; SPA often omits "/user" in static HTML.
+    // Real browser session: landed on a URL whose path matches the profile; SPA often omits "/user" in static HTML.
     if (
-        $playwrightBrowserCheck
+        $browserUrlConfirmation
         && fb_profile_final_url_matches_identifier($finalUrl, $want)
         && !fb_profile_page_shows_content_unavailable($html, $visibleText)
     ) {
         return [
             'status'    => 'active',
-            'detail'    => 'Playwright loaded the profile URL; location matches the monitored identifier — account appears active',
+            'detail'    => 'page loaded; identifier not detected in text (inconclusive parse; counted as active)',
             'http_code' => $code,
         ];
     }
@@ -888,9 +955,11 @@ function fb_check_profile_url(string $url, string $cookieString): array
     $pw = fb_monitor_try_playwright($url, $cookieString);
     if ($pw !== null) {
         if (empty($pw['ok'])) {
+            $err = trim((string) ($pw['error'] ?? 'check failed'));
+
             return [
                 'status'        => 'unknown',
-                'detail'        => 'Playwright: ' . (string) ($pw['error'] ?? 'check failed'),
+                'detail'        => $err !== '' ? ('Browser check: ' . $err) : 'Browser check failed',
                 'http_code'     => 0,
                 'preview_image' => '',
             ];
@@ -913,7 +982,7 @@ function fb_check_profile_url(string $url, string $cookieString): array
     if (!function_exists('curl_init')) {
         return [
             'status'    => 'unknown',
-            'detail'    => 'Playwright not installed (npm ci && npx playwright install chromium) and cURL is missing.',
+            'detail'    => 'Browser worker is not available (run npm ci in the project folder) and cURL is missing.',
             'http_code' => 0,
             'preview_image' => '',
         ];

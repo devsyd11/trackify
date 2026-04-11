@@ -4145,6 +4145,18 @@ $userNavInitial = $userNavInitial ?? '?';
             return src || '—';
         }
 
+        /** Avoid "Active — Active — …" when stored detail repeated the status label (UI always prints label + em dash). */
+        function fbMonitorStripDuplicateStatusPrefix(lbl, detail) {
+            let d = String(detail || '').trim();
+            if (!d || !lbl) return d;
+            const esc = String(lbl).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const re = new RegExp('^' + esc + '\\s*[—\\-]\\s*', 'i');
+            while (re.test(d)) {
+                d = d.replace(re, '').trim();
+            }
+            return d;
+        }
+
         function fbMonitorFormatLogEntriesHtml(entries, opt) {
             opt = opt || {};
             const hideUrlInMeta = !!opt.hideUrlInMeta;
@@ -4155,7 +4167,8 @@ $userNavInitial = $userNavInitial ?? '?';
                 const st = String(e.status || 'unknown');
                 const statusColor = st === 'error' ? '#f07178' : fbStatusColor(st);
                 const lbl = st === 'error' ? 'Error' : fbStatusLabel(st);
-                const detail = e.detail ? ' — ' + e.detail : '';
+                const detailBody = e.detail ? fbMonitorStripDuplicateStatusPrefix(lbl, e.detail) : '';
+                const detail = detailBody ? ' — ' + detailBody : '';
                 const metaParts = [
                     fbMonitorSourceLabel(e.source),
                     fbMonitorFormatActivityTime(e.at)
