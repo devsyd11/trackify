@@ -502,70 +502,189 @@ function fb_monitor_normalize_telegram_photo_url(string $raw): string
 }
 
 /**
- * Fallback: first plausible Facebook CDN image in HTML (mbasic often has profile thumbs in img src).
+ * Heuristic score: higher = more likely a profile/avatar image (vs cover/banner/random).
  */
-function fb_monitor_extract_fbcdn_img_fallback(string $html): string
+function fb_monitor_score_profile_pic_url(string $url): int
 {
-    if (!preg_match_all('#https://[a-z0-9.-]+\.fbcdn\.net/[^\s"\'<>]+#i', $html, $matches)) {
-        return '';
+    $u = strtolower($url);
+    $score = 0;
+    // Facebook profile photos often use /v/t1.* or /v/t31.* in the CDN path.
+    if (preg_match('#/v/t1[\d.]+-[\d.]+/#', $u)) {
+        $score += 85;
     }
-    $best = '';
-    foreach ($matches[0] as $raw) {
-        $u = fb_monitor_normalize_telegram_photo_url($raw);
-        if ($u === '') {
-            continue;
+    if (preg_match('#/v/t31\.#', $u)) {
+        $score += 75;
+    }
+    // Square-ish avatar crops (typical profile sizes).
+    if (preg_match('#s(32|40|48|50|100|128|168|180|200|240|320)x\1#', $u)) {
+        $score += 55;
+    }
+    if (preg_match('#s(\d{2,3})x\1#', $u, $mm)) {
+        $n = (int) $mm[1];
+        if ($n >= 32 && $n <= 480) {
+            $score += 35;
         }
-        if (preg_match('#/(s\d+x\d+/|/v/t\d+\.\d+-\d+/)#', $u) || preg_match('#\d+x\d+#', $u)) {
-            return $u;
-        }
-        if ($best === '') {
-            $best = $u;
-        }
+    }
+    // Wide cover / banner dimensions (deprioritize).
+    if (preg_match('#s(720|820|851|960|1080|1200)x#', $u)) {
+        $score -= 120;
+    }
+    if (preg_match('#851x315|820x312|960x#', $u)) {
+        $score -= 100;
+    }
+    if (strpos($u, 'cover') !== false) {
+        $score -= 60;
     }
 
-    return $best;
+    return $score;
 }
 
 /**
- * Best-effort profile/page image URL from fetched Facebook HTML (og:image, then CDN img).
+ * Prefer <img> whose alt/aria-label clearly refers to the profile photo (not cover).
+ */
+function fb_monitor_extract_profile_picture_from_imgs(string $html): string
+{
+    if ($html === '') {
+        return '';
+    }
+    if (!preg_match_all('/<img\b[^>]*>/is', $html, $tags)) {
+        return '';
+    }
+    $hint = '/profile\s*photo|profile\s*picture|foto\s*(del\s*)?perfil|photo\s*de\s*profil|profilbild|photo\s*du\s*profil|zdj(e|ę)cie\s*profilowe|imagem\s*do\s*perfil/i';
+    foreach ($tags[0] as $tag) {
+        $blob = '';
+        if (preg_match('/\balt\s*=\s*["\']([^"\']*)["\']/i', $tag, $a)) {
+            $blob .= $a[1] . ' ';
+        }
+        if (preg_match('/\baria-label\s*=\s*["\']([^"\']*)["\']/i', $tag, $ar)) {
+            $blob .= $ar[1] . ' ';
+        }
+        if ($blob !== '' && preg_match($hint, $blob)) {
+            if (preg_match('/\b(?:src|data-src)\s*=\s*["\']([^"\']+)["\']/i', $tag, $s)) {
+                $u = fb_monitor_normalize_telegram_photo_url($s[1]);
+                if ($u !== '') {
+                    return $u;
+                }
+            }
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Collect unique Facebook CDN image URLs from HTML.
+ *
+ * @return list<string>
+ */
+function fb_monitor_collect_fbcdn_image_urls(string $html): array
+{
+    if (!preg_match_all('#https://[a-z0-9.-]+\.fbcdn\.net/[^\s"\'<>]+#i', $html, $matches)) {
+        return [];
+    }
+    $out = [];
+    foreach ($matches[0] as $raw) {
+        $u = fb_monitor_normalize_telegram_photo_url($raw);
+        if ($u !== '') {
+            $out[$u] = true;
+        }
+    }
+
+    return array_keys($out);
+}
+
+/**
+ * Pick the best-scoring CDN image (profile-like), or '' if none look plausible.
+ */
+function fb_monitor_best_scored_fbcdn_profile_pic(string $html): string
+{
+    $urls = fb_monitor_collect_fbcdn_image_urls($html);
+    if ($urls === []) {
+        return '';
+    }
+    $bestUrl = '';
+    $best    = PHP_INT_MIN;
+    foreach ($urls as $u) {
+        $s = fb_monitor_score_profile_pic_url($u);
+        if ($s > $best) {
+            $best    = $s;
+            $bestUrl = $u;
+        }
+    }
+    // Require a minimum confidence so we don't grab stickers/random assets.
+    if ($best < 8) {
+        return '';
+    }
+
+    return $bestUrl;
+}
+
+/**
+ * Fallback: best-scoring plausible profile image from raw CDN URLs (last resort).
+ */
+function fb_monitor_extract_fbcdn_img_fallback(string $html): string
+{
+    return fb_monitor_best_scored_fbcdn_profile_pic($html);
+}
+
+/**
+ * Best-effort profile *picture* URL only (avatar), not cover/og preview when avoidable.
  */
 function fb_monitor_extract_page_image(string $html): string
 {
     if ($html === '') {
         return '';
     }
+    $fromImg = fb_monitor_extract_profile_picture_from_imgs($html);
+    if ($fromImg !== '') {
+        return $fromImg;
+    }
+    $fromCdn = fb_monitor_best_scored_fbcdn_profile_pic($html);
+    if ($fromCdn !== '') {
+        return $fromCdn;
+    }
+    $allCdn = fb_monitor_collect_fbcdn_image_urls($html);
+    if (count($allCdn) === 1) {
+        return $allCdn[0];
+    }
+    // og:image is often cover or generic preview — use only if it scores as profile-like.
+    $metaUrls = [];
     foreach (['og:image:secure_url', 'og:image', 'twitter:image'] as $prop) {
         $q = preg_quote($prop, '/');
         if (preg_match('/<meta\s[^>]*property\s*=\s*["\']' . $q . '["\'][^>]*\bcontent\s*=\s*["\']([^"\']+)["\']/is', $html, $m)) {
-            $u = fb_monitor_normalize_telegram_photo_url($m[1]);
-            if ($u !== '') {
-                return $u;
-            }
+            $metaUrls[] = $m[1];
         }
         if (preg_match('/<meta\s[^>]*\bcontent\s*=\s*["\']([^"\']+)["\'][^>]*property\s*=\s*["\']' . $q . '["\']/is', $html, $m)) {
-            $u = fb_monitor_normalize_telegram_photo_url($m[1]);
-            if ($u !== '') {
-                return $u;
-            }
+            $metaUrls[] = $m[1];
         }
     }
     foreach (['og:image', 'twitter:image'] as $name) {
         $q = preg_quote($name, '/');
         if (preg_match('/<meta\s[^>]*name\s*=\s*["\']' . $q . '["\'][^>]*\bcontent\s*=\s*["\']([^"\']+)["\']/is', $html, $m)) {
-            $u = fb_monitor_normalize_telegram_photo_url($m[1]);
-            if ($u !== '') {
-                return $u;
-            }
+            $metaUrls[] = $m[1];
         }
     }
     if (preg_match('/<link\s[^>]*rel\s*=\s*["\']image_src["\'][^>]*\bhref\s*=\s*["\']([^"\']+)["\']/is', $html, $m)) {
-        $u = fb_monitor_normalize_telegram_photo_url($m[1]);
-        if ($u !== '') {
-            return $u;
+        $metaUrls[] = $m[1];
+    }
+    $bestMeta = '';
+    $bestScore = PHP_INT_MIN;
+    foreach ($metaUrls as $raw) {
+        $u = fb_monitor_normalize_telegram_photo_url($raw);
+        if ($u === '') {
+            continue;
+        }
+        $sc = fb_monitor_score_profile_pic_url($u);
+        if ($sc > $bestScore) {
+            $bestScore = $sc;
+            $bestMeta  = $u;
         }
     }
+    if ($bestMeta !== '' && $bestScore >= 20) {
+        return $bestMeta;
+    }
 
-    return fb_monitor_extract_fbcdn_img_fallback($html);
+    return '';
 }
 
 function fb_check_profile_url(string $url, string $cookieString): array
@@ -773,6 +892,7 @@ function fb_monitor_fetch_facebook_html(string $url, string $cookieString): arra
 
 function fb_monitor_send_active_alert(string $url, string $label, string $previewImageUrl = ''): void
 {
+    // Link preview comes from the Profile URL below; $previewImageUrl is kept for callers but not sent as sendPhoto.
     $esc = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $u = trim($url);
     if ($u === '') {
@@ -780,34 +900,22 @@ function fb_monitor_send_active_alert(string $url, string $label, string $previe
     }
     $when = $esc(gmdate('Y-m-d H:i:s') . ' UTC');
     $href = $esc($u);
+    $labelTrim = trim($label);
+    $labelLine = $labelTrim !== '' ? $esc($labelTrim) : '—';
 
+    // Single message: details first, then Telegram’s link preview card under the URL (like your reference).
     $lines = [
-        '✅ <b>Account Checker · profile accessible</b>',
-        '',
-        'A monitored Facebook profile or page is loading again (no longer restricted or unavailable).',
-        '',
+        '✅ <b>Account Checker</b> — profile accessible again',
+        '🎯 Monitored Facebook URL is loading (no longer restricted/unavailable).',
+        '📌 <b>Name:</b> ' . $labelLine,
+        '🔗 <b>Profile:</b> <a href="' . $href . '">' . $href . '</a>',
+        '🕒 <b>Last Checked At:</b> <code>' . $when . '</code>',
+        '<i>Trackify · Facebook Tools</i>',
     ];
-    if ($label !== '') {
-        $lines[] = '<b>Label</b>';
-        $lines[] = $esc($label);
-        $lines[] = '';
-    }
-    $lines[] = '<b>Profile</b>';
-    $lines[] = '<a href="' . $href . '">' . $href . '</a>';
-    $lines[] = '';
-    $lines[] = '<b>Detected at</b>';
-    $lines[] = '<code>' . $when . '</code>';
-    $lines[] = '';
-    $lines[] = '<i>Trackify · Facebook Tools</i>';
 
     $html = implode("\n", $lines);
     if (strlen($html) > 4000) {
         $html = trackify_trunc_utf8($html, 3990) . '…';
-    }
-
-    $img = fb_monitor_normalize_telegram_photo_url($previewImageUrl);
-    if ($img !== '' && trackify_send_telegram_photo_url($img, $html)) {
-        return;
     }
 
     trackify_send_telegram_html($html, false);

@@ -2500,7 +2500,7 @@ $userNavInitial = $userNavInitial ?? '?';
                             <div class="fb-monitor-search-row">
                                 <label for="fbMonitorSearch" class="fb-monitor-search-wrap">
                                     <span class="fb-monitor-search-icon" aria-hidden="true">🔍</span>
-                                    <input type="search" id="fbMonitorSearch" placeholder="Search by label, URL, or status…" autocomplete="off">
+                                    <input type="search" id="fbMonitorSearch" placeholder="Search by name, URL, or status…" autocomplete="off">
                                 </label>
                                 <div class="fb-monitor-search-actions">
                                     <button type="button" class="fb-monitor-refresh-btn" id="fbMonitorTableRefreshBtn" onclick="fbMonitorRefreshTable()" title="Refresh table">
@@ -2524,7 +2524,7 @@ $userNavInitial = $userNavInitial ?? '?';
                                             <th scope="col" class="fb-monitor-col-check">
                                                 <input type="checkbox" id="fbMonitorSelectAll" title="Select all on this page" aria-label="Select all on this page" disabled>
                                             </th>
-                                            <th scope="col">Label</th>
+                                            <th scope="col">Name</th>
                                             <th scope="col">Facebook URL</th>
                                             <th scope="col">Status</th>
                                             <th scope="col" class="saved-info-col-time">Last checked</th>
@@ -2564,7 +2564,7 @@ $userNavInitial = $userNavInitial ?? '?';
     <div class="modal-overlay" id="fbMonitorAddModal" role="dialog" aria-modal="true" aria-labelledby="fbMonitorAddModalTitle" onclick="fbMonitorCloseAddModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width:440px">
             <h2 class="modal-title" id="fbMonitorAddModalTitle">Add profile or page</h2>
-            <p style="font-size:13px;color:var(--text-muted);margin:-8px 0 16px;line-height:1.45">Enter a Facebook profile or page URL and an optional label for your list.</p>
+            <p style="font-size:13px;color:var(--text-muted);margin:-8px 0 16px;line-height:1.45">Enter a Facebook profile or page URL and a display name for your list.</p>
             <div class="fb-monitor-modal-fields">
                 <div class="phone-lookup-input-wrap">
                     <label for="fbMonitorUrlInput">Facebook URL</label>
@@ -2573,10 +2573,13 @@ $userNavInitial = $userNavInitial ?? '?';
                            autocomplete="off">
                 </div>
                 <div class="phone-lookup-input-wrap">
-                    <label for="fbMonitorLabelInput">Label <span style="color:var(--text-muted);font-weight:normal;font-size:12px">(optional)</span></label>
-                    <input type="text" id="fbMonitorLabelInput"
+                    <label for="fbMonitorNameInput">Name <span style="color:#f85149" aria-hidden="true">*</span></label>
+                    <input type="text" id="fbMonitorNameInput"
                            placeholder="e.g. John Doe"
-                           autocomplete="off">
+                           autocomplete="off"
+                           required
+                           maxlength="191"
+                           aria-required="true">
                 </div>
                 <div id="fbMonitorAddError" class="phone-lookup-error" role="alert" hidden></div>
             </div>
@@ -4430,20 +4433,25 @@ $userNavInitial = $userNavInitial ?? '?';
 
         async function fbMonitorAdd() {
             const urlInput = document.getElementById('fbMonitorUrlInput');
-            const labelInput = document.getElementById('fbMonitorLabelInput');
+            const nameInput = document.getElementById('fbMonitorNameInput');
             const errEl = document.getElementById('fbMonitorAddError');
             const url = (urlInput ? urlInput.value : '').trim();
-            const label = (labelInput ? labelInput.value : '').trim();
+            const name = (nameInput ? nameInput.value : '').trim();
             if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
             if (!url) {
                 if (errEl) { errEl.textContent = 'Please enter a Facebook profile or page URL.'; errEl.hidden = false; }
+                return;
+            }
+            if (!name) {
+                if (errEl) { errEl.textContent = 'Please enter a name.'; errEl.hidden = false; }
+                if (nameInput) nameInput.focus();
                 return;
             }
             try {
                 const res = await fetch('api.php?action=fb_monitor_add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url, label: label }),
+                    body: JSON.stringify({ url: url, label: name }),
                     credentials: 'same-origin'
                 });
                 const data = await res.json().catch(() => ({}));
@@ -4452,7 +4460,7 @@ $userNavInitial = $userNavInitial ?? '?';
                     return;
                 }
                 if (urlInput) urlInput.value = '';
-                if (labelInput) labelInput.value = '';
+                if (nameInput) nameInput.value = '';
                 fbMonitorCloseAddModal();
                 fbMonitorListState.page = 1;
                 await loadFbMonitorList();

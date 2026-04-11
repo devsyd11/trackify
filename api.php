@@ -2616,6 +2616,10 @@ function handleFbMonitorAdd(): void
     $url   = trim((string) ($input['url'] ?? ''));
     $label = trim((string) ($input['label'] ?? ''));
 
+    if ($label === '') {
+        echo json_encode(['status' => 'error', 'message' => 'Name is required.']);
+        return;
+    }
     if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
         echo json_encode(['status' => 'error', 'message' => 'A valid URL is required.']);
         return;
