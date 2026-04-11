@@ -58,6 +58,7 @@ $userNavInitial = function_exists('mb_substr')
 dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInitial);
 ?>
                     <div class="settings-page">
+                        <div id="account-settings-toast" class="toast" role="status" aria-live="polite"></div>
                         <div class="settings-layout">
                             <aside class="settings-sidebar" aria-label="Settings sections">
                                 <h1 class="settings-sidebar-title">Account settings</h1>
@@ -69,9 +70,6 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                             </aside>
 
                             <div class="settings-content">
-                    <?php if ($success !== ''): ?>
-                        <div class="settings-success" role="status"><?= h($success) ?></div>
-                    <?php endif; ?>
                     <?php if ($error !== ''): ?>
                         <div class="settings-alert" role="alert"><?= h($error) ?></div>
                     <?php endif; ?>
@@ -116,7 +114,6 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                             </div>
 
                             <p class="settings-alert" id="telegram_settings_error" role="alert" hidden></p>
-                            <p class="settings-success" id="telegram_settings_ok" role="status" hidden></p>
 
                             <div class="settings-telegram-actions">
                                 <button type="button" class="btn btn-secondary" id="telegram_test_btn">Test now</button>
@@ -136,18 +133,7 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                       placeholder="c_user=123; xs=abc; datr=xyz"
                                       style="width:100%;resize:vertical;font-family:monospace;font-size:13px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);box-sizing:border-box"></textarea>
 
-                            <label for="fb_monitor_interval" style="margin-top:14px">Check interval (for cron)</label>
-                            <select id="fb_monitor_interval" style="width:100%;padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px">
-                                <option value="1">Every 1 minute</option>
-                                <option value="5">Every 5 minutes</option>
-                                <option value="15" selected>Every 15 minutes</option>
-                                <option value="30">Every 30 minutes</option>
-                                <option value="60">Every 60 minutes</option>
-                            </select>
-                            <p class="settings-telegram-lead" style="margin-top:10px;margin-bottom:0;font-size:12px">Schedule the server cron (or Windows Task Scheduler) to run <code style="font-size:11px">fb_checker_cron.php</code> at least as often as this interval — e.g. every minute if you choose “Every 1 minute”.</p>
-
                             <p class="settings-alert" id="fb_monitor_settings_error" role="alert" hidden></p>
-                            <p class="settings-success" id="fb_monitor_settings_ok" role="status" hidden></p>
 
                             <div class="settings-telegram-actions">
                                 <button type="button" class="btn btn-primary" id="fb_monitor_save_btn">Save</button>
@@ -169,6 +155,22 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                         var panelNotify = document.getElementById('settings-panel-notifications');
                         var panelFbMonitor = document.getElementById('settings-panel-fbmonitor');
                         if (!tabPwd || !tabNotify || !panelPwd || !panelNotify) return;
+
+                        var toastEl = document.getElementById('account-settings-toast');
+                        var toastHideTimer = null;
+                        function showToast(msg) {
+                            if (!toastEl) return;
+                            toastEl.textContent = String(msg);
+                            toastEl.classList.add('show');
+                            if (toastHideTimer) clearTimeout(toastHideTimer);
+                            toastHideTimer = setTimeout(function () {
+                                toastEl.classList.remove('show');
+                                toastHideTimer = null;
+                            }, 2800);
+                        }
+                        <?php if ($success !== ''): ?>
+                        showToast(<?= json_encode($success, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);
+                        <?php endif; ?>
 
                         function activateTab(which) {
                             var isPwd    = which === 'password';
@@ -199,10 +201,9 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                         var tokEl = document.getElementById('telegram_bot_token');
                         var chatEl = document.getElementById('telegram_chat_id');
                         var errEl = document.getElementById('telegram_settings_error');
-                        var okEl = document.getElementById('telegram_settings_ok');
                         var saveBtn = document.getElementById('telegram_save_btn');
                         var testBtn = document.getElementById('telegram_test_btn');
-                        if (!statusEl || !enableEl || !tokEl || !chatEl || !errEl || !okEl || !saveBtn || !testBtn) return;
+                        if (statusEl && enableEl && tokEl && chatEl && errEl && saveBtn && testBtn) {
 
                         function setErr(msg) {
                             if (msg) {
@@ -212,13 +213,6 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                 errEl.textContent = '';
                                 errEl.hidden = true;
                             }
-                            okEl.hidden = true;
-                            okEl.textContent = '';
-                        }
-                        function setOk(msg) {
-                            okEl.textContent = String(msg);
-                            okEl.hidden = false;
-                            setErr('');
                         }
 
                         function setStatus(configured, enabled) {
@@ -278,7 +272,7 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                     return;
                                 }
                                 setStatus(true, enableEl.checked);
-                                setOk(data.message || 'Telegram config saved.');
+                                showToast(data.message || 'Successfully saved.');
                             } catch (err) {
                                 setErr('Network error — try again');
                             } finally {
@@ -307,7 +301,7 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                 var data = await res.json().catch(function () { return {}; });
                                 if (data.status === 'success') {
                                     setErr('');
-                                    alert(data.message || 'Test message sent.');
+                                    showToast(data.message || 'Test message sent.');
                                 } else {
                                     setErr(data.message || 'Test failed');
                                 }
@@ -321,12 +315,12 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
 
                         void loadTelegramConfig();
 
+                        }
+
                         // ---- FB Monitor config ----
                         var fbStatusEl  = document.getElementById('fb_monitor_config_status');
                         var fbCookiesEl = document.getElementById('fb_monitor_cookies');
-                        var fbIntervalEl = document.getElementById('fb_monitor_interval');
                         var fbErrEl     = document.getElementById('fb_monitor_settings_error');
-                        var fbOkEl      = document.getElementById('fb_monitor_settings_ok');
                         var fbSaveBtn   = document.getElementById('fb_monitor_save_btn');
 
                         function setFbErr(msg) {
@@ -334,11 +328,6 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                 fbErrEl.textContent = msg ? String(msg) : '';
                                 fbErrEl.hidden = !msg;
                             }
-                            if (fbOkEl) { fbOkEl.hidden = true; fbOkEl.textContent = ''; }
-                        }
-                        function setFbOk(msg) {
-                            if (fbOkEl) { fbOkEl.textContent = String(msg); fbOkEl.hidden = false; }
-                            setFbErr('');
                         }
 
                         async function loadFbMonitorConfig() {
@@ -350,15 +339,6 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                         fbStatusEl.textContent = data.cookies_set
                                             ? 'Status: cookies saved — paste new cookies to replace them.'
                                             : 'Status: no cookies saved yet — paste your Facebook cookies and save.';
-                                    }
-                                    if (fbIntervalEl && data.check_interval_minutes) {
-                                        var val = String(data.check_interval_minutes);
-                                        for (var i = 0; i < fbIntervalEl.options.length; i++) {
-                                            if (fbIntervalEl.options[i].value === val) {
-                                                fbIntervalEl.selectedIndex = i;
-                                                break;
-                                            }
-                                        }
                                     }
                                 } else {
                                     if (fbStatusEl) fbStatusEl.textContent = 'Status: could not load config.';
@@ -372,11 +352,12 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                             fbSaveBtn.addEventListener('click', async function () {
                                 setFbErr('');
                                 fbSaveBtn.disabled = true;
-                                var cookies  = fbCookiesEl ? (fbCookiesEl.value || '').trim() : '';
-                                var interval = fbIntervalEl ? parseInt(fbIntervalEl.value, 10) : 15;
+                                var cookies = fbCookiesEl ? (fbCookiesEl.value || '').trim() : '';
                                 try {
-                                    var body = { check_interval_minutes: interval };
-                                    if (cookies !== '') body.cookies = cookies;
+                                    var body = {};
+                                    if (cookies !== '') {
+                                        body.cookies = cookies;
+                                    }
                                     var res = await fetch(API + '?action=fb_monitor_save_config', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
@@ -388,8 +369,10 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                         setFbErr(data.message || 'Could not save.');
                                         return;
                                     }
-                                    if (fbCookiesEl) fbCookiesEl.value = '';
-                                    setFbOk(data.message || 'Facebook Tools config saved.');
+                                    if (fbCookiesEl) {
+                                        fbCookiesEl.value = '';
+                                    }
+                                    showToast(data.message || 'Successfully saved.');
                                     void loadFbMonitorConfig();
                                 } catch (err) {
                                     setFbErr('Network error — try again.');

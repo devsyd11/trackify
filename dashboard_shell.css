@@ -599,6 +599,30 @@ label {
     margin-bottom: 16px;
     border: 1px solid rgba(63, 185, 80, 0.25);
 }
+/* Fixed toast (account settings & reusable on shell pages) */
+.toast {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    padding: 12px 20px;
+    background: var(--accent-green);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: translate(-50%, -12px);
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 4000;
+    max-width: min(640px, calc(100vw - 28px));
+    text-align: center;
+    pointer-events: none;
+}
+.toast.show {
+    transform: translate(-50%, 0);
+    opacity: 1;
+}
 /* Disclaimer modal */
 .modal-overlay {
     position: fixed;

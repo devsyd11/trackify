@@ -2510,8 +2510,11 @@ function handleFbMonitorSaveConfig(): void
     if (!is_array($input)) {
         $input = [];
     }
-    $interval = max(1, min(1440, (int) ($input['check_interval_minutes'] ?? 15)));
-    $current  = fb_monitor_read_config($uid);
+    $current = fb_monitor_read_config($uid);
+    $interval = max(1, min(1440, (int) ($current['check_interval_minutes'] ?? 15)));
+    if (array_key_exists('check_interval_minutes', $input)) {
+        $interval = max(1, min(1440, (int) $input['check_interval_minutes']));
+    }
     $newCookies = $current['cookies'];
     if (array_key_exists('cookies', $input)) {
         $raw = trim((string) $input['cookies']);
