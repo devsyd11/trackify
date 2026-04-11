@@ -1399,6 +1399,48 @@ $userNavInitial = $userNavInitial ?? '?';
             width: 100%;
             max-width: min(36rem, 100%);
         }
+        .fb-monitor-search-actions {
+            display: inline-flex;
+            align-items: stretch;
+            gap: 10px;
+        }
+        .fb-monitor-bulk-delete-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin: 0;
+            padding: 0 14px;
+            height: 42px;
+            min-height: 42px;
+            max-height: 42px;
+            box-sizing: border-box;
+            border-radius: 8px;
+            border: 1px solid rgba(248, 81, 73, 0.45);
+            background: rgba(248, 81, 73, 0.12);
+            color: #ffb1ab;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            white-space: nowrap;
+            -webkit-appearance: none;
+            appearance: none;
+            vertical-align: top;
+        }
+        .fb-monitor-bulk-delete-btn:hover {
+            background: rgba(248, 81, 73, 0.2);
+            border-color: rgba(248, 81, 73, 0.55);
+        }
+        .fb-monitor-bulk-delete-btn svg {
+            flex-shrink: 0;
+        }
+        .fb-monitor-bulk-count {
+            font-weight: 600;
+            color: #ff8a80;
+        }
         .fb-monitor-refresh-btn {
             display: inline-flex;
             align-items: center;
@@ -1486,6 +1528,18 @@ $userNavInitial = $userNavInitial ?? '?';
             font-weight: 600;
             color: var(--text);
             margin-bottom: 10px;
+        }
+        .fb-monitor-col-check {
+            width: 2.5rem;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .fb-monitor-col-check input[type="checkbox"],
+        .fb-monitor-row-cb {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--accent);
         }
         .fb-monitor-pagination {
             margin-top: 12px;
@@ -2448,10 +2502,16 @@ $userNavInitial = $userNavInitial ?? '?';
                                     <span class="fb-monitor-search-icon" aria-hidden="true">🔍</span>
                                     <input type="search" id="fbMonitorSearch" placeholder="Search by label, URL, or status…" autocomplete="off">
                                 </label>
-                                <button type="button" class="fb-monitor-refresh-btn" id="fbMonitorTableRefreshBtn" onclick="fbMonitorRefreshTable()" title="Refresh table">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-                                    Refresh
-                                </button>
+                                <div class="fb-monitor-search-actions">
+                                    <button type="button" class="fb-monitor-refresh-btn" id="fbMonitorTableRefreshBtn" onclick="fbMonitorRefreshTable()" title="Refresh table">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                                        Refresh
+                                    </button>
+                                    <button type="button" class="fb-monitor-bulk-delete-btn" id="fbMonitorBulkDeleteBtn" onclick="fbMonitorOpenBulkRemoveModal()" hidden title="Bulk remove selected rows" aria-label="Bulk remove selected rows">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                        <span>Bulk Remove</span><span class="fb-monitor-bulk-count" id="fbMonitorBulkCount"></span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -2461,6 +2521,9 @@ $userNavInitial = $userNavInitial ?? '?';
                                 <table class="saved-info-table" id="fbMonitorTable" aria-label="Monitored Facebook profiles and pages">
                                     <thead>
                                         <tr>
+                                            <th scope="col" class="fb-monitor-col-check">
+                                                <input type="checkbox" id="fbMonitorSelectAll" title="Select all on this page" aria-label="Select all on this page" disabled>
+                                            </th>
                                             <th scope="col">Label</th>
                                             <th scope="col">Facebook URL</th>
                                             <th scope="col">Status</th>
@@ -2540,6 +2603,17 @@ $userNavInitial = $userNavInitial ?? '?';
             <div class="fb-monitor-modal-actions" style="margin-top:0">
                 <button type="button" class="btn btn-danger" onclick="fbMonitorConfirmRemove()">Remove</button>
                 <button type="button" class="btn btn-secondary" onclick="fbMonitorCloseRemoveModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="fbMonitorBulkRemoveModal" role="dialog" aria-modal="true" aria-labelledby="fbMonitorBulkRemoveModalTitle" onclick="fbMonitorCloseBulkRemoveModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:420px">
+            <h2 class="modal-title" id="fbMonitorBulkRemoveModalTitle">Remove selected?</h2>
+            <p id="fbMonitorBulkRemoveModalBody" style="font-size:14px;color:var(--text-muted);margin:-6px 0 20px;line-height:1.55"></p>
+            <div class="fb-monitor-modal-actions" style="margin-top:0">
+                <button type="button" class="btn btn-danger" onclick="fbMonitorConfirmBulkRemove()">Remove</button>
+                <button type="button" class="btn btn-secondary" onclick="fbMonitorCloseBulkRemoveModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -3842,6 +3916,125 @@ $userNavInitial = $userNavInitial ?? '?';
             }
         }
 
+        function fbMonitorGetSelectedIds() {
+            const out = [];
+            document.querySelectorAll('#fbMonitorTableBody .fb-monitor-row-cb:checked').forEach(function (cb) {
+                const id = parseInt(cb.getAttribute('data-monitor-id'), 10);
+                if (id > 0) {
+                    out.push(id);
+                }
+            });
+            return out;
+        }
+
+        function fbMonitorSyncSelectAllFromRows() {
+            const sel = document.getElementById('fbMonitorSelectAll');
+            if (!sel) return;
+            const boxes = document.querySelectorAll('#fbMonitorTableBody .fb-monitor-row-cb');
+            if (boxes.length === 0) {
+                sel.checked = false;
+                sel.indeterminate = false;
+                sel.disabled = true;
+                return;
+            }
+            sel.disabled = false;
+            let n = 0;
+            boxes.forEach(function (cb) {
+                if (cb.checked) {
+                    n++;
+                }
+            });
+            sel.checked = n === boxes.length;
+            sel.indeterminate = n > 0 && n < boxes.length;
+        }
+
+        function fbMonitorUpdateBulkToolbar() {
+            const btn = document.getElementById('fbMonitorBulkDeleteBtn');
+            const cnt = document.getElementById('fbMonitorBulkCount');
+            const n = document.querySelectorAll('#fbMonitorTableBody .fb-monitor-row-cb:checked').length;
+            if (btn) {
+                btn.hidden = n === 0;
+                btn.setAttribute('aria-label', n === 0 ? 'Bulk remove selected rows' : 'Bulk remove ' + n + ' selected row' + (n === 1 ? '' : 's'));
+            }
+            if (cnt) {
+                cnt.textContent = n > 0 ? ' (' + n + ')' : '';
+            }
+        }
+
+        function fbMonitorOpenBulkRemoveModal() {
+            const ids = fbMonitorGetSelectedIds();
+            if (ids.length === 0) {
+                fbMonitorToast('Select at least one row.', true);
+                return;
+            }
+            const body = document.getElementById('fbMonitorBulkRemoveModalBody');
+            const m = document.getElementById('fbMonitorBulkRemoveModal');
+            if (body) {
+                body.textContent = ids.length === 1
+                    ? 'Remove 1 profile or page from your list? You can add it again later.'
+                    : 'Remove ' + ids.length + ' profiles or pages from your list? You can add them again later.';
+            }
+            if (m) {
+                m.classList.add('show');
+            }
+        }
+
+        function fbMonitorCloseBulkRemoveModal(event) {
+            const m = document.getElementById('fbMonitorBulkRemoveModal');
+            if (!m || !m.classList.contains('show')) return;
+            if (event !== undefined && event !== null && event.target !== event.currentTarget) return;
+            m.classList.remove('show');
+        }
+
+        async function fbMonitorConfirmBulkRemove() {
+            const ids = fbMonitorGetSelectedIds();
+            if (ids.length === 0) {
+                fbMonitorCloseBulkRemoveModal();
+                return;
+            }
+            try {
+                const res = await fetch('api.php?action=fb_monitor_remove_bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: ids }),
+                    credentials: 'same-origin'
+                });
+                const data = await res.json().catch(function () { return {}; });
+                fbMonitorCloseBulkRemoveModal();
+                if (data.status !== 'success') {
+                    fbMonitorToast(data.message || 'Could not delete.', true);
+                    return;
+                }
+                const del = typeof data.deleted === 'number' ? data.deleted : ids.length;
+                fbMonitorToast(del === 1 ? 'Removed 1 item.' : 'Removed ' + del + ' items.', false);
+                await loadFbMonitorList();
+            } catch (e) {
+                fbMonitorCloseBulkRemoveModal();
+                fbMonitorToast('Network error — try again.', true);
+            }
+        }
+
+        (function fbMonitorInitBulkSelection() {
+            const table = document.getElementById('fbMonitorTable');
+            const selAll = document.getElementById('fbMonitorSelectAll');
+            if (!table || !selAll || table._fbBulkInit) return;
+            table._fbBulkInit = true;
+            selAll.addEventListener('change', function () {
+                const on = selAll.checked;
+                document.querySelectorAll('#fbMonitorTableBody .fb-monitor-row-cb').forEach(function (cb) {
+                    cb.checked = on;
+                });
+                fbMonitorSyncSelectAllFromRows();
+                fbMonitorUpdateBulkToolbar();
+            });
+            table.addEventListener('change', function (e) {
+                if (e.target && e.target.classList && e.target.classList.contains('fb-monitor-row-cb')) {
+                    fbMonitorSyncSelectAllFromRows();
+                    fbMonitorUpdateBulkToolbar();
+                }
+            });
+        })();
+
         document.addEventListener('keydown', function (ev) {
             if (ev.key !== 'Escape') return;
             var m = document.getElementById('fbMonitorAddModal');
@@ -3853,6 +4046,11 @@ $userNavInitial = $userNavInitial ?? '?';
             if (rem && rem.classList.contains('show')) {
                 rem.classList.remove('show');
                 fbMonitorPendingRemoveId = null;
+                return;
+            }
+            var bulkRem = document.getElementById('fbMonitorBulkRemoveModal');
+            if (bulkRem && bulkRem.classList.contains('show')) {
+                bulkRem.classList.remove('show');
                 return;
             }
             var rowLog = document.getElementById('fbMonitorRowLogModal');
@@ -4131,7 +4329,17 @@ $userNavInitial = $userNavInitial ?? '?';
                         pagEl.innerHTML = '';
                         pagEl.hidden = true;
                     }
-                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:#f07178;padding:16px">' + escHtml(data.message || 'Failed to load') + '</td></tr>';
+                    const selFail = document.getElementById('fbMonitorSelectAll');
+                    if (selFail) {
+                        selFail.checked = false;
+                        selFail.indeterminate = false;
+                        selFail.disabled = true;
+                    }
+                    const bulkBtnFail = document.getElementById('fbMonitorBulkDeleteBtn');
+                    const bulkCntFail = document.getElementById('fbMonitorBulkCount');
+                    if (bulkBtnFail) bulkBtnFail.hidden = true;
+                    if (bulkCntFail) bulkCntFail.textContent = '';
+                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="6" style="color:#f07178;padding:16px">' + escHtml(data.message || 'Failed to load') + '</td></tr>';
                     return;
                 }
                 if (typeof data.page === 'number' && data.page > 0) {
@@ -4149,7 +4357,17 @@ $userNavInitial = $userNavInitial ?? '?';
                     if (total === 0 && qActive) {
                         emptyMsg = 'No matches for your search.';
                     }
-                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:var(--text-muted);padding:16px">' + emptyMsg + '</td></tr>';
+                    const selEmpty = document.getElementById('fbMonitorSelectAll');
+                    if (selEmpty) {
+                        selEmpty.checked = false;
+                        selEmpty.indeterminate = false;
+                        selEmpty.disabled = true;
+                    }
+                    const bulkBtnEmpty = document.getElementById('fbMonitorBulkDeleteBtn');
+                    const bulkCntEmpty = document.getElementById('fbMonitorBulkCount');
+                    if (bulkBtnEmpty) bulkBtnEmpty.hidden = true;
+                    if (bulkCntEmpty) bulkCntEmpty.textContent = '';
+                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="6" style="color:var(--text-muted);padding:16px">' + emptyMsg + '</td></tr>';
                     return;
                 }
                 tbody.innerHTML = monitors.map(function (m) {
@@ -4163,6 +4381,7 @@ $userNavInitial = $userNavInitial ?? '?';
                     const logsSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>';
                     const trashSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>';
                     return '<tr>'
+                        + '<td class="fb-monitor-col-check"><input type="checkbox" class="fb-monitor-row-cb" data-monitor-id="' + id + '" aria-label="Select this row"></td>'
                         + '<td style="font-weight:600;max-width:12rem">' + labelCell + '</td>'
                         + '<td><a href="' + escHtml(m.profile_url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--link);word-break:break-all;font-size:12px">' + urlFull + '</a></td>'
                         + '<td class="fb-monitor-status-cell"><span class="' + statusTagClass + '">' + escHtml(statusLbl) + '</span></td>'
@@ -4183,13 +4402,25 @@ $userNavInitial = $userNavInitial ?? '?';
                         + '</td>'
                         + '</tr>';
                 }).join('');
+                fbMonitorSyncSelectAllFromRows();
+                fbMonitorUpdateBulkToolbar();
                 fbMonitorRenderPagination(data);
             } catch (e) {
                 if (pagEl) {
                     pagEl.innerHTML = '';
                     pagEl.hidden = true;
                 }
-                tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:#f07178;padding:16px">Network error</td></tr>';
+                const selNet = document.getElementById('fbMonitorSelectAll');
+                if (selNet) {
+                    selNet.checked = false;
+                    selNet.indeterminate = false;
+                    selNet.disabled = true;
+                }
+                const bulkBtnNet = document.getElementById('fbMonitorBulkDeleteBtn');
+                const bulkCntNet = document.getElementById('fbMonitorBulkCount');
+                if (bulkBtnNet) bulkBtnNet.hidden = true;
+                if (bulkCntNet) bulkCntNet.textContent = '';
+                tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="6" style="color:#f07178;padding:16px">Network error</td></tr>';
             }
         }
 

@@ -10,7 +10,7 @@ require_once __DIR__ . '/access.php';
 trackify_enforce_ip_whitelist($_SERVER, true);
 
 $action = $_GET['action'] ?? '';
-$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup', 'exiftool', 'saved_info', 'clear_saved_info', 'saveinfo_start', 'saveinfo_link', 'saveinfo_update_payload', 'saveinfo_templates', 'fb_monitor_list', 'fb_monitor_add', 'fb_monitor_remove', 'fb_monitor_check', 'fb_monitor_logs', 'fb_monitor_config', 'fb_monitor_save_config', 'fb_monitor_debug'];
+$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup', 'exiftool', 'saved_info', 'clear_saved_info', 'saveinfo_start', 'saveinfo_link', 'saveinfo_update_payload', 'saveinfo_templates', 'fb_monitor_list', 'fb_monitor_add', 'fb_monitor_remove', 'fb_monitor_remove_bulk', 'fb_monitor_check', 'fb_monitor_logs', 'fb_monitor_config', 'fb_monitor_save_config', 'fb_monitor_debug'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Content-Type: application/json');
@@ -124,6 +124,9 @@ switch ($action) {
         break;
     case 'fb_monitor_remove':
         handleFbMonitorRemove();
+        break;
+    case 'fb_monitor_remove_bulk':
+        handleFbMonitorRemoveBulk();
         break;
     case 'fb_monitor_check':
         handleFbMonitorCheck();
@@ -2678,6 +2681,56 @@ function handleFbMonitorRemove(): void
     $del = $pdo->prepare('DELETE FROM facebook_monitor WHERE id = ? AND user_id = ?');
     $del->execute([$id, $uid]);
     echo json_encode(['status' => 'success']);
+}
+
+function handleFbMonitorRemoveBulk(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+    $uid   = dashboard_session_user_id();
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+    $rawIds = $input['ids'] ?? null;
+    if (!is_array($rawIds) || $rawIds === []) {
+        echo json_encode(['status' => 'error', 'message' => 'No items selected.']);
+        return;
+    }
+    $seen = [];
+    foreach ($rawIds as $v) {
+        $id = (int) $v;
+        if ($id > 0) {
+            $seen[$id] = true;
+        }
+    }
+    $ids = array_keys($seen);
+    if ($ids === []) {
+        echo json_encode(['status' => 'error', 'message' => 'No valid ids.']);
+        return;
+    }
+    if (count($ids) > 50) {
+        echo json_encode(['status' => 'error', 'message' => 'Too many items at once (max 50).']);
+        return;
+    }
+    $pdo = trackify_pdo();
+    if (!$pdo instanceof PDO) {
+        echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+        return;
+    }
+    try {
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql          = 'DELETE FROM facebook_monitor WHERE user_id = ? AND id IN (' . $placeholders . ')';
+        $params       = array_merge([$uid], $ids);
+        $stmt         = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $deleted = $stmt->rowCount();
+        echo json_encode(['status' => 'success', 'deleted' => $deleted]);
+    } catch (PDOException $e) {
+        echo json_encode(['status' => 'error', 'message' => 'DB error — run the facebook_monitor migration: ' . $e->getMessage()]);
+    }
 }
 
 function handleFbMonitorCheck(): void
