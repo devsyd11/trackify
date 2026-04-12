@@ -187,20 +187,42 @@ function ig_classify_normalize_for_scan(string $s): string
 }
 
 /**
+ * Normalize page copy for matching (NBSP, unicode spaces, apostrophe variants, HTML entities).
+ */
+function ig_match_normalize_page_copy(string $s): string
+{
+    $s = html_entity_decode($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $s = ig_classify_normalize_for_scan($s);
+    $s = str_replace(
+        [
+            "\xe2\x80\x99",
+            "\xe2\x80\x98",
+            "\xc2\xa0",
+            "\xe2\x80\xaf",
+            "\xe2\x80\x89",
+            '&#39;',
+            '&#039;',
+            '&#x27;',
+            '&apos;',
+        ],
+        ["'", "'", ' ', ' ', ' ', "'", "'", "'", "'"],
+        $s
+    );
+    $s = preg_replace('/\s+/u', ' ', $s);
+
+    return trim($s);
+}
+
+/**
  * Instagram’s “Profile isn’t available” screen (heading + subtext on the dark error page).
  * Matches the in-app copy only — anything else (login, private, other errors) is not treated as unavailable here.
  */
 function ig_page_shows_profile_unavailable(string $html, string $visibleText): bool
 {
     $raw = $html . "\n" . $visibleText;
-    $combined = ig_classify_normalize_for_scan($raw);
-    $combined = str_replace(
-        ["\xe2\x80\x99", "\xe2\x80\x98", '&#39;', '&#039;', '&#x27;', '&apos;'],
-        "'",
-        $combined
-    );
+    $combined = ig_match_normalize_page_copy($raw);
 
-    // Exact strings from Instagram’s unavailable profile page (see screenshot).
+    // Literal phrases (after NBSP/entity normalization).
     $needles = [
         "profile isn't available",
         'the link may be broken, or the profile may have been removed',
@@ -209,6 +231,17 @@ function ig_page_shows_profile_unavailable(string $html, string $visibleText): b
         if (strpos($combined, $n) !== false) {
             return true;
         }
+    }
+
+    // Heading with flexible apostrophe (IG often uses U+2019 in JSON; DOM may omit it in rare cases).
+    if (preg_match('/profile\s+isn[\x{27}\x{2019}]?t\s+available/u', $combined)) {
+        return true;
+    }
+
+    // Subtext is two clauses; match both if punctuation/space varies.
+    if (strpos($combined, 'the link may be broken') !== false
+        && strpos($combined, 'profile may have been removed') !== false) {
+        return true;
     }
 
     return false;

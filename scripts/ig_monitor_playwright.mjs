@@ -97,23 +97,59 @@ async function main() {
     } catch (_) {
       /* SPA */
     }
+    // Error / profile shell can render after load; wait for known copy or settle.
+    try {
+      await page.waitForFunction(
+        () => {
+          const t = document.body ? document.body.innerText : '';
+          return (
+            /profile\s+isn['\u2019]?t\s+available/i.test(t) ||
+            /the\s+link\s+may\s+be\s+broken/i.test(t) ||
+            t.length > 800
+          );
+        },
+        { timeout: 25000 }
+      );
+    } catch (_) {
+      /* keep going with fixed delay */
+    }
     // Instagram hydrates slowly; VPS/cold cache needs extra time
-    await new Promise((r) => setTimeout(r, 4000));
-    await new Promise((r) => setTimeout(r, 4000));
+    await new Promise((r) => setTimeout(r, 2000));
     try {
       await page.evaluate(() => window.scrollTo(0, 400));
     } catch (_) {}
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1000));
 
     const effectiveUrl = page.url();
     let html = await page.content();
     let visibleText = '';
     try {
-      visibleText = await page.evaluate(() => {
-        const b = document.body;
-        return b && b.innerText ? b.innerText : '';
-      });
-    } catch (_) {}
+      // innerText from Playwright pierces open shadow roots; body.innerText alone often misses them.
+      visibleText = await page.locator('body').innerText({ timeout: 15000 });
+    } catch (_) {
+      try {
+        visibleText = await page.evaluate(() => {
+          const deep = (root) => {
+            let s = '';
+            const walk = (node) => {
+              if (!node) return;
+              if (node.nodeType === 3) {
+                s += node.nodeValue || '';
+                return;
+              }
+              if (node.nodeType === 1) {
+                const el = node;
+                if (el.shadowRoot) walk(el.shadowRoot);
+                for (const c of el.childNodes) walk(c);
+              }
+            };
+            walk(root);
+            return s;
+          };
+          return document.body ? deep(document.body) : '';
+        });
+      } catch (_) {}
+    }
     if (visibleText.length > 200000) {
       visibleText = visibleText.slice(0, 200000);
     }
