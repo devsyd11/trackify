@@ -1319,21 +1319,24 @@ $userNavInitial = $userNavInitial ?? '?';
         .saved-info-table tbody tr:hover td {
             background: rgba(88, 166, 255, 0.08);
         }
-        /* Facebook Monitor — admin-style layout (full width) */
-        #fbmonitorLayout.phone-layout {
+        /* Facebook / Instagram Monitor — admin-style layout (full width) */
+        #fbmonitorLayout.phone-layout,
+        #igmonitorLayout.phone-layout {
             width: 100%;
             max-width: none;
             align-self: stretch;
             box-sizing: border-box;
             padding: 40px 24px;
         }
-        #fbmonitorLayout .phone-layout-inner {
+        #fbmonitorLayout .phone-layout-inner,
+        #igmonitorLayout .phone-layout-inner {
             max-width: none;
             width: 100%;
             margin: 0;
         }
         /* Must beat `.phone-layout-columns` (same specificity); otherwise two columns + empty track */
-        #fbmonitorLayout .phone-layout-columns--fbmonitor {
+        #fbmonitorLayout .phone-layout-columns--fbmonitor,
+        #igmonitorLayout .phone-layout-columns--fbmonitor {
             grid-template-columns: minmax(0, 1fr);
             width: 100%;
             max-width: none;
@@ -1772,6 +1775,15 @@ $userNavInitial = $userNavInitial ?? '?';
             background: rgba(139, 148, 158, 0.12);
             border-color: rgba(139, 148, 158, 0.38);
         }
+        #igmonitorLayout .ig-monitor-card {
+            margin-top: 0;
+        }
+        .ig-monitor-card {
+            margin-top: 28px;
+            padding: 22px 24px 26px;
+            width: 100%;
+            box-sizing: border-box;
+        }
         .saved-info-col-time {
             min-width: 12.5rem;
         }
@@ -1854,7 +1866,8 @@ $userNavInitial = $userNavInitial ?? '?';
             }
         }
         @media (max-width: 820px) {
-            #fbmonitorLayout.phone-layout {
+            #fbmonitorLayout.phone-layout,
+            #igmonitorLayout.phone-layout {
                 padding: 16px;
             }
             .phone-layout {
@@ -2138,6 +2151,21 @@ $userNavInitial = $userNavInitial ?? '?';
                             </svg>
                         </span>
                         <span class="side-nav-item-label">Facebook checker</span>
+                    </button>
+                    <button type="button" class="side-nav-item side-nav-item--sub" id="navItemIgChecker" onclick="switchView('igmonitor')" title="Instagram checker">
+                        <span class="side-nav-item-icon" aria-hidden="true">
+                            <svg class="side-nav-ig-logo" width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                <defs>
+                                    <linearGradient id="navIgGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#FFDC80"/>
+                                        <stop offset="45%" stop-color="#E1306C"/>
+                                        <stop offset="100%" stop-color="#833AB4"/>
+                                    </linearGradient>
+                                </defs>
+                                <path fill="url(#navIgGrad)" d="M12 2.2c3.2 0 3.6.1 4.9.1 1.2.1 1.9.3 2.4.5.6.2 1 .5 1.5 1s.8.9 1 1.5c.2.6.4 1.2.5 2.4.1 1.3.1 1.7.1 4.9s-.1 3.6-.1 4.9c-.1 1.2-.3 1.9-.5 2.4-.2.6-.5 1-1 1.5s-.9.8-1.5 1c-.5.2-1.2.4-2.4.5-1.3.1-1.7.1-4.9.1s-3.6-.1-4.9-.1c-1.2-.1-1.9-.3-2.4-.5-.6-.2-1-.5-1.5-1s-.8-.9-1-1.5c-.2-.5-.4-1.2-.5-2.4-.1-1.3-.1-1.7-.1-4.9s.1-3.6.1-4.9c.1-1.2.3-1.9.5-2.4.2-.6.5-1 1-1.5s.9-.8 1.5-1c.5-.2 1.2-.4 2.4-.5 1.3-.1 1.7-.1 4.9-.1zm0 1.8c-3.2 0-3.5.1-4.8.1-1.1.1-1.8.2-2.2.4-.5.2-.9.5-1.3.9-.4.4-.7.8-.9 1.3-.2.4-.3 1.1-.4 2.2-.1 1.3-.1 1.6-.1 4.8s0 3.5.1 4.8c.1 1.1.2 1.8.4 2.2.2.5.5.9.9 1.3.4.4.8.7 1.3.9.4.2 1.1.3 2.2.4 1.3.1 1.6.1 4.8.1s3.5 0 4.8-.1c1.1-.1 1.8-.2 2.2-.4.5-.2.9-.5 1.3-.9.4-.4.7-.8.9-1.3.2-.4.3-1.1.4-2.2.1-1.3.1-1.6.1-4.8s0-3.5-.1-4.8c-.1-1.1-.2-1.8-.4-2.2-.2-.5-.5-.9-.9-1.3-.4-.4-.8-.7-1.3-.9-.4-.2-1.1-.3-2.2-.4-1.3-.1-1.6-.1-4.8-.1zm0 4.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zm0 9a3.5 3.5 0 110-7 3.5 3.5 0 010 7zm7-9.1a1.3 1.3 0 11-2.6 0 1.3 1.3 0 012.6 0z"/>
+                            </svg>
+                        </span>
+                        <span class="side-nav-item-label">Instagram checker</span>
                     </button>
                 </div>
             </div>
@@ -2545,6 +2573,61 @@ $userNavInitial = $userNavInitial ?? '?';
                 </div>
             </div>
         </section>
+        <section id="igmonitorLayout" class="phone-layout" style="display:none" aria-label="Instagram checker — profiles">
+            <div class="phone-layout-inner">
+                <div class="phone-layout-columns phone-layout-columns--fbmonitor">
+                    <div class="card ig-monitor-card">
+                        <div class="fb-monitor-page-head">
+                            <div>
+                                <h2>Instagram checker</h2>
+                                <p class="subtitle card-view-desc fb-monitor-desc" style="color:var(--text-muted);margin:0">
+                                    Check Instagram profile URLs and review status in the list below.
+                                </p>
+                            </div>
+                            <div class="fb-monitor-page-actions">
+                                <button type="button" class="fb-monitor-btn-add" onclick="igMonitorOpenAddModal()">+ Add profile</button>
+                                <button type="button" class="btn btn-primary" id="igMonitorCheckAllBtn" onclick="igMonitorCheckAll()">Check all</button>
+                            </div>
+                        </div>
+
+                        <div class="fb-monitor-search-card">
+                            <span class="fb-monitor-search-label">Filter list</span>
+                            <div class="fb-monitor-search-row">
+                                <label for="igMonitorSearch" class="fb-monitor-search-wrap">
+                                    <span class="fb-monitor-search-icon" aria-hidden="true">🔍</span>
+                                    <input type="search" id="igMonitorSearch" placeholder="Search by name, URL, or status…" autocomplete="off">
+                                </label>
+                                <div class="fb-monitor-search-actions">
+                                    <button type="button" class="fb-monitor-refresh-btn" id="igMonitorTableRefreshBtn" onclick="igMonitorRefreshTable()" title="Refresh table">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                                        Refresh
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="fb-monitor-table-card">
+                            <div class="fb-monitor-table-title">Monitored Instagram profiles</div>
+                            <div class="saved-info-table-scroll" id="igMonitorTableWrap" style="max-height:min(420px,50vh)">
+                                <table class="saved-info-table" id="igMonitorTable" aria-label="Monitored Instagram profiles">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Name</th>
+                                            <th scope="col">Instagram URL</th>
+                                            <th scope="col">Status</th>
+                                            <th scope="col" class="saved-info-col-time">Last checked</th>
+                                            <th scope="col" style="min-width:15rem">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="igMonitorTableBody" class="fb-monitor-tbody" aria-live="polite"></tbody>
+                                </table>
+                            </div>
+                            <nav class="fb-monitor-pagination" id="igMonitorPagination" aria-label="Instagram list pages" hidden></nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
     <div class="lightbox" id="lightbox" onclick="closeLightbox()" role="dialog" aria-modal="true" aria-label="Full size capture">
@@ -2604,6 +2687,15 @@ $userNavInitial = $userNavInitial ?? '?';
         </div>
     </div>
 
+    <div class="modal-overlay" id="igMonitorRowLogModal" role="dialog" aria-modal="true" aria-labelledby="igMonitorRowLogModalTitle" onclick="igMonitorCloseRowLogModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:520px">
+            <h2 class="modal-title" id="igMonitorRowLogModalTitle">Check log</h2>
+            <p id="igMonitorRowLogModalSub" style="font-size:12px;color:var(--text-muted);margin:-6px 0 12px;word-break:break-all;line-height:1.45"></p>
+            <pre class="fb-monitor-log-terminal fb-monitor-row-log-terminal" id="igMonitorRowLogTerminal" style="max-height:min(360px,50vh);margin:0"></pre>
+            <button type="button" class="btn btn-secondary" style="width:100%;margin-top:14px" onclick="igMonitorCloseRowLogModal()">Close</button>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="fbMonitorRemoveModal" role="dialog" aria-modal="true" aria-labelledby="fbMonitorRemoveModalTitle" onclick="fbMonitorCloseRemoveModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width:400px">
             <h2 class="modal-title" id="fbMonitorRemoveModalTitle">Remove from monitoring?</h2>
@@ -2622,6 +2714,46 @@ $userNavInitial = $userNavInitial ?? '?';
             <div class="fb-monitor-modal-actions" style="margin-top:0">
                 <button type="button" class="btn btn-danger" onclick="fbMonitorConfirmBulkRemove()">Remove</button>
                 <button type="button" class="btn btn-secondary" onclick="fbMonitorCloseBulkRemoveModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="igMonitorAddModal" role="dialog" aria-modal="true" aria-labelledby="igMonitorAddModalTitle" onclick="igMonitorCloseAddModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:440px">
+            <h2 class="modal-title" id="igMonitorAddModalTitle">Add Instagram profile</h2>
+            <p style="font-size:13px;color:var(--text-muted);margin:-8px 0 16px;line-height:1.45">Enter an Instagram profile URL and a display name for your list.</p>
+            <div class="fb-monitor-modal-fields">
+                <div class="phone-lookup-input-wrap">
+                    <label for="igMonitorUrlInput">Instagram URL</label>
+                    <input type="url" id="igMonitorUrlInput"
+                           placeholder="https://www.instagram.com/username/"
+                           autocomplete="off">
+                </div>
+                <div class="phone-lookup-input-wrap">
+                    <label for="igMonitorNameInput">Name <span style="color:#f85149" aria-hidden="true">*</span></label>
+                    <input type="text" id="igMonitorNameInput"
+                           placeholder="e.g. Display name"
+                           autocomplete="off"
+                           required
+                           maxlength="191"
+                           aria-required="true">
+                </div>
+                <div id="igMonitorAddError" class="phone-lookup-error" role="alert" hidden></div>
+            </div>
+            <div class="fb-monitor-modal-actions">
+                <button type="button" class="btn btn-primary" onclick="igMonitorAdd()">Save</button>
+                <button type="button" class="btn btn-secondary" onclick="igMonitorCloseAddModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="igMonitorRemoveModal" role="dialog" aria-modal="true" aria-labelledby="igMonitorRemoveModalTitle" onclick="igMonitorCloseRemoveModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:400px">
+            <h2 class="modal-title" id="igMonitorRemoveModalTitle">Remove from monitoring?</h2>
+            <p style="font-size:14px;color:var(--text-muted);margin:-6px 0 20px;line-height:1.55">This URL will be removed from your Instagram list.</p>
+            <div class="fb-monitor-modal-actions" style="margin-top:0">
+                <button type="button" class="btn btn-danger" onclick="igMonitorConfirmRemove()">Remove</button>
+                <button type="button" class="btn btn-secondary" onclick="igMonitorCloseRemoveModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -3231,12 +3363,14 @@ $userNavInitial = $userNavInitial ?? '?';
             const saveInfoLayout = document.getElementById('saveInfoLayout');
             const exiftoolLayout = document.getElementById('exiftoolLayout');
             const fbmonitorLayout = document.getElementById('fbmonitorLayout');
+            const igmonitorLayout = document.getElementById('igmonitorLayout');
             const navTrackify = document.getElementById('navItemTrackify');
             const navPhone = document.getElementById('navItemPhone');
             const navIp = document.getElementById('navItemIp');
             const navSaveInfo = document.getElementById('navItemSaveInfo');
             const navExiftool = document.getElementById('navItemExiftool');
             const navAccountChecker = document.getElementById('navItemAccountChecker');
+            const navIgChecker = document.getElementById('navItemIgChecker');
             const grpFbTools = document.getElementById('sideNavGroupFbTools');
 
             if (!trackifyLayout || !phoneLayout || !ipLayout || !navTrackify || !navPhone || !navIp) return;
@@ -3256,6 +3390,9 @@ $userNavInitial = $userNavInitial ?? '?';
             if (navAccountChecker) {
                 navAccountChecker.classList.remove('active');
             }
+            if (navIgChecker) {
+                navIgChecker.classList.remove('active');
+            }
             if (grpFbTools) {
                 grpFbTools.classList.remove('has-active-child');
             }
@@ -3273,6 +3410,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 if (fbmonitorLayout) {
                     fbmonitorLayout.style.display = 'none';
                 }
+                if (igmonitorLayout) {
+                    igmonitorLayout.style.display = 'none';
+                }
                 navPhone.classList.add('active');
                 loadPhoneHistory();
             } else if (which === 'ip') {
@@ -3287,6 +3427,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 }
                 if (fbmonitorLayout) {
                     fbmonitorLayout.style.display = 'none';
+                }
+                if (igmonitorLayout) {
+                    igmonitorLayout.style.display = 'none';
                 }
                 navIp.classList.add('active');
                 setTimeout(function () {
@@ -3304,6 +3447,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 if (fbmonitorLayout) {
                     fbmonitorLayout.style.display = 'none';
                 }
+                if (igmonitorLayout) {
+                    igmonitorLayout.style.display = 'none';
+                }
                 exiftoolLayout.style.display = 'block';
                 navExiftool.classList.add('active');
             } else if (which === 'saveinfo' && saveInfoLayout && navSaveInfo) {
@@ -3315,6 +3461,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 }
                 if (fbmonitorLayout) {
                     fbmonitorLayout.style.display = 'none';
+                }
+                if (igmonitorLayout) {
+                    igmonitorLayout.style.display = 'none';
                 }
                 saveInfoLayout.style.display = 'block';
                 navSaveInfo.classList.add('active');
@@ -3330,6 +3479,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 if (saveInfoLayout) {
                     saveInfoLayout.style.display = 'none';
                 }
+                if (igmonitorLayout) {
+                    igmonitorLayout.style.display = 'none';
+                }
                 fbmonitorLayout.style.display = 'block';
                 navAccountChecker.classList.add('active');
                 if (grpFbTools) {
@@ -3342,6 +3494,34 @@ $userNavInitial = $userNavInitial ?? '?';
                     fbMonitorListState.q = (fbSearchInp.value || '').trim();
                 }
                 loadFbMonitorList();
+                fbMonitorStartListAutoRefresh();
+            } else if (which === 'igmonitor' && igmonitorLayout && navIgChecker) {
+                trackifyLayout.style.display = 'none';
+                phoneLayout.style.display = 'none';
+                ipLayout.style.display = 'none';
+                if (exiftoolLayout) {
+                    exiftoolLayout.style.display = 'none';
+                }
+                if (saveInfoLayout) {
+                    saveInfoLayout.style.display = 'none';
+                }
+                if (fbmonitorLayout) {
+                    fbmonitorLayout.style.display = 'none';
+                }
+                igmonitorLayout.style.display = 'block';
+                navIgChecker.classList.add('active');
+                if (grpFbTools) {
+                    grpFbTools.classList.add('has-active-child');
+                    grpFbTools.classList.remove('is-collapsed');
+                }
+                setFbToolsNavExpanded(true);
+                var igSearchInp = document.getElementById('igMonitorSearch');
+                if (igSearchInp) {
+                    igMonitorListState.q = (igSearchInp.value || '').trim();
+                }
+                if (typeof loadIgMonitorList === 'function') {
+                    void loadIgMonitorList();
+                }
                 fbMonitorStartListAutoRefresh();
             } else {
                 trackifyLayout.style.display = 'grid';
@@ -3356,12 +3536,19 @@ $userNavInitial = $userNavInitial ?? '?';
                 if (fbmonitorLayout) {
                     fbmonitorLayout.style.display = 'none';
                 }
+                if (igmonitorLayout) {
+                    igmonitorLayout.style.display = 'none';
+                }
                 navTrackify.classList.add('active');
             }
 
             try {
                 if (window.history && window.history.replaceState) {
-                    window.history.replaceState(null, '', 'panel.php');
+                    var path = 'panel.php';
+                    if (which !== 'trackify') {
+                        path += '?view=' + encodeURIComponent(which);
+                    }
+                    window.history.replaceState(null, '', path);
                 }
             } catch (e) {}
         }
@@ -3409,7 +3596,7 @@ $userNavInitial = $userNavInitial ?? '?';
             try {
                 const params = new URLSearchParams(window.location.search);
                 const view = (params.get('view') || '').toLowerCase();
-                if (view === 'saveinfo' || view === 'phone' || view === 'ip' || view === 'exiftool' || view === 'fbmonitor') {
+                if (view === 'saveinfo' || view === 'phone' || view === 'ip' || view === 'exiftool' || view === 'fbmonitor' || view === 'igmonitor') {
                     switchView(view);
                 }
             } catch (e) {}
@@ -4065,6 +4252,18 @@ $userNavInitial = $userNavInitial ?? '?';
             if (rowLog && rowLog.classList.contains('show')) {
                 rowLog.classList.remove('show');
             }
+            var igRowLog = document.getElementById('igMonitorRowLogModal');
+            if (igRowLog && igRowLog.classList.contains('show')) {
+                igRowLog.classList.remove('show');
+            }
+            var igAdd = document.getElementById('igMonitorAddModal');
+            if (igAdd && igAdd.classList.contains('show')) {
+                igAdd.classList.remove('show');
+            }
+            var igRem = document.getElementById('igMonitorRemoveModal');
+            if (igRem && igRem.classList.contains('show')) {
+                igRem.classList.remove('show');
+            }
         });
 
         function fbStatusColor(status) {
@@ -4308,14 +4507,17 @@ $userNavInitial = $userNavInitial ?? '?';
         function fbMonitorStartListAutoRefresh() {
             fbMonitorStopListAutoRefresh();
             fbMonitorListAutoRefreshTimer = setInterval(function () {
-                var layout = document.getElementById('fbmonitorLayout');
-                if (!layout || layout.style.display === 'none') {
-                    return;
-                }
                 if (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden') {
                     return;
                 }
-                loadFbMonitorList();
+                var fbL = document.getElementById('fbmonitorLayout');
+                var igL = document.getElementById('igmonitorLayout');
+                if (fbL && fbL.style.display !== 'none') {
+                    loadFbMonitorList();
+                }
+                if (igL && igL.style.display !== 'none' && typeof loadIgMonitorList === 'function') {
+                    void loadIgMonitorList();
+                }
             }, 60000);
         }
 
@@ -4590,6 +4792,338 @@ $userNavInitial = $userNavInitial ?? '?';
 
         // -----------------------------------------------------------------------
         // End Facebook Monitor JS
+        // -----------------------------------------------------------------------
+
+        // -----------------------------------------------------------------------
+        // Instagram Monitor JS
+        // -----------------------------------------------------------------------
+
+        var igMonitorListState = { page: 1, perPage: 10, q: '' };
+        var igMonitorSearchDebounceTimer = null;
+        var igMonitorPendingRemoveId = null;
+
+        function igMonitorOpenAddModal() {
+            const m = document.getElementById('igMonitorAddModal');
+            if (!m) return;
+            const err = document.getElementById('igMonitorAddError');
+            if (err) { err.hidden = true; err.textContent = ''; }
+            m.classList.add('show');
+        }
+
+        function igMonitorCloseAddModal(ev) {
+            if (ev && ev.target !== ev.currentTarget) return;
+            const m = document.getElementById('igMonitorAddModal');
+            if (m) m.classList.remove('show');
+        }
+
+        function igMonitorOpenRemoveModal(id) {
+            igMonitorPendingRemoveId = id;
+            const m = document.getElementById('igMonitorRemoveModal');
+            if (m) m.classList.add('show');
+        }
+
+        function igMonitorCloseRemoveModal(ev) {
+            if (ev && ev.target !== ev.currentTarget) return;
+            const m = document.getElementById('igMonitorRemoveModal');
+            if (m) m.classList.remove('show');
+            igMonitorPendingRemoveId = null;
+        }
+
+        async function igMonitorConfirmRemove() {
+            const id = igMonitorPendingRemoveId;
+            if (!id) return;
+            try {
+                const res = await fetch('api.php?action=ig_monitor_remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id }),
+                    credentials: 'same-origin'
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    fbMonitorToast(data.message || 'Remove failed.', true);
+                    return;
+                }
+                igMonitorCloseRemoveModal();
+                igMonitorListState.page = 1;
+                await loadIgMonitorList();
+                fbMonitorToast('Removed.', false);
+            } catch (e) {
+                fbMonitorToast('Network error.', true);
+            }
+        }
+
+        function igMonitorStatusHtml(status) {
+            const s = String(status || 'unknown');
+            const statusLbl = fbStatusLabel(s);
+            const statusTagClass = fbMonitorStatusTagClass(s);
+            return '<span class="' + statusTagClass + '">' + escHtml(statusLbl) + '</span>';
+        }
+
+        function igMonitorCloseRowLogModal(event) {
+            const m = document.getElementById('igMonitorRowLogModal');
+            if (!m || !m.classList.contains('show')) return;
+            if (event && event.target !== event.currentTarget) return;
+            m.classList.remove('show');
+        }
+
+        async function igMonitorOpenRowLogs(id) {
+            const modal = document.getElementById('igMonitorRowLogModal');
+            const titleEl = document.getElementById('igMonitorRowLogModalTitle');
+            const subEl = document.getElementById('igMonitorRowLogModalSub');
+            const pre = document.getElementById('igMonitorRowLogTerminal');
+            if (!modal || !pre) return;
+            modal.classList.add('show');
+            pre.innerHTML = '<span class="fb-monitor-log-empty">Loading…</span>';
+            if (titleEl) titleEl.textContent = 'Check log';
+            if (subEl) subEl.textContent = '';
+            try {
+                const res = await fetch('api.php?action=ig_monitor_logs&monitor_id=' + encodeURIComponent(String(id)), { credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    pre.innerHTML = '<span class="fb-monitor-log-empty">' + escHtml(data.message || 'Could not load log.') + '</span>';
+                    return;
+                }
+                const ctx = data.context || {};
+                const lbl = (ctx.label && String(ctx.label).trim()) ? String(ctx.label).trim() : '';
+                if (titleEl) titleEl.textContent = lbl ? lbl : 'Check log';
+                if (subEl) subEl.textContent = ctx.profile_url ? String(ctx.profile_url) : '';
+                const entries = data.entries || [];
+                if (entries.length === 0) {
+                    pre.innerHTML = '<span class="fb-monitor-log-empty">No logged checks for this URL yet. Run <strong>Check</strong> or wait for cron.</span>';
+                    return;
+                }
+                pre.innerHTML = fbMonitorFormatLogEntriesHtml(entries, { hideUrlInMeta: true });
+            } catch (e) {
+                pre.innerHTML = '<span class="fb-monitor-log-empty">Network error loading log.</span>';
+            }
+        }
+
+        function igMonitorRenderPagination(meta) {
+            const el = document.getElementById('igMonitorPagination');
+            if (!el) return;
+            const total = meta.total || 0;
+            const page = meta.page || 1;
+            const totalPages = meta.total_pages || 0;
+            if (totalPages <= 1) {
+                el.innerHTML = '';
+                el.hidden = true;
+                return;
+            }
+            el.hidden = false;
+            const parts = [];
+            for (let p = 1; p <= totalPages; p++) {
+                if (p === page) {
+                    parts.push('<span class="fb-monitor-page-btn fb-monitor-page-btn--current">' + p + '</span>');
+                } else {
+                    parts.push('<button type="button" class="fb-monitor-page-btn" onclick="igMonitorGoPage(' + p + ')">' + p + '</button>');
+                }
+            }
+            el.innerHTML = '<span class="fb-monitor-page-label">Page ' + page + ' / ' + totalPages + ' (' + total + ')</span>' + parts.join(' ');
+        }
+
+        function igMonitorGoPage(p) {
+            igMonitorListState.page = Math.max(1, parseInt(p, 10) || 1);
+            void loadIgMonitorList();
+        }
+
+        function igMonitorSearchApply() {
+            const inp = document.getElementById('igMonitorSearch');
+            igMonitorListState.q = (inp && inp.value ? inp.value : '').trim();
+            igMonitorListState.page = 1;
+            void loadIgMonitorList();
+        }
+
+        (function bindIgMonitorSearch() {
+            const inp = document.getElementById('igMonitorSearch');
+            if (!inp || inp._igSearchBound) return;
+            inp._igSearchBound = true;
+            inp.addEventListener('input', function () {
+                clearTimeout(igMonitorSearchDebounceTimer);
+                igMonitorSearchDebounceTimer = setTimeout(igMonitorSearchApply, 320);
+            });
+            inp.addEventListener('search', function () {
+                clearTimeout(igMonitorSearchDebounceTimer);
+                igMonitorSearchApply();
+            });
+        })();
+
+        async function loadIgMonitorList() {
+            const tbody = document.getElementById('igMonitorTableBody');
+            const pagEl = document.getElementById('igMonitorPagination');
+            if (!tbody) return;
+            try {
+                const qs = new URLSearchParams();
+                qs.set('action', 'ig_monitor_list');
+                qs.set('page', String(igMonitorListState.page));
+                qs.set('per_page', String(igMonitorListState.perPage));
+                if (igMonitorListState.q) {
+                    qs.set('q', igMonitorListState.q);
+                }
+                const res = await fetch('api.php?' + qs.toString(), { credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    if (pagEl) { pagEl.innerHTML = ''; pagEl.hidden = true; }
+                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:#f07178;padding:16px">' + escHtml(data.message || 'Failed to load') + '</td></tr>';
+                    return;
+                }
+                if (typeof data.page === 'number' && data.page > 0) {
+                    igMonitorListState.page = data.page;
+                }
+                const monitors = data.monitors || [];
+                const total = typeof data.total === 'number' ? data.total : 0;
+                const qActive = !!(igMonitorListState.q && igMonitorListState.q.length);
+                if (monitors.length === 0) {
+                    if (pagEl) { pagEl.innerHTML = ''; pagEl.hidden = true; }
+                    let emptyMsg = 'No Instagram profiles monitored yet.';
+                    if (total === 0 && qActive) {
+                        emptyMsg = 'No matches for your search.';
+                    }
+                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:var(--text-muted);padding:16px">' + emptyMsg + '</td></tr>';
+                    return;
+                }
+                const checkSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>';
+                const logsSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>';
+                const trashSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>';
+                tbody.innerHTML = monitors.map(function (m) {
+                    const id = parseInt(m.id, 10);
+                    const labelCell = m.label ? escHtml(m.label) : '<span style="color:var(--text-muted)">—</span>';
+                    const urlFull = escHtml(m.profile_url);
+                    const checked = m.last_checked_at ? escHtml(fbMonitorFormatDisplayDateTime(m.last_checked_at)) : 'Never';
+                    const stHtml = igMonitorStatusHtml(m.last_status);
+                    return '<tr>'
+                        + '<td style="font-weight:600;max-width:12rem">' + labelCell + '</td>'
+                        + '<td><a href="' + escHtml(m.profile_url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--link);word-break:break-all;font-size:12px">' + urlFull + '</a></td>'
+                        + '<td class="fb-monitor-status-cell">' + stHtml + '</td>'
+                        + '<td class="saved-info-col-time" style="font-size:12px;color:var(--text-muted)">' + checked + '</td>'
+                        + '<td class="fb-monitor-action-cell">'
+                        +   '<div class="fb-monitor-action-btns">'
+                        +   '<button type="button" class="fb-monitor-check-btn" data-monitor-id="' + id + '" onclick="igMonitorCheckOne(' + id + ', this)" aria-label="Check this URL now">'
+                        +     '<span class="fb-monitor-check-idle">' + checkSvg + ' <span>Check</span></span>'
+                        +     '<span class="fb-monitor-check-busy" aria-hidden="true"><span class="fb-monitor-spinner"></span><span>Checking…</span></span>'
+                        +   '</button>'
+                        +   '<button type="button" class="fb-monitor-logs-btn" data-monitor-id="' + id + '" onclick="igMonitorOpenRowLogs(' + id + ')" aria-label="View check log for this URL">'
+                        +     logsSvg + ' <span>Logs</span>'
+                        +   '</button>'
+                        +   '<button type="button" class="fb-monitor-remove-btn" data-monitor-id="' + id + '" onclick="igMonitorOpenRemoveModal(' + id + ')" aria-label="Remove from list">'
+                        +     trashSvg + ' <span>Remove</span>'
+                        +   '</button>'
+                        +   '</div>'
+                        + '</td>'
+                        + '</tr>';
+                }).join('');
+                igMonitorRenderPagination(data);
+            } catch (e) {
+                if (pagEl) { pagEl.innerHTML = ''; pagEl.hidden = true; }
+                tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="5" style="color:#f07178;padding:16px">Network error</td></tr>';
+            }
+        }
+
+        function igMonitorRefreshTable() {
+            var btn = document.getElementById('igMonitorTableRefreshBtn');
+            if (btn) btn.disabled = true;
+            Promise.resolve(loadIgMonitorList()).finally(function () {
+                if (btn) btn.disabled = false;
+            });
+        }
+
+        async function igMonitorAdd() {
+            const urlInput = document.getElementById('igMonitorUrlInput');
+            const nameInput = document.getElementById('igMonitorNameInput');
+            const errEl = document.getElementById('igMonitorAddError');
+            const url = (urlInput ? urlInput.value : '').trim();
+            const name = (nameInput ? nameInput.value : '').trim();
+            if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
+            if (!url) {
+                if (errEl) { errEl.textContent = 'Please enter an Instagram profile URL.'; errEl.hidden = false; }
+                return;
+            }
+            if (!name) {
+                if (errEl) { errEl.textContent = 'Please enter a name.'; errEl.hidden = false; }
+                if (nameInput) nameInput.focus();
+                return;
+            }
+            try {
+                const res = await fetch('api.php?action=ig_monitor_add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url, label: name }),
+                    credentials: 'same-origin'
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    if (errEl) { errEl.textContent = data.message || 'Failed to add.'; errEl.hidden = false; }
+                    return;
+                }
+                if (urlInput) urlInput.value = '';
+                if (nameInput) nameInput.value = '';
+                igMonitorCloseAddModal();
+                igMonitorListState.page = 1;
+                await loadIgMonitorList();
+                fbMonitorToast('Saved.', false);
+            } catch (e) {
+                if (errEl) { errEl.textContent = 'Network error — try again.'; errEl.hidden = false; }
+            }
+        }
+
+        async function igMonitorCheckAll() {
+            const btn = document.getElementById('igMonitorCheckAllBtn');
+            const prev = btn ? btn.textContent : '';
+            if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+            try {
+                const res = await fetch('api.php?action=ig_monitor_check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({}),
+                    credentials: 'same-origin'
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    fbMonitorToast(data.message || 'Check failed.', true);
+                } else {
+                    const results = data.results || [];
+                    if (results.length === 0) {
+                        fbMonitorToast('Nothing to check. Add a profile URL first.', false);
+                    } else {
+                        await loadIgMonitorList();
+                        fbMonitorToast('Check complete — ' + results.length + ' URL(s).', false);
+                    }
+                }
+            } catch (e) {
+                fbMonitorToast('Network error — try again.', true);
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = prev; }
+            }
+        }
+
+        async function igMonitorCheckOne(id, btn) {
+            const el = btn && btn.closest ? btn.closest('button.fb-monitor-check-btn') : null;
+            if (el) fbMonitorSetCheckLoading(el, true);
+            try {
+                const res = await fetch('api.php?action=ig_monitor_check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id }),
+                    credentials: 'same-origin'
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    fbMonitorToast(data.message || 'Check failed.', true);
+                } else {
+                    await loadIgMonitorList();
+                    fbMonitorToast('Check complete.', false);
+                }
+            } catch (e) {
+                fbMonitorToast('Network error — try again.', true);
+            } finally {
+                if (el && el.isConnected) {
+                    fbMonitorSetCheckLoading(el, false);
+                }
+            }
+        }
+
+        // -----------------------------------------------------------------------
+        // End Instagram Monitor JS
         // -----------------------------------------------------------------------
 
         async function loadPhoneHistory() {

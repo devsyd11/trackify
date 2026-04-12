@@ -23,6 +23,7 @@ $root = __DIR__;
 // trackify_capture.php provides: trackify_pdo(), trackify_send_telegram_html()
 require_once $root . '/trackify_capture.php';
 require_once $root . '/includes/fb_monitor_helpers.php';
+require_once $root . '/includes/ig_monitor_helpers.php';
 
 // Prevent overlapping cron runs with a lock file
 $lockFile = $root . '/data/fb_checker/cron.lock';
@@ -128,6 +129,69 @@ foreach ($userDirs as $dir) {
         }
 
         fb_monitor_append_activity(
+            $uid,
+            'cron',
+            $newStatus,
+            $detail,
+            (string) ($row['label'] ?? ''),
+            $url
+        );
+    }
+
+    // Instagram monitors (same interval as Facebook for this user)
+    $igStmt = $pdo->prepare(
+        'SELECT id, profile_url, label, last_status
+         FROM instagram_monitor
+         WHERE user_id = ?
+           AND (last_checked_at IS NULL
+                OR last_checked_at < DATE_SUB(NOW(), INTERVAL ? MINUTE))'
+    );
+    $igStmt->execute([$uid, $interval]);
+    $igRows = $igStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($igRows as $row) {
+        $url        = (string) $row['profile_url'];
+        $prevStatus = (string) $row['last_status'];
+        $check      = ig_check_profile_url($url);
+        $newStatus  = $check['status'];
+        $detail     = $check['detail'];
+
+        if ($newStatus === 'unknown' && empty($check['update_last_status'])) {
+            $pdo->prepare('UPDATE instagram_monitor SET last_checked_at = NOW() WHERE id = ?')
+                ->execute([(int) $row['id']]);
+            echo "[ig_cron] unknown uid={$uid} id={$row['id']}: {$detail}\n";
+            ig_monitor_append_activity(
+                $uid,
+                'cron',
+                'unknown',
+                $detail,
+                (string) ($row['label'] ?? ''),
+                $url
+            );
+            continue;
+        }
+
+        $changed = $newStatus !== $prevStatus;
+        $now     = gmdate('Y-m-d H:i:s');
+
+        $upd = $pdo->prepare(
+            'UPDATE instagram_monitor
+             SET last_status = ?,
+                 last_checked_at = ?,
+                 last_changed_at = CASE WHEN last_status != ? THEN ? ELSE last_changed_at END
+             WHERE id = ?'
+        );
+        $upd->execute([$newStatus, $now, $newStatus, $now, (int) $row['id']]);
+
+        if ($changed && $newStatus === 'active'
+                && in_array($prevStatus, ['inactive', 'unavailable', 'unknown'], true)) {
+            ig_monitor_send_active_alert($url, (string) ($row['label'] ?? ''));
+            echo "[ig_cron] ALERT sent — user {$uid} Instagram profile active: {$url}\n";
+        } else {
+            echo "[ig_cron] uid={$uid} id={$row['id']} status={$newStatus}" . ($changed ? " (was {$prevStatus})" : '') . " — {$detail}\n";
+        }
+
+        ig_monitor_append_activity(
             $uid,
             'cron',
             $newStatus,

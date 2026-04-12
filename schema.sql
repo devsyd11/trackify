@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS tracker_tokens (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-CREATE TABLE phone_scan_history (
+CREATE TABLE IF NOT EXISTS phone_scan_history (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
   phone_number VARCHAR(64) NOT NULL,
@@ -48,4 +48,17 @@ CREATE TABLE IF NOT EXISTS facebook_monitor (
   created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_fb_user (user_id),
   INDEX idx_fb_user_url (user_id, profile_url(191))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS instagram_monitor (
+  id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id         INT UNSIGNED NOT NULL,
+  profile_url     VARCHAR(512) NOT NULL,
+  label           VARCHAR(191) NOT NULL DEFAULT '',
+  last_status     ENUM('unknown','active','inactive','unavailable') NOT NULL DEFAULT 'unknown',
+  last_checked_at DATETIME NULL,
+  last_changed_at DATETIME NULL,
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ig_user (user_id),
+  INDEX idx_ig_user_url (user_id, profile_url(191))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
