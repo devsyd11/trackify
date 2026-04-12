@@ -367,6 +367,20 @@ function ig_classify_instagram(string $html, string $visibleText, int $httpCode,
         ];
     }
 
+    if ($httpCode === 429) {
+        return [
+            'status'               => 'unknown',
+            'detail'               => 'HTTP 429 (Too Many Requests) — Instagram is rate-limiting this IP. Increase time between checks, monitor fewer profiles at once, or route traffic through a different network.',
+            'update_last_status'   => false,
+        ];
+    }
+    if ($httpCode === 503) {
+        return [
+            'status'               => 'unknown',
+            'detail'               => 'HTTP 503 from Instagram — service temporarily unavailable; try again later.',
+            'update_last_status'   => false,
+        ];
+    }
     if ($httpCode >= 400) {
         return [
             'status'               => 'unknown',

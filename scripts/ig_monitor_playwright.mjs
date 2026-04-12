@@ -77,12 +77,23 @@ async function main() {
 
     const page = await context.newPage();
 
-    let response;
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    let response = null;
     try {
-      response = await page.goto(profileUrl, {
-        waitUntil: 'load',
-        timeout: 90000,
-      });
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) {
+          await sleep(attempt === 1 ? 50000 : 100000);
+        }
+        response = await page.goto(profileUrl, {
+          waitUntil: 'load',
+          timeout: 90000,
+        });
+        const code = response ? response.status() : 0;
+        if (code !== 429 && code !== 503) {
+          break;
+        }
+      }
     } catch (navErr) {
       await browser.close();
       process.stdout.write(
