@@ -157,7 +157,8 @@ body.dashboard-shell-body {
     padding: 10px 10px 4px;
     margin-top: 2px;
 }
-.side-nav-fb-logo {
+.side-nav-fb-logo,
+.side-nav-meta-logo {
     display: block;
     flex-shrink: 0;
 }
@@ -191,7 +192,7 @@ body.dashboard-shell-body {
     padding-top: 8px;
     border-top: 1px solid rgba(48, 54, 61, 0.5);
 }
-.side-nav-item-icon svg:not(.side-nav-fb-logo) {
+.side-nav-item-icon svg:not(.side-nav-fb-logo):not(.side-nav-meta-logo) {
     display: block;
     width: 18px;
     height: 18px;
@@ -213,6 +214,9 @@ body.dashboard-shell-body {
     border-bottom: 1px solid var(--border);
     background: linear-gradient(90deg, rgba(13,17,23,0.98), rgba(13,17,23,0.9));
     flex-shrink: 0;
+}
+.top-nav--no-brand {
+    justify-content: flex-end;
 }
 .top-nav-left {
     display: flex;

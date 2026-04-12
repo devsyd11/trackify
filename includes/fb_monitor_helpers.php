@@ -22,7 +22,7 @@ function fb_monitor_user_dir(int $uid): string
 
 function fb_monitor_read_config(int $uid): array
 {
-    $defaults = ['cookies' => '', 'check_interval_minutes' => 15, 'updated_at' => ''];
+    $defaults = ['check_interval_minutes' => 15, 'updated_at' => ''];
     $path = fb_monitor_user_dir($uid) . '/config.json';
     if (!is_readable($path)) {
         return $defaults;
@@ -314,6 +314,8 @@ function fb_url_to_mbasic(string $url): string
  * Supports:
  * - https://facebook.com/username
  * - https://facebook.com/profile.php?id=123
+ * - https://www.facebook.com/people/Display-Name/123456789012345/
+ * - https://www.facebook.com/pages/PageName/123…
  *
  * @return array{type: 'username'|'id'|'none', value: string}
  */
@@ -322,6 +324,7 @@ function fb_profile_identifier_from_url(string $url): array
     $path = (string) parse_url($url, PHP_URL_PATH);
     $path = ltrim($path, '/');
     $pathLower = strtolower($path);
+    $segments = $path === '' ? [] : array_values(array_filter(explode('/', $path), static fn ($s) => $s !== ''));
 
     // Numeric profile id URL style
     if ($pathLower === 'profile.php') {
@@ -333,13 +336,79 @@ function fb_profile_identifier_from_url(string $url): array
         }
     }
 
-    // Username / vanity URL style
-    $first = strtolower(strtok($path, '/') ?: $path);
+    // Directory profile: /people/Display-Name/123456789012345/
+    if (count($segments) >= 3 && strtolower($segments[0]) === 'people' && ctype_digit((string) $segments[2])) {
+        return ['type' => 'id', 'value' => (string) $segments[2]];
+    }
+    if (count($segments) >= 2 && strtolower($segments[0]) === 'people' && $segments[1] !== '') {
+        return ['type' => 'username', 'value' => strtolower($segments[1])];
+    }
+
+    // Page: /pages/PageSlug/…
+    if (count($segments) >= 2 && strtolower($segments[0]) === 'pages' && $segments[1] !== '') {
+        return ['type' => 'username', 'value' => strtolower($segments[1])];
+    }
+
+    // Username / vanity URL style (first path segment)
+    $first = strtolower($segments[0] ?? '');
     if ($first !== '' && $first !== 'pages' && $first !== 'people') {
         return ['type' => 'username', 'value' => $first];
     }
 
     return ['type' => 'none', 'value' => ''];
+}
+
+/**
+ * True when the monitored URL is a profile/page user id or vanity slug — not site chrome (login, help, etc.).
+ */
+function fb_profile_monitor_url_looks_like_profile(string $url): bool
+{
+    $id = fb_profile_identifier_from_url($url);
+    if ($id['type'] === 'none') {
+        return false;
+    }
+    if ($id['type'] === 'username') {
+        $v = strtolower($id['value']);
+        $reserved = [
+            'login', 'checkpoint', 'recover', 'reg', 'privacy', 'policies', 'terms', 'help', 'support',
+            'about', 'watch', 'marketplace', 'groups', 'gaming', 'events', 'places', 'me', 'settings',
+            'notifications', 'messages', 'friends', 'saved', 'memories', 'ads', 'business', 'pages', 'people',
+        ];
+
+        return !in_array($v, $reserved, true);
+    }
+
+    return true;
+}
+
+/**
+ * True when a sign-in gate on this URL should count as “reachable” for unsigned checks,
+ * including URL shapes {@see fb_profile_identifier_from_url} does not parse yet.
+ */
+function fb_profile_login_gate_counts_as_reachable_target(string $url): bool
+{
+    if (fb_profile_monitor_url_looks_like_profile($url)) {
+        return true;
+    }
+    $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+    if ($host === '' || (strpos($host, 'facebook.com') === false && strpos($host, 'fb.com') === false)) {
+        return false;
+    }
+    $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
+    if ($path === '') {
+        return false;
+    }
+    $first = strtolower(explode('/', $path)[0] ?? '');
+    $siteChrome = [
+        'login', 'checkpoint', 'recover', 'help', 'support', 'policies', 'terms', 'legal', 'lite',
+        'share', 'dialog', 'plugins', 'pixel', 'tr', 'images', 'r.php', 'a.php',
+        'groups', 'watch', 'marketplace', 'events', 'gaming', 'places', 'reel', 'reels', 'stories',
+    ];
+    if ($first === '' || in_array($first, $siteChrome, true)) {
+        return false;
+    }
+
+    return true;
 }
 
 function fb_monitor_node_binary(): string
@@ -516,12 +585,49 @@ function fb_profile_page_shows_content_unavailable(string $html, string $visible
         $lower
     );
 
+    // Global header often includes login fields even when the *main* area is “content isn’t available” (unsigned view).
+    // Use only strong, user-facing phrases (full headline / helper copy) — not the bare substring "content not available" in JS.
+    $looksLikeLoginShell = (
+        (strpos($lower, 'name="pass"') !== false || strpos($lower, 'id="pass"') !== false)
+        && (strpos($lower, 'name="email"') !== false || strpos($lower, 'id="email"') !== false)
+    );
+    if ($looksLikeLoginShell) {
+        $strongUnavailable = [
+            "this content isn't available right now",
+            'this content isnt available right now',
+            "this content isn't available",
+            'this content isnt available',
+            "sorry, this page isn't available",
+            'the link you followed may be broken',
+            "when this happens, it's usually because",
+            'only shared it with a small group of people',
+            "changed who can see it or it's been deleted",
+            'the page you requested cannot be displayed',
+        ];
+        foreach ($strongUnavailable as $p) {
+            if (strpos($normalised, $p) !== false) {
+                return true;
+            }
+        }
+        if (preg_match('/this\s+content\s+isn[\x{0027}\x{2019}]?t\s+available(\s+right\s+now)?/iu', $normalised)) {
+            return true;
+        }
+        if (preg_match('/this\s+page\s+isn[\x{0027}\x{2019}]?t\s+available/iu', $normalised)) {
+            return true;
+        }
+        // English error card often pairs these (padlock / restricted profile)
+        if (strpos($normalised, 'go to feed') !== false && strpos($normalised, 'go back') !== false && strpos($normalised, 'visit help center') !== false) {
+            return true;
+        }
+
+        return false;
+    }
+
     $phrases = [
         "this content isn't available right now",
         "this content isn't available",
         'this content isnt available right now',
         'this content isnt available',
-        'content not available',
         'page not found',
         "sorry, this page isn't available",
         'the page you requested cannot be displayed',
@@ -575,6 +681,19 @@ function fb_profile_page_shows_content_unavailable(string $html, string $visible
 }
 
 /**
+ * Guest / signed-out view: Facebook shows a dialog like “See more from [Name]” with email/password
+ * while the profile shell is still loaded behind it — not the same as a bare login.php page.
+ */
+function fb_profile_guest_see_more_modal_present(string $html, string $visibleText): bool
+{
+    $scan = html_entity_decode($html . "\n" . $visibleText, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $scan = fb_monitor_decode_json_unicode_escapes($scan);
+    $lower = strtolower($scan);
+
+    return preg_match('/see\s+more\s+from\b/i', $lower) === 1;
+}
+
+/**
  * True if the browser landed on a URL whose path/query matches the monitored profile identifier.
  * Used after a real browser navigation when HTML/SPA does not repeat "/username" in the body.
  */
@@ -595,15 +714,31 @@ function fb_profile_final_url_matches_identifier(string $finalUrl, array $want):
     if ($want['type'] === 'id') {
         $q = (string) parse_url($finalUrl, PHP_URL_QUERY);
         parse_str($q, $qs);
+        if (isset($qs['id']) && (string) $qs['id'] === (string) $want['value']) {
+            return true;
+        }
+        $path = ltrim((string) parse_url($finalUrl, PHP_URL_PATH), '/');
+        $segs = $path === '' ? [] : array_values(array_filter(explode('/', $path), static fn ($s) => $s !== ''));
+        if (count($segs) >= 3 && strtolower($segs[0]) === 'people' && ctype_digit((string) $segs[2])) {
+            return (string) $segs[2] === (string) $want['value'];
+        }
 
-        return isset($qs['id']) && (string) $qs['id'] === (string) $want['value'];
+        return false;
     }
 
     $path = (string) parse_url($finalUrl, PHP_URL_PATH);
     $path = trim($path, '/');
-    $first = strtolower((string) (strtok($path, '/') ?: $path));
+    $segs = $path === '' ? [] : array_values(array_filter(explode('/', $path), static fn ($s) => $s !== ''));
+    $wantLower = strtolower((string) $want['value']);
+    if (count($segs) >= 2 && strtolower($segs[0]) === 'people' && strtolower($segs[1]) === $wantLower) {
+        return true;
+    }
+    if (count($segs) >= 2 && strtolower($segs[0]) === 'pages' && strtolower($segs[1]) === $wantLower) {
+        return true;
+    }
+    $first = strtolower((string) ($segs[0] ?? ''));
 
-    return $first !== '' && $first === strtolower((string) $want['value']);
+    return $first !== '' && $first === $wantLower;
 }
 
 /**
@@ -611,8 +746,11 @@ function fb_profile_final_url_matches_identifier(string $finalUrl, array $want):
  *
  * @return array{status: string, detail: string, http_code: int, update_last_status?: bool}
  */
-function fb_classify_fetched_profile(string $html, string $finalUrl, string $originalUrl, int $code, string $curlErr = '', string $visibleText = '', bool $browserUrlConfirmation = false): array
+function fb_classify_fetched_profile(string $html, string $finalUrl, string $originalUrl, int $code, string $curlErr = '', string $visibleText = '', bool $browserUrlConfirmation = false, bool $anonymousSession = false): array
 {
+    $originalUrl = trim($originalUrl);
+    $finalUrl    = trim($finalUrl);
+
     if ($code === 0 && $curlErr !== '') {
         return ['status' => 'unknown', 'detail' => 'Connection failed: ' . ($curlErr ?: 'unknown error'), 'http_code' => 0];
     }
@@ -634,18 +772,53 @@ function fb_classify_fetched_profile(string $html, string $finalUrl, string $ori
     $scan = $html . "\n" . $visibleText;
     $lower = strtolower(html_entity_decode($scan, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 
-    // Redirects/landings that indicate auth issues (cookies invalid / checkpoint)
-    $finalLower = strtolower($finalUrl);
-    if (strpos($finalLower, '/login.php') !== false || strpos($finalLower, '/checkpoint/') !== false) {
-        return ['status' => 'unknown', 'detail' => 'Redirected to login/checkpoint — cookies expired or restricted', 'http_code' => $code];
+    // Unavailable main content must win over “login in header” heuristics (unsigned view often has both).
+    if (fb_profile_page_shows_content_unavailable($html, $visibleText)) {
+        return ['status' => 'unavailable', 'detail' => 'Facebook returned “content not available” (private/restricted/deleted)', 'http_code' => $code];
     }
 
-    // Login page returned — cookies expired
+    $guestSeeMoreInvite = fb_profile_guest_see_more_modal_present($html, $visibleText);
+    $profileMonitor     = fb_profile_monitor_url_looks_like_profile($originalUrl);
+
+    // Redirects to login/checkpoint: with no session cookies, a sign-in wall usually means the profile
+    // still exists (vs “content not available” for removed/blocked profiles).
+    $finalLower = strtolower($finalUrl);
+    if (strpos($finalLower, '/login.php') !== false || strpos($finalLower, '/checkpoint/') !== false) {
+        if ($anonymousSession && ($profileMonitor || fb_profile_login_gate_counts_as_reachable_target($originalUrl))) {
+            $isCheckpoint = strpos($finalLower, '/checkpoint/') !== false;
+            $detail       = $isCheckpoint
+                ? 'Verification or checkpoint — Facebook is gating access; the profile may still exist (unsigned check)'
+                : 'Facebook redirected to sign-in — profile appears to exist but requires authentication to view (unsigned check)';
+
+            return ['status' => 'active', 'detail' => $detail, 'http_code' => $code];
+        }
+
+        $detail = $anonymousSession
+            ? 'Facebook requires sign-in to view this URL (unsigned check — add session cookies for private/restricted profiles)'
+            : 'Saved session cookies are invalid or expired — Facebook redirected to login or checkpoint';
+
+        return ['status' => 'unknown', 'detail' => $detail, 'http_code' => $code];
+    }
+
+    // Login form in body — skip when it is only the guest “See more from …” overlay on a loaded profile.
     if (
-        (strpos($lower, 'name="email"') !== false || strpos($lower, 'id="email"') !== false) &&
-        (strpos($lower, 'name="pass"')  !== false || strpos($lower, 'id="pass"')  !== false)
+        !$guestSeeMoreInvite
+        && (strpos($lower, 'name="email"') !== false || strpos($lower, 'id="email"') !== false)
+        && (strpos($lower, 'name="pass"') !== false || strpos($lower, 'id="pass"') !== false)
     ) {
-        return ['status' => 'unknown', 'detail' => 'Login page returned — cookies expired or invalid', 'http_code' => $code];
+        if ($anonymousSession && ($profileMonitor || fb_profile_login_gate_counts_as_reachable_target($originalUrl))) {
+            return [
+                'status'    => 'active',
+                'detail'    => 'Sign-in form shown — Facebook is gating this profile; account appears to exist (unsigned check)',
+                'http_code' => $code,
+            ];
+        }
+
+        $detail = $anonymousSession
+            ? 'Login page shown — URL does not look like a profile link (use facebook.com/username or …/people/…/id/)'
+            : 'Saved session cookies are invalid or expired — Facebook showed a sign-in page';
+
+        return ['status' => 'unknown', 'detail' => $detail, 'http_code' => $code];
     }
 
     $normalised = str_replace(
@@ -656,10 +829,6 @@ function fb_classify_fetched_profile(string $html, string $finalUrl, string $ori
 
     if (strpos($normalised, 'sorry, something went wrong') !== false) {
         return ['status' => 'unknown', 'detail' => 'Facebook returned a generic error page — try again later or refresh cookies', 'http_code' => $code];
-    }
-
-    if (fb_profile_page_shows_content_unavailable($html, $visibleText)) {
-        return ['status' => 'unavailable', 'detail' => 'Facebook returned “content not available” (private/restricted/deleted)', 'http_code' => $code];
     }
 
     if (
@@ -709,6 +878,9 @@ function fb_classify_fetched_profile(string $html, string $finalUrl, string $ori
         if ($onProfileAfterRedirect) {
             $detail = 'Profile page loaded and content matches the monitored profile — account appears active';
         }
+        if ($anonymousSession) {
+            $detail .= ' (unsigned browser check — public or lightly restricted visibility)';
+        }
 
         return [
             'status'    => 'active',
@@ -721,11 +893,34 @@ function fb_classify_fetched_profile(string $html, string $finalUrl, string $ori
     if (
         $browserUrlConfirmation
         && fb_profile_final_url_matches_identifier($finalUrl, $want)
-        && !fb_profile_page_shows_content_unavailable($html, $visibleText)
     ) {
+        $detail = 'page loaded; identifier not detected in text (inconclusive parse; counted as active)';
+        if ($anonymousSession) {
+            $detail .= ' (unsigned check)';
+        }
+
         return [
             'status'    => 'active',
-            'detail'    => 'page loaded; identifier not detected in text (inconclusive parse; counted as active)',
+            'detail'    => $detail,
+            'http_code' => $code,
+        ];
+    }
+
+    // Guest overlay: “See more from …” + final URL still matches profile — treat as active even if
+    // identifier links are sparse in the captured HTML.
+    if (
+        $guestSeeMoreInvite
+        && $want['type'] !== 'none'
+        && fb_profile_final_url_matches_identifier($finalUrl, $want)
+    ) {
+        $detail = 'Public profile loaded; guest “See more from” login gate — account appears active';
+        if ($anonymousSession) {
+            $detail .= ' (unsigned browser check)';
+        }
+
+        return [
+            'status'    => 'active',
+            'detail'    => $detail,
             'http_code' => $code,
         ];
     }
@@ -733,9 +928,14 @@ function fb_classify_fetched_profile(string $html, string $finalUrl, string $ori
     // Inconclusive: page loaded but identifier not found (SPA shell, layout changes, restricted HTML).
     // Do not assume active — that produced false “active” for unavailable/hidden profiles.
     // Caller should persist `unknown` to DB (unlike transient network/cookie unknowns).
+    $inconcl = 'Could not confirm profile visibility — identifier not found in response (inconclusive parse)';
+    if ($anonymousSession) {
+        $inconcl .= ' (try adding session cookies if this profile is not public)';
+    }
+
     return [
         'status'             => 'unknown',
-        'detail'             => 'Could not confirm profile visibility — identifier not found in response (inconclusive parse)',
+        'detail'             => $inconcl,
         'http_code'          => $code,
         'update_last_status' => true,
     ];
@@ -946,13 +1146,14 @@ function fb_monitor_extract_page_image(string $html): string
     return '';
 }
 
-function fb_check_profile_url(string $url, string $cookieString): array
+/**
+ * Facebook checker: always visits the URL with no Facebook session cookies (Playwright first, else HTTP).
+ * Classification uses unsigned-session rules (e.g. login wall ⇒ active; “content not available” ⇒ unavailable).
+ */
+function fb_check_profile_url(string $url): array
 {
-    if (fb_cookies_normalize($cookieString) === '') {
-        return ['status' => 'unknown', 'detail' => 'Cookie string is empty after normalization', 'http_code' => 0, 'preview_image' => ''];
-    }
-
-    $pw = fb_monitor_try_playwright($url, $cookieString);
+    $url = trim($url);
+    $pw  = fb_monitor_try_playwright($url, '');
     if ($pw !== null) {
         if (empty($pw['ok'])) {
             $err = trim((string) ($pw['error'] ?? 'check failed'));
@@ -972,6 +1173,7 @@ function fb_check_profile_url(string $url, string $cookieString): array
             $pw['http_code'],
             '',
             $pw['visible_text'] ?? '',
+            true,
             true
         );
         $out['preview_image'] = fb_monitor_extract_page_image($pw['html']);
@@ -988,13 +1190,16 @@ function fb_check_profile_url(string $url, string $cookieString): array
         ];
     }
 
-    $fetch = fb_monitor_fetch_facebook_html($url, $cookieString);
-    $out = fb_classify_fetched_profile(
+    $fetch = fb_monitor_fetch_facebook_html($url, '');
+    $out   = fb_classify_fetched_profile(
         $fetch['html'],
         $fetch['effective_url'],
         $url,
         $fetch['http_code'],
-        $fetch['curl_error']
+        $fetch['curl_error'],
+        '',
+        false,
+        true
     );
     $out['preview_image'] = fb_monitor_extract_page_image($fetch['html']);
 
@@ -1013,16 +1218,6 @@ function fb_check_profile_url(string $url, string $cookieString): array
 function fb_monitor_fetch_facebook_html(string $url, string $cookieString): array
 {
     $flatCookies = fb_cookies_normalize($cookieString);
-    if ($flatCookies === '') {
-        return [
-            'html' => '',
-            'http_code' => 0,
-            'effective_url' => '',
-            'curl_error' => 'Cookie string is empty after normalization',
-            'used_url' => '',
-            'attempted_urls' => [],
-        ];
-    }
 
     $mbasicUrl = fb_url_to_mbasic($url);
     $mUrl = (string) preg_replace(
@@ -1176,12 +1371,12 @@ function fb_monitor_send_active_alert(string $url, string $label, string $previe
 
     // Single message: details first, then Telegram’s link preview card under the URL (like your reference).
     $lines = [
-        '✅ <b>Account Checker</b> — profile accessible again',
+        '✅ <b>Facebook checker</b> — profile accessible again',
         '🎯 Monitored Facebook URL is loading (no longer restricted/unavailable).',
         '📌 <b>Name:</b> ' . $labelLine,
         '🔗 <b>Profile:</b> <a href="' . $href . '">' . $href . '</a>',
         '🕒 <b>Last Checked At:</b> <code>' . $when . '</code>',
-        '<i>Trackify · Facebook Tools</i>',
+        '<i>Trackify · Meta tools</i>',
     ];
 
     $html = implode("\n", $lines);

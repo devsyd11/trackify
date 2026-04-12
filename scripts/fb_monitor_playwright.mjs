@@ -4,7 +4,8 @@
  * Input (stdin, one JSON object):
  *   { "profileUrl": "https://www.facebook.com/username", "cookies": "..." }
  *
- * cookies: flat "a=b; c=d" or JSON array from cookie export extensions.
+ * cookies: optional. Flat "a=b; c=d" or JSON array from cookie export extensions.
+ * If empty/omitted, navigates signed out (public / login-wall pages only).
  *
  * Output (stdout, one JSON object):
  *   { "ok": true, "http_code": 200, "effective_url": "...", "html": "..." }
@@ -105,12 +106,7 @@ async function main() {
   profileUrl = normalizeFacebookProfileUrl(profileUrl);
 
   const flat = normalizeCookieString(cookiesRaw);
-  if (!flat) {
-    process.stdout.write(JSON.stringify({ ok: false, error: 'cookies empty' }));
-    return;
-  }
-
-  const cookieList = cookiesToPlaywrightList(flat);
+  const cookieList = flat ? cookiesToPlaywrightList(flat) : [];
 
   const browser = await chromium.launch({
     headless: true,

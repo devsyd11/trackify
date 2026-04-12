@@ -748,7 +748,7 @@ $userNavInitial = $userNavInitial ?? '?';
             padding-top: 8px;
             border-top: 1px solid rgba(48, 54, 61, 0.5);
         }
-        .side-nav-item-icon svg:not(.side-nav-fb-logo) {
+        .side-nav-item-icon svg:not(.side-nav-fb-logo):not(.side-nav-meta-logo) {
             display: block;
             width: 18px;
             height: 18px;
@@ -1153,12 +1153,13 @@ $userNavInitial = $userNavInitial ?? '?';
         .side-nav-group.has-active-child .side-nav-group-toggle {
             color: var(--text);
         }
-        .side-nav-item-icon--fb {
+        .side-nav-item-icon--meta {
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        .side-nav-fb-logo {
+        .side-nav-fb-logo,
+        .side-nav-meta-logo {
             display: block;
             flex-shrink: 0;
         }
@@ -2121,18 +2122,22 @@ $userNavInitial = $userNavInitial ?? '?';
             </button>
             <div class="side-nav-group" id="sideNavGroupFbTools">
                 <button type="button" class="side-nav-group-toggle" id="sideNavFbToolsToggle" onclick="toggleFbToolsNav()" aria-expanded="true" aria-controls="sideNavFbToolsSubmenu">
-                    <span class="side-nav-item-icon side-nav-item-icon--fb" aria-hidden="true">
-                        <svg class="side-nav-fb-logo" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    <span class="side-nav-item-icon side-nav-item-icon--meta" aria-hidden="true">
+                        <svg class="side-nav-meta-logo" width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path fill="#0082FB" d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"/>
                         </svg>
                     </span>
-                    <span class="side-nav-item-label">Facebook Tools</span>
+                    <span class="side-nav-item-label">Meta tools</span>
                     <span class="side-nav-group-chevron" aria-hidden="true">▾</span>
                 </button>
-                <div class="side-nav-submenu" id="sideNavFbToolsSubmenu" role="group" aria-label="Facebook Tools">
-                    <button type="button" class="side-nav-item side-nav-item--sub" id="navItemAccountChecker" onclick="switchView('fbmonitor')" title="Account Checker">
-                        <span class="side-nav-item-icon" aria-hidden="true">👁</span>
-                        <span class="side-nav-item-label">Account Checker</span>
+                <div class="side-nav-submenu" id="sideNavFbToolsSubmenu" role="group" aria-label="Meta tools">
+                    <button type="button" class="side-nav-item side-nav-item--sub" id="navItemAccountChecker" onclick="switchView('fbmonitor')" title="Facebook checker">
+                        <span class="side-nav-item-icon" aria-hidden="true">
+                            <svg class="side-nav-fb-logo" width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
+                        </span>
+                        <span class="side-nav-item-label">Facebook checker</span>
                     </button>
                 </div>
             </div>
@@ -2478,13 +2483,13 @@ $userNavInitial = $userNavInitial ?? '?';
                 </div>
             </div>
         </section>
-        <section id="fbmonitorLayout" class="phone-layout" style="display:none" aria-label="Account Checker — profiles and pages">
+        <section id="fbmonitorLayout" class="phone-layout" style="display:none" aria-label="Facebook checker — profiles and pages">
             <div class="phone-layout-inner">
                 <div class="phone-layout-columns phone-layout-columns--fbmonitor">
                     <div class="card fb-monitor-card">
                         <div class="fb-monitor-page-head">
                             <div>
-                                <h2>Account Checker</h2>
+                                <h2>Facebook checker</h2>
                                 <p class="subtitle card-view-desc fb-monitor-desc" style="color:var(--text-muted);margin:0">
                                     Watch Facebook profiles or pages and get Telegram alerts when something you monitor becomes accessible again.
                                 </p>
@@ -2602,7 +2607,7 @@ $userNavInitial = $userNavInitial ?? '?';
     <div class="modal-overlay" id="fbMonitorRemoveModal" role="dialog" aria-modal="true" aria-labelledby="fbMonitorRemoveModalTitle" onclick="fbMonitorCloseRemoveModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width:400px">
             <h2 class="modal-title" id="fbMonitorRemoveModalTitle">Remove from monitoring?</h2>
-            <p style="font-size:14px;color:var(--text-muted);margin:-6px 0 20px;line-height:1.55">This URL will be removed from your list. You can add it again later from <strong style="color:var(--text)">Account Checker</strong>.</p>
+            <p style="font-size:14px;color:var(--text-muted);margin:-6px 0 20px;line-height:1.55">This URL will be removed from your list. You can add it again later from <strong style="color:var(--text)">Facebook checker</strong>.</p>
             <div class="fb-monitor-modal-actions" style="margin-top:0">
                 <button type="button" class="btn btn-danger" onclick="fbMonitorConfirmRemove()">Remove</button>
                 <button type="button" class="btn btn-secondary" onclick="fbMonitorCloseRemoveModal()">Cancel</button>

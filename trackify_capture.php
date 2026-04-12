@@ -386,7 +386,7 @@ HTML;
  * Send HTML message via Telegram Bot API (silent on missing config / failure; logs API errors).
  *
  * @param bool $disableWebPagePreview When true (default), Telegram hides link previews (used for Sniffer alerts).
- *                                    Pass false to allow previews (e.g. Facebook profile URLs in Account Checker alerts).
+ *                                    Pass false to allow previews (e.g. Facebook profile URLs in Facebook checker alerts).
  */
 function trackify_send_telegram_html(string $html, bool $disableWebPagePreview = true): void
 {

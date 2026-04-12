@@ -2497,7 +2497,6 @@ function handleFbMonitorConfig(): void
     $cfg = fb_monitor_read_config($uid);
     echo json_encode([
         'status'                 => 'success',
-        'cookies_set'            => $cfg['cookies'] !== '',
         'check_interval_minutes' => (int) ($cfg['check_interval_minutes'] ?? 15),
     ]);
 }
@@ -2518,33 +2517,13 @@ function handleFbMonitorSaveConfig(): void
     if (array_key_exists('check_interval_minutes', $input)) {
         $interval = max(1, min(1440, (int) $input['check_interval_minutes']));
     }
-    $newCookies = $current['cookies'];
-    if (array_key_exists('cookies', $input)) {
-        $raw = trim((string) $input['cookies']);
-        // FB cookie strings can be long; truncation breaks JSON exports.
-        $maxLen = 20000;
-        if (strlen($raw) > $maxLen) {
-            echo json_encode(['status' => 'error', 'message' => 'Cookie input is too long (max ' . $maxLen . ' characters).']);
-            return;
-        }
-        // If user pasted JSON cookie export, validate it parses.
-        if ($raw !== '' && $raw[0] === '[') {
-            $test = json_decode($raw, true);
-            if (!is_array($test)) {
-                echo json_encode(['status' => 'error', 'message' => 'Cookie JSON could not be parsed. Paste the full JSON array export or a flat "name=value; ..." string.']);
-                return;
-            }
-        }
-        $newCookies = $raw;
-    }
     $ok = fb_monitor_write_config($uid, [
-        'cookies'                 => $newCookies,
         'check_interval_minutes'  => $interval,
         'updated_at'              => gmdate('c'),
     ]);
     echo json_encode([
         'status'  => $ok ? 'success' : 'error',
-        'message' => $ok ? 'Facebook Tools config saved.' : 'Could not write config file.',
+        'message' => $ok ? 'Meta tools config saved.' : 'Could not write config file.',
     ]);
 }
 
@@ -2782,13 +2761,6 @@ function handleFbMonitorCheck(): void
     }
     $onlyId = isset($input['id']) ? (int) $input['id'] : null;
 
-    $cfg     = fb_monitor_read_config($uid);
-    $cookies = $cfg['cookies'];
-    if ($cookies === '') {
-        echo json_encode(['status' => 'error', 'message' => 'No Facebook cookies configured. Add them in Account Settings → Facebook Tools.']);
-        return;
-    }
-
     $pdo = trackify_pdo();
     if (!$pdo instanceof PDO) {
         echo json_encode(['status' => 'error', 'message' => 'Database not available']);
@@ -2812,7 +2784,7 @@ function handleFbMonitorCheck(): void
     $results = [];
     foreach ($rows as $row) {
         $prevStatus = (string) $row['last_status'];
-        $check      = fb_check_profile_url((string) $row['profile_url'], $cookies);
+        $check      = fb_check_profile_url((string) $row['profile_url']);
         $newStatus  = $check['status'];
         $detail     = $check['detail'];
         $rowLabel   = (string) ($row['label'] ?? '');
@@ -2926,15 +2898,7 @@ function handleFbMonitorDebug(): void
         echo json_encode(['status' => 'error', 'message' => 'url param required']);
         return;
     }
-    $cfg     = fb_monitor_read_config($uid);
-    $cookies = fb_cookies_normalize($cfg['cookies']);
-    if ($cookies === '') {
-        echo json_encode(['status' => 'error', 'message' => 'No cookies configured']);
-        return;
-    }
-
-    $cookieRaw = (string) ($cfg['cookies'] ?? '');
-    $pw = fb_monitor_try_playwright($url, $cookieRaw);
+    $pw = fb_monitor_try_playwright($url, '');
     $browserCheckError = '';
     if ($pw !== null && !empty($pw['ok'])) {
         $html = $pw['html'];
@@ -2954,7 +2918,7 @@ function handleFbMonitorDebug(): void
         $attemptedUrls = ['browser'];
         $fetchMode = 'browser_error';
     } else {
-        $fetch = fb_monitor_fetch_facebook_html($url, $cookieRaw);
+        $fetch = fb_monitor_fetch_facebook_html($url, '');
         $html = $fetch['html'];
         $code = $fetch['http_code'];
         $effectiveUrl = $fetch['effective_url'];
@@ -2965,7 +2929,7 @@ function handleFbMonitorDebug(): void
     }
 
     // Same classification as cron/API check (browser worker preferred, else HTTP).
-    $check = fb_check_profile_url($url, $cookieRaw);
+    $check = fb_check_profile_url($url);
 
     // Search for key phrases in the body
     $lower = strtolower($html);

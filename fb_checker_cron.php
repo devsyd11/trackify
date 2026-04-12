@@ -9,7 +9,7 @@ declare(strict_types=1);
  * Sends a Telegram alert when a previously unavailable profile becomes active.
  *
  * Schedule (Linux/macOS crontab) — run at least as often as your shortest check interval
- * (e.g. every minute if you use “Every 1 minute” in Facebook Tools):
+ * (e.g. every minute if you use “Every 1 minute” in Meta tools):
  *   * * * * * php /path/to/trackify/fb_checker_cron.php >> /tmp/fb_cron.log 2>&1
  *
  * Schedule (Windows Task Scheduler):
@@ -69,11 +69,7 @@ foreach ($userDirs as $dir) {
         continue;
     }
 
-    $cfg     = fb_monitor_read_config($uid);
-    $cookies = $cfg['cookies'];
-    if ($cookies === '') {
-        continue;  // User has not configured cookies — skip
-    }
+    $cfg = fb_monitor_read_config($uid);
 
     $interval = max(1, (int) ($cfg['check_interval_minutes'] ?? 15));
 
@@ -91,7 +87,7 @@ foreach ($userDirs as $dir) {
     foreach ($rows as $row) {
         $url        = (string) $row['profile_url'];
         $prevStatus = (string) $row['last_status'];
-        $check      = fb_check_profile_url($url, $cookies);
+        $check      = fb_check_profile_url($url);
         $newStatus  = $check['status'];
         $detail     = $check['detail'];
 
