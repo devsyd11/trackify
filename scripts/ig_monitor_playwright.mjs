@@ -2,6 +2,7 @@
  * Instagram Monitor — headless browser fetch (stdin JSON → stdout JSON).
  *
  * Input: { "profileUrl": "https://www.instagram.com/username/" }
+ * Fetches m.instagram.com (mobile web) with a mobile UA — may reduce load vs www; does not guarantee avoiding HTTP 429.
  * Output: { ok, http_code, effective_url, html, visible_text } | { ok: false, error }
  */
 
@@ -17,10 +18,10 @@ function normalizeInstagramUrl(raw) {
       return u;
     }
     x.protocol = 'https:';
-    if (x.hostname === 'instagr.am') {
-      x.hostname = 'www.instagram.com';
-    } else if (x.hostname === 'instagram.com') {
-      x.hostname = 'www.instagram.com';
+    const h = x.hostname.toLowerCase();
+    // Use mobile web host (lighter than www); PHP-side URL normalization still maps m/www for comparisons.
+    if (h === 'instagr.am' || h === 'instagram.com' || h === 'www.instagram.com' || h === 'm.instagram.com') {
+      x.hostname = 'm.instagram.com';
     }
     return x.toString();
   } catch {
@@ -68,8 +69,11 @@ async function main() {
   try {
     const context = await browser.newContext({
       userAgent:
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      viewport: { width: 1280, height: 900 },
+        'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 2,
+      isMobile: true,
+      hasTouch: true,
       locale: 'en-US',
       timezoneId: 'America/New_York',
       colorScheme: 'light',
