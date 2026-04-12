@@ -152,21 +152,111 @@ function ig_normalize_profile_url(string $url): string
 }
 
 /**
+ * Unescape \\uXXXX in a string so we can match JSON embedded in HTML.
+ */
+function ig_classify_normalize_for_scan(string $s): string
+{
+    $out = $s;
+    for ($i = 0; $i < 6; $i++) {
+        $next = preg_replace_callback(
+            '/\\\\u([0-9a-fA-F]{4})/',
+            static function (array $m): string {
+                $cp = hexdec($m[1]);
+                if ($cp <= 0) {
+                    return $m[0];
+                }
+                if ($cp < 0x80) {
+                    return chr($cp);
+                }
+                if (function_exists('mb_chr')) {
+                    $ch = mb_chr($cp, 'UTF-8');
+                    return $ch !== false ? $ch : $m[0];
+                }
+
+                return $m[0];
+            },
+            $out
+        );
+        if (!is_string($next)) {
+            break;
+        }
+        $out = $next;
+    }
+
+    return strtolower($out);
+}
+
+/**
+ * True when the page is primarily a sign-in / gate screen (not just the header link on a loaded profile).
+ * Same idea as Facebook checker: that gate ⇒ treat as reachable (active) when not “profile unavailable”.
+ */
+function ig_page_shows_login_gate(string $html, string $visibleText): bool
+{
+    $h = ig_classify_normalize_for_scan($html);
+    $v = ig_classify_normalize_for_scan($visibleText);
+    $lenVt = strlen(trim($visibleText));
+
+    // Loaded profiles include "Log in" in the nav; avoid matching that alone.
+    $strongHints = [
+        'log in to instagram',
+        'phone number, username, or email',
+        'get help signing in',
+        'don\'t have an account',
+        'already have an account',
+    ];
+    foreach ($strongHints as $hint) {
+        if (strpos($v, $hint) !== false || strpos($h, $hint) !== false) {
+            return true;
+        }
+    }
+
+    if (strpos($v, 'forgot password') !== false && $lenVt < 6000) {
+        return true;
+    }
+
+    if (strpos($h, 'accounts/login') !== false || strpos($h, '/accounts/emailsignup/') !== false) {
+        if ($lenVt < 8000) {
+            return true;
+        }
+    }
+
+    if (preg_match('/<input[^>]+type=["\']password["\']/i', $html) && $lenVt < 8000) {
+        return true;
+    }
+
+    if ((strpos($h, 'loginform') !== false || strpos($h, 'login_form') !== false) && $lenVt < 8000) {
+        return true;
+    }
+
+    // Embedded API gate (checkpoint) without a full profile payload
+    if ((strpos($h, 'checkpoint_url') !== false || strpos($h, 'challenge_required') !== false) && $lenVt < 8000) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * @return array{status: string, detail: string, update_last_status?: bool}
  */
 function ig_classify_instagram(string $html, string $visibleText, int $httpCode): array
 {
-    $combined = strtolower($html . "\n" . $visibleText);
+    $combined = ig_classify_normalize_for_scan($html . "\n" . $visibleText);
+    $htmlLower = ig_classify_normalize_for_scan($html);
+    $vtLower   = ig_classify_normalize_for_scan($visibleText);
 
+    // 1) Removed / broken profile (must win over login-marketing noise on error pages)
     $unavailableNeedles = [
         "profile isn't available",
+        'profile isn\'t available',
         "this page isn't available",
+        'this page isn\'t available',
         'the link may be broken',
         'sorry, this page isn\'t available',
-        'sorry, this page isn’t available',
         'user not found',
         'no users found',
         'page not found',
+        'user does not exist',
     ];
     foreach ($unavailableNeedles as $needle) {
         if (strpos($combined, $needle) !== false) {
@@ -194,26 +284,38 @@ function ig_classify_instagram(string $html, string $visibleText, int $httpCode)
         ];
     }
 
-    $vt = $visibleText;
-    if (strlen($vt) < 1200 && (stripos($vt, 'log in') !== false || stripos($vt, 'log in to instagram') !== false)) {
-        return [
-            'status'               => 'unknown',
-            'detail'               => 'Page may require login or blocked automated access.',
-            'update_last_status'   => false,
-        ];
+    // 2) Loaded profile / graph signals (check before login-nav heuristics)
+    $activeSignals = [
+        '"edge_followed_by"',
+        '"edge_follow"',
+        'edge_followed_by',
+        'edge_owner_to_timeline_media',
+        'profile_pic_url_hd',
+        'profile_pic_url',
+        '"is_private"',
+        'xdt_api__v1__users__web_profile_info',
+        'xdt_shortcode_media',
+        'consumerlibcommons',
+    ];
+    foreach ($activeSignals as $sig) {
+        if (stripos($htmlLower, strtolower($sig)) !== false) {
+            return [
+                'status'             => 'active',
+                'detail'             => 'Profile data detected in page.',
+                'update_last_status' => true,
+            ];
+        }
     }
 
-    if (stripos($html, '"edge_followed_by"') !== false
-        || stripos($html, '"edge_follow"') !== false
-        || preg_match('/property="og:type"\s+content="profile"/i', $html)) {
+    if (preg_match('/property=["\']og:type["\']\s+content=["\']profile["\']/i', $html)) {
         return [
             'status'             => 'active',
-            'detail'             => 'Profile signals detected.',
+            'detail'             => 'Open Graph profile.',
             'update_last_status' => true,
         ];
     }
 
-    if (stripos($vt, 'this account is private') !== false) {
+    if (stripos($vtLower, 'this account is private') !== false) {
         return [
             'status'             => 'active',
             'detail'             => 'Account exists (private).',
@@ -221,18 +323,33 @@ function ig_classify_instagram(string $html, string $visibleText, int $httpCode)
         ];
     }
 
-    if ($httpCode >= 200 && $httpCode < 400 && strlen($html) > 4000 && strpos($combined, "isn't available") === false) {
+    // 3) Sign-in / gate only (no public profile HTML) — same idea as Facebook unsigned “login wall ⇒ active”
+    if (ig_page_shows_login_gate($html, $visibleText)) {
         return [
             'status'             => 'active',
-            'detail'             => 'Page loaded (heuristic).',
+            'detail'             => 'Sign-in or gate page — profile appears to exist; Instagram is gating public view (unsigned check).',
             'update_last_status' => true,
         ];
     }
 
+    if ($httpCode >= 200 && $httpCode < 400 && strlen($html) > 1500 && strpos($combined, "isn't available") === false) {
+        if (strpos($htmlLower, 'instagram') !== false
+            && (strpos($htmlLower, 'graphql') !== false
+                || strpos($htmlLower, 'polaris') !== false
+                || strpos($htmlLower, 'mount_') !== false)) {
+            return [
+                'status'             => 'active',
+                'detail'             => 'Page loaded with Instagram app shell (heuristic).',
+                'update_last_status' => true,
+            ];
+        }
+    }
+
+    // 4) No clear profile and no login gate — treat as unavailable (unsigned check)
     return [
-        'status'               => 'unknown',
-        'detail'               => 'Could not determine Instagram status.',
-        'update_last_status'   => false,
+        'status'               => 'unavailable',
+        'detail'               => 'No sign-in gate or profile content matched — treated as unavailable (unsigned check).',
+        'update_last_status'   => true,
     ];
 }
 

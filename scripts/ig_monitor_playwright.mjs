@@ -57,7 +57,12 @@ async function main() {
 
   const browser = await chromium.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-dev-shm-usage'],
+    args: [
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-blink-features=AutomationControlled',
+      '--disable-features=IsolateOrigins,site-per-process',
+    ],
   });
 
   try {
@@ -66,7 +71,8 @@ async function main() {
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       viewport: { width: 1280, height: 900 },
       locale: 'en-US',
-      timezoneId: 'UTC',
+      timezoneId: 'America/New_York',
+      colorScheme: 'light',
     });
 
     const page = await context.newPage();
@@ -74,7 +80,7 @@ async function main() {
     let response;
     try {
       response = await page.goto(profileUrl, {
-        waitUntil: 'domcontentloaded',
+        waitUntil: 'load',
         timeout: 90000,
       });
     } catch (navErr) {
@@ -87,12 +93,17 @@ async function main() {
 
     const httpCode = response ? response.status() : 0;
     try {
-      await page.waitForSelector('main, article, [role="main"]', { timeout: 15000 });
+      await page.waitForSelector('main, article, [role="main"], body', { timeout: 20000 });
     } catch (_) {
       /* SPA */
     }
-    await new Promise((r) => setTimeout(r, 2500));
-    await new Promise((r) => setTimeout(r, 2000));
+    // Instagram hydrates slowly; VPS/cold cache needs extra time
+    await new Promise((r) => setTimeout(r, 4000));
+    await new Promise((r) => setTimeout(r, 4000));
+    try {
+      await page.evaluate(() => window.scrollTo(0, 400));
+    } catch (_) {}
+    await new Promise((r) => setTimeout(r, 1500));
 
     const effectiveUrl = page.url();
     let html = await page.content();
