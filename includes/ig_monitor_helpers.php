@@ -248,9 +248,116 @@ function ig_page_shows_profile_unavailable(string $html, string $visibleText): b
 }
 
 /**
+ * First path segment for instagram.com/username/… (not reserved paths).
+ */
+function ig_extract_profile_username_from_url(string $url): string
+{
+    $p = @parse_url(trim($url));
+    if (!is_array($p) || empty($p['path'])) {
+        return '';
+    }
+    $path = trim((string) $p['path'], '/');
+    if ($path === '') {
+        return '';
+    }
+    $seg = strtolower(explode('/', $path)[0]);
+    $reserved = ['accounts', 'p', 'explore', 'reels', 'stories', 'direct', 'legal', 'about', 'tv', 'st'];
+    if ($seg === '' || in_array($seg, $reserved, true)) {
+        return '';
+    }
+
+    return $seg;
+}
+
+function ig_effective_url_is_gate_or_challenge(string $effectiveUrl): bool
+{
+    $u = strtolower($effectiveUrl);
+    if ($u === '') {
+        return false;
+    }
+    $needles = [
+        '/accounts/login',
+        '/accounts/emailsignup',
+        '/accounts/password',
+        '/accounts/suspended',
+        '/challenge',
+        '/consent',
+    ];
+    foreach ($needles as $n) {
+        if (strpos($u, $n) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Strong “login / checkpoint” copy — common on datacenter IPs where the real profile never loads.
+ */
+function ig_page_looks_like_login_or_checkpoint(string $html, string $visibleText): bool
+{
+    $c = ig_match_normalize_page_copy($html . "\n" . $visibleText);
+    $strong = [
+        'phone number, username, or email',
+        'log in to instagram',
+        'get help signing in',
+        'we detected unusual activity',
+        'checkpoint_required',
+        'challenge_required',
+        'your account has been suspended',
+    ];
+    foreach ($strong as $s) {
+        if (strpos($c, $s) !== false) {
+            return true;
+        }
+    }
+    if (preg_match('/<input[^>]+type=["\']password["\']/i', $html)) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Confident that Instagram actually rendered this profile (or private), not only login/marketing chrome.
+ * Avoids generic bundle substrings that also appear on login / gate pages.
+ */
+function ig_page_shows_profile_loaded_signals(string $html, string $visibleText, string $requestUrl): bool
+{
+    $v = ig_match_normalize_page_copy($visibleText);
+
+    if (strpos($v, 'this account is private') !== false) {
+        return true;
+    }
+    if (strpos($v, 'no posts yet') !== false && (strpos($v, 'follower') !== false || strpos($v, 'following') !== false)) {
+        return true;
+    }
+    if (preg_match('/\d[\d,]*\s+posts/i', $visibleText) && (strpos($v, 'follower') !== false || strpos($v, 'following') !== false)) {
+        return true;
+    }
+
+    $user = ig_extract_profile_username_from_url($requestUrl);
+    if ($user !== '' && strlen($user) >= 2) {
+        $qu = preg_quote($user, '/');
+        if (preg_match('/"username"\s*:\s*"' . $qu . '"/i', $html)) {
+            return true;
+        }
+        if (preg_match('/<meta[^>]+property=["\']og:title["\'][^>]+content=["\'][^"\']*' . $qu . '/i', $html)) {
+            return true;
+        }
+        if (preg_match('/property=["\']og:type["\'][^>]+content=["\']profile["\']/i', $html) && stripos($html, $user) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * @return array{status: string, detail: string, update_last_status?: bool}
  */
-function ig_classify_instagram(string $html, string $visibleText): array
+function ig_classify_instagram(string $html, string $visibleText, int $httpCode, string $effectiveUrl, string $requestUrl): array
 {
     if (ig_page_shows_profile_unavailable($html, $visibleText)) {
         return [
@@ -260,10 +367,52 @@ function ig_classify_instagram(string $html, string $visibleText): array
         ];
     }
 
+    if ($httpCode >= 400) {
+        return [
+            'status'               => 'unknown',
+            'detail'               => 'HTTP ' . $httpCode . ' from Instagram — could not load the page reliably.',
+            'update_last_status'   => false,
+        ];
+    }
+
+    if (ig_effective_url_is_gate_or_challenge($effectiveUrl)) {
+        return [
+            'status'               => 'unknown',
+            'detail'               => 'Redirected to login, signup, or challenge — typical on VPS/datacenter IPs; profile not verified.',
+            'update_last_status'   => false,
+        ];
+    }
+
+    if (ig_page_shows_profile_loaded_signals($html, $visibleText, $requestUrl)) {
+        return [
+            'status'             => 'active',
+            'detail'             => 'Profile appears to load (not the “Profile isn’t available” screen).',
+            'update_last_status' => true,
+        ];
+    }
+
+    if (ig_page_looks_like_login_or_checkpoint($html, $visibleText)) {
+        return [
+            'status'               => 'unknown',
+            'detail'               => 'Login or security-check page detected — not treated as an active profile (common on automated/VPS access).',
+            'update_last_status'   => false,
+        ];
+    }
+
+    $vt = trim($visibleText);
+    $ht = trim($html);
+    if (strlen($vt) < 120 && strlen($ht) < 8000) {
+        return [
+            'status'               => 'unknown',
+            'detail'               => 'Very little text/HTML returned — page may not have rendered (blocked or slow on this host).',
+            'update_last_status'   => false,
+        ];
+    }
+
     return [
-        'status'             => 'active',
-        'detail'             => 'Does not show Instagram’s “Profile isn’t available” screen — treated as active.',
-        'update_last_status' => true,
+        'status'               => 'unknown',
+        'detail'               => 'Could not confirm a real profile load (no unavailable screen, but no profile data either — Instagram may block headless access from this server).',
+        'update_last_status'   => false,
     ];
 }
 
@@ -293,7 +442,10 @@ function ig_check_profile_url(string $url): array
 
     return ig_classify_instagram(
         (string) ($pw['html'] ?? ''),
-        (string) ($pw['visible_text'] ?? '')
+        (string) ($pw['visible_text'] ?? ''),
+        (int) ($pw['http_code'] ?? 0),
+        (string) ($pw['effective_url'] ?? ''),
+        $url
     );
 }
 
