@@ -187,39 +187,28 @@ function ig_classify_normalize_for_scan(string $s): string
 }
 
 /**
- * Instagram’s official “removed / broken link” screen (and close variants), or HTTP 404.
- * If this is not shown, we treat the profile as active (login wall, private, or full profile — all “reachable”).
+ * Instagram’s “Profile isn’t available” screen (heading + subtext on the dark error page).
+ * Matches the in-app copy only — anything else (login, private, other errors) is not treated as unavailable here.
  */
-function ig_page_shows_profile_unavailable(string $html, string $visibleText, int $httpCode): bool
+function ig_page_shows_profile_unavailable(string $html, string $visibleText): bool
 {
-    if ($httpCode === 404) {
-        return true;
-    }
+    $raw = $html . "\n" . $visibleText;
+    $combined = ig_classify_normalize_for_scan($raw);
+    $combined = str_replace(
+        ["\xe2\x80\x99", "\xe2\x80\x98", '&#39;', '&#039;', '&#x27;', '&apos;'],
+        "'",
+        $combined
+    );
 
-    $combined = ig_classify_normalize_for_scan($html . "\n" . $visibleText);
-
+    // Exact strings from Instagram’s unavailable profile page (see screenshot).
     $needles = [
         "profile isn't available",
-        'profile isn\'t available',
-        "this page isn't available",
-        'this page isn\'t available',
-        'the link may be broken',
-        'the profile may have been removed',
-        'or the profile may have been removed',
-        'sorry, this page isn\'t available',
-        'user not found',
-        'no users found',
-        'page not found',
-        'user does not exist',
+        'the link may be broken, or the profile may have been removed',
     ];
     foreach ($needles as $n) {
         if (strpos($combined, $n) !== false) {
             return true;
         }
-    }
-
-    if (preg_match('/content\s*=\s*"[^"]*profile[^"]*isn\'t available/i', $html)) {
-        return true;
     }
 
     return false;
@@ -228,19 +217,19 @@ function ig_page_shows_profile_unavailable(string $html, string $visibleText, in
 /**
  * @return array{status: string, detail: string, update_last_status?: bool}
  */
-function ig_classify_instagram(string $html, string $visibleText, int $httpCode): array
+function ig_classify_instagram(string $html, string $visibleText): array
 {
-    if (ig_page_shows_profile_unavailable($html, $visibleText, $httpCode)) {
+    if (ig_page_shows_profile_unavailable($html, $visibleText)) {
         return [
             'status'               => 'unavailable',
-            'detail'               => 'Instagram shows this profile as unavailable (or HTTP 404).',
+            'detail'               => 'Instagram shows “Profile isn’t available” (removed or broken link).',
             'update_last_status'   => true,
         ];
     }
 
     return [
         'status'             => 'active',
-        'detail'             => 'Does not show Instagram’s profile-unavailable screen — treated as active (unsigned check).',
+        'detail'             => 'Does not show Instagram’s “Profile isn’t available” screen — treated as active.',
         'update_last_status' => true,
     ];
 }
@@ -271,8 +260,7 @@ function ig_check_profile_url(string $url): array
 
     return ig_classify_instagram(
         (string) ($pw['html'] ?? ''),
-        (string) ($pw['visible_text'] ?? ''),
-        (int) ($pw['http_code'] ?? 0)
+        (string) ($pw['visible_text'] ?? '')
     );
 }
 
