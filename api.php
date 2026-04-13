@@ -10,7 +10,16 @@ require_once __DIR__ . '/access.php';
 trackify_enforce_ip_whitelist($_SERVER, true);
 
 $action = $_GET['action'] ?? '';
-$authActions = ['start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal', 'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag', 'phone_lookup', 'phone_history', 'ip_lookup', 'exiftool', 'saved_info', 'clear_saved_info', 'saveinfo_start', 'saveinfo_link', 'saveinfo_update_payload', 'saveinfo_templates', 'fb_monitor_list', 'fb_monitor_add', 'fb_monitor_remove', 'fb_monitor_remove_bulk', 'fb_monitor_check', 'fb_monitor_logs', 'fb_monitor_config', 'fb_monitor_save_config', 'fb_monitor_debug'];
+$authActions = [
+    'start', 'stop', 'link', 'captures', 'photos', 'delete_photos', 'clear_captures', 'status', 'terminal',
+    'telegram', 'telegram_config', 'telegram_test', 'update_payload', 'diag',
+    'phone_lookup', 'phone_history', 'ip_lookup', 'exiftool',
+    'saved_info', 'clear_saved_info',
+    'saveinfo_start', 'saveinfo_link', 'saveinfo_update_payload', 'saveinfo_templates',
+    'fb_monitor_list', 'fb_monitor_add', 'fb_monitor_remove', 'fb_monitor_remove_bulk', 'fb_monitor_check',
+    'fb_monitor_logs', 'fb_monitor_config', 'fb_monitor_save_config', 'fb_monitor_debug',
+    'dw_list', 'dw_add', 'dw_remove', 'dw_remove_bulk', 'dw_check', 'dw_logs', 'dw_config', 'dw_save_config', 'dw_debug',
+];
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Content-Type: application/json');
@@ -42,6 +51,7 @@ chdir($baseDir);
 
 require_once $baseDir . '/trackify_capture.php';
 require_once $baseDir . '/includes/fb_monitor_helpers.php';
+require_once $baseDir . '/includes/delete_watch_helpers.php';
 
 switch ($action) {
     case 'start':
@@ -142,6 +152,33 @@ switch ($action) {
         break;
     case 'fb_monitor_debug':
         handleFbMonitorDebug();
+        break;
+    case 'dw_list':
+        handleDwList();
+        break;
+    case 'dw_add':
+        handleDwAdd();
+        break;
+    case 'dw_remove':
+        handleDwRemove();
+        break;
+    case 'dw_remove_bulk':
+        handleDwRemoveBulk();
+        break;
+    case 'dw_check':
+        handleDwCheck();
+        break;
+    case 'dw_logs':
+        handleDwLogs();
+        break;
+    case 'dw_config':
+        handleDwConfig();
+        break;
+    case 'dw_save_config':
+        handleDwSaveConfig();
+        break;
+    case 'dw_debug':
+        handleDwDebug();
         break;
     default:
         echo json_encode(['status' => 'error', 'message' => 'Unknown action']);
@@ -2985,5 +3022,456 @@ function handleFbMonitorDebug(): void
         'phrases_found' => $found,
         'title'         => $title,
         'body_text'     => substr($bodyText, 0, 3000),
+    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+}
+
+// ---------------------------------------------------------------------------
+// Delete Watch handlers
+// ---------------------------------------------------------------------------
+
+function handleDwConfig(): void
+{
+    $uid = dashboard_session_user_id();
+    $cfg = delete_watch_read_config($uid);
+    echo json_encode([
+        'status'                 => 'success',
+        'check_interval_minutes' => (int) ($cfg['check_interval_minutes'] ?? 15),
+    ]);
+}
+
+function handleDwSaveConfig(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+    $uid   = dashboard_session_user_id();
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+    $current = delete_watch_read_config($uid);
+    $interval = max(1, min(1440, (int) ($current['check_interval_minutes'] ?? 15)));
+    if (array_key_exists('check_interval_minutes', $input)) {
+        $interval = max(1, min(1440, (int) $input['check_interval_minutes']));
+    }
+    $ok = delete_watch_write_config($uid, [
+        'check_interval_minutes' => $interval,
+        'updated_at'             => gmdate('c'),
+    ]);
+    echo json_encode([
+        'status'  => $ok ? 'success' : 'error',
+        'message' => $ok ? 'Delete Watch config saved.' : 'Could not write config file.',
+    ]);
+}
+
+function handleDwList(): void
+{
+    $uid = dashboard_session_user_id();
+    $pdo = trackify_pdo();
+    if (!$pdo instanceof PDO) {
+        echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+        return;
+    }
+    $perPage = max(5, min(30, (int) ($_GET['per_page'] ?? 10)));
+    $page    = max(1, (int) ($_GET['page'] ?? 1));
+    $q       = trim((string) ($_GET['q'] ?? ''));
+
+    try {
+        $where  = 'user_id = :uid';
+        $params = [':uid' => $uid];
+        if ($q !== '') {
+            $like = '%' . fb_monitor_sql_like_escape($q) . '%';
+            $where .= ' AND (profile_url LIKE :like1 OR label LIKE :like2)';
+            $params[':like1'] = $like;
+            $params[':like2'] = $like;
+        }
+
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM delete_watch_monitor WHERE $where");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 0;
+        if ($totalPages > 0 && $page > $totalPages) {
+            $page = $totalPages;
+        }
+        $offset = ($page - 1) * $perPage;
+        $lim    = (int) $perPage;
+        $off    = (int) $offset;
+
+        $selectSql = "SELECT id, profile_url, label, last_status, last_checked_at, last_changed_at, created_at
+             FROM delete_watch_monitor WHERE $where
+             ORDER BY created_at DESC LIMIT $lim OFFSET $off";
+        $stmt = $pdo->prepare($selectSql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode([
+            'status'      => 'success',
+            'monitors'    => $rows ?: [],
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $perPage,
+            'total_pages' => $totalPages,
+        ]);
+    } catch (PDOException $e) {
+        echo json_encode(['status' => 'error', 'message' => 'DB error — run the delete_watch_monitor migration: ' . $e->getMessage()]);
+    }
+}
+
+function handleDwAdd(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+    $uid   = dashboard_session_user_id();
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+    $url   = trim((string) ($input['url'] ?? ''));
+    $label = trim((string) ($input['label'] ?? ''));
+
+    if ($label === '') {
+        echo json_encode(['status' => 'error', 'message' => 'Name is required.']);
+        return;
+    }
+    if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+        echo json_encode(['status' => 'error', 'message' => 'A valid URL is required.']);
+        return;
+    }
+    $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+    if (strpos($host, 'facebook.com') === false && strpos($host, 'fb.com') === false) {
+        echo json_encode(['status' => 'error', 'message' => 'Only facebook.com or fb.com URLs are allowed.']);
+        return;
+    }
+    // Follow the same URL acceptance rules as Facebook checker:
+    // host must be facebook.com/fb.com; deeper validation happens in fb_check_profile_url().
+
+    $pdo = trackify_pdo();
+    if (!$pdo instanceof PDO) {
+        echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+        return;
+    }
+    try {
+        // Block adding URLs that are already unavailable right now.
+        $preCheck   = fb_check_profile_url($url);
+        $preStatus  = (string) ($preCheck['status'] ?? 'unknown');
+        $preDetail  = (string) ($preCheck['detail'] ?? '');
+        if ($preStatus === 'unavailable') {
+            echo json_encode([
+                'status'  => 'error',
+                'message' => 'This profile/page is already unavailable. Add only URLs that are currently accessible (active).',
+                'detail'  => $preDetail,
+            ]);
+            return;
+        }
+
+        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM delete_watch_monitor WHERE user_id = ?');
+        $countStmt->execute([$uid]);
+        if ((int) $countStmt->fetchColumn() >= 20) {
+            echo json_encode(['status' => 'error', 'message' => 'Maximum 20 monitors per account.']);
+            return;
+        }
+        $dupStmt = $pdo->prepare('SELECT profile_url FROM delete_watch_monitor WHERE user_id = ?');
+        $dupStmt->execute([$uid]);
+        foreach ($dupStmt->fetchAll(PDO::FETCH_COLUMN) as $existing) {
+            if (fb_monitor_profile_urls_equivalent((string) $existing, $url)) {
+                echo json_encode(['status' => 'error', 'message' => 'This profile URL is already in your list.']);
+                return;
+            }
+        }
+        $ins = $pdo->prepare(
+            "INSERT INTO delete_watch_monitor (user_id, profile_url, label, last_status, created_at)
+             VALUES (?, ?, ?, 'unknown', NOW())"
+        );
+        $ins->execute([$uid, $url, $label]);
+        $id = (int) $pdo->lastInsertId();
+
+        // Immediately check once on add so the row starts with a real baseline status.
+        // Do NOT alert here; alerts are for later transitions to "unavailable".
+        $check     = $preCheck;
+        $newStatus = $preStatus;
+        $detail    = $preDetail;
+        if ($newStatus === 'unknown' && empty($check['update_last_status'])) {
+            // keep last_status=unknown; still record checked time + activity
+            $pdo->prepare('UPDATE delete_watch_monitor SET last_checked_at = NOW() WHERE id = ? AND user_id = ?')
+                ->execute([$id, $uid]);
+            delete_watch_append_activity($uid, 'dashboard', 'unknown', $detail, $label, $url);
+        } else {
+            $now = gmdate('Y-m-d H:i:s');
+            $pdo->prepare(
+                'UPDATE delete_watch_monitor
+                 SET last_status = ?,
+                     last_checked_at = ?,
+                     last_changed_at = CASE WHEN last_status != ? THEN ? ELSE last_changed_at END
+                 WHERE id = ? AND user_id = ?'
+            )->execute([$newStatus, $now, $newStatus, $now, $id, $uid]);
+            delete_watch_append_activity($uid, 'dashboard', $newStatus, $detail, $label, $url);
+        }
+
+        echo json_encode(['status' => 'success', 'id' => $id, 'initial_status' => $newStatus]);
+    } catch (PDOException $e) {
+        echo json_encode(['status' => 'error', 'message' => 'DB error — run the delete_watch_monitor migration: ' . $e->getMessage()]);
+    }
+}
+
+function handleDwRemove(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+    $uid   = dashboard_session_user_id();
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+    $id = (int) ($input['id'] ?? 0);
+    if ($id <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'id required']);
+        return;
+    }
+    $pdo = trackify_pdo();
+    if (!$pdo instanceof PDO) {
+        echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+        return;
+    }
+    try {
+        $sel = $pdo->prepare('SELECT profile_url FROM delete_watch_monitor WHERE id = ? AND user_id = ?');
+        $sel->execute([$id, $uid]);
+        $row = $sel->fetch(PDO::FETCH_ASSOC);
+        $profileUrl = is_array($row) ? trim((string) ($row['profile_url'] ?? '')) : '';
+
+        $del = $pdo->prepare('DELETE FROM delete_watch_monitor WHERE id = ? AND user_id = ?');
+        $del->execute([$id, $uid]);
+        if ($del->rowCount() > 0 && $profileUrl !== '') {
+            delete_watch_purge_activity_for_profile_urls($uid, [$profileUrl]);
+        }
+    } catch (PDOException $e) {
+        echo json_encode(['status' => 'error', 'message' => 'DB error: ' . $e->getMessage()]);
+        return;
+    }
+    echo json_encode(['status' => 'success']);
+}
+
+function handleDwRemoveBulk(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+    $uid   = dashboard_session_user_id();
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+    $rawIds = $input['ids'] ?? null;
+    if (!is_array($rawIds) || $rawIds === []) {
+        echo json_encode(['status' => 'error', 'message' => 'No items selected.']);
+        return;
+    }
+    $seen = [];
+    foreach ($rawIds as $v) {
+        $id = (int) $v;
+        if ($id > 0) {
+            $seen[$id] = true;
+        }
+    }
+    $ids = array_keys($seen);
+    if ($ids === []) {
+        echo json_encode(['status' => 'error', 'message' => 'No valid ids.']);
+        return;
+    }
+    if (count($ids) > 50) {
+        echo json_encode(['status' => 'error', 'message' => 'Too many items at once (max 50).']);
+        return;
+    }
+    $pdo = trackify_pdo();
+    if (!$pdo instanceof PDO) {
+        echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+        return;
+    }
+    try {
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $selSql       = 'SELECT profile_url FROM delete_watch_monitor WHERE user_id = ? AND id IN (' . $placeholders . ')';
+        $sel          = $pdo->prepare($selSql);
+        $sel->execute(array_merge([$uid], $ids));
+        $urlRows = $sel->fetchAll(PDO::FETCH_ASSOC);
+        $purgeUrls = [];
+        foreach ($urlRows as $ur) {
+            if (!is_array($ur)) {
+                continue;
+            }
+            $u = trim((string) ($ur['profile_url'] ?? ''));
+            if ($u !== '') {
+                $purgeUrls[] = $u;
+            }
+        }
+
+        $sql    = 'DELETE FROM delete_watch_monitor WHERE user_id = ? AND id IN (' . $placeholders . ')';
+        $stmt   = $pdo->prepare($sql);
+        $params = array_merge([$uid], $ids);
+        $stmt->execute($params);
+        $deleted = $stmt->rowCount();
+        if ($purgeUrls !== []) {
+            delete_watch_purge_activity_for_profile_urls($uid, $purgeUrls);
+        }
+        echo json_encode(['status' => 'success', 'deleted' => $deleted]);
+    } catch (PDOException $e) {
+        echo json_encode(['status' => 'error', 'message' => 'DB error — run the delete_watch_monitor migration: ' . $e->getMessage()]);
+    }
+}
+
+function handleDwCheck(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+    $uid   = dashboard_session_user_id();
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+    $onlyId = isset($input['id']) ? (int) $input['id'] : null;
+
+    $pdo = trackify_pdo();
+    if (!$pdo instanceof PDO) {
+        echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+        return;
+    }
+
+    try {
+        if ($onlyId !== null) {
+            $stmt = $pdo->prepare('SELECT * FROM delete_watch_monitor WHERE id = ? AND user_id = ?');
+            $stmt->execute([$onlyId, $uid]);
+        } else {
+            $stmt = $pdo->prepare('SELECT * FROM delete_watch_monitor WHERE user_id = ?');
+            $stmt->execute([$uid]);
+        }
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        echo json_encode(['status' => 'error', 'message' => 'DB error: ' . $e->getMessage() . '. Run the delete_watch_monitor CREATE TABLE migration.']);
+        return;
+    }
+
+    $results = [];
+    foreach ($rows as $row) {
+        $prevStatus = (string) $row['last_status'];
+        $check      = fb_check_profile_url((string) $row['profile_url']);
+        $newStatus  = $check['status'];
+        $detail     = $check['detail'];
+        $rowLabel   = (string) ($row['label'] ?? '');
+        $profileUrl = (string) $row['profile_url'];
+
+        if ($newStatus === 'unknown' && empty($check['update_last_status'])) {
+            $results[] = ['id' => (int) $row['id'], 'status' => 'unknown', 'detail' => $detail, 'changed' => false];
+            delete_watch_append_activity($uid, 'dashboard', 'unknown', $detail, $rowLabel, $profileUrl);
+            continue;
+        }
+
+        $changed = $newStatus !== $prevStatus;
+        $now     = gmdate('Y-m-d H:i:s');
+
+        try {
+            $upd = $pdo->prepare(
+                'UPDATE delete_watch_monitor
+                 SET last_status = ?,
+                     last_checked_at = ?,
+                     last_changed_at = CASE WHEN last_status != ? THEN ? ELSE last_changed_at END
+                 WHERE id = ? AND user_id = ?'
+            );
+            $upd->execute([$newStatus, $now, $newStatus, $now, (int) $row['id'], $uid]);
+        } catch (PDOException $e) {
+            $results[] = ['id' => (int) $row['id'], 'status' => 'error', 'detail' => $e->getMessage(), 'changed' => false];
+            delete_watch_append_activity($uid, 'dashboard', 'error', $e->getMessage(), $rowLabel, $profileUrl);
+            continue;
+        }
+
+        if ($changed && $newStatus === 'unavailable' && in_array($prevStatus, ['active', 'inactive', 'unknown'], true)) {
+            delete_watch_send_unavailable_alert($profileUrl, $rowLabel);
+        }
+
+        $results[] = ['id' => (int) $row['id'], 'status' => $newStatus, 'detail' => $detail, 'changed' => $changed];
+        delete_watch_append_activity($uid, 'dashboard', $newStatus, $detail, $rowLabel, $profileUrl);
+    }
+
+    $payload = json_encode(
+        ['status' => 'success', 'results' => $results],
+        JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE
+    );
+    echo $payload !== false ? $payload : json_encode(['status' => 'error', 'message' => 'Response encoding failed']);
+}
+
+function handleDwLogs(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        echo json_encode(['status' => 'error', 'message' => 'GET required']);
+        return;
+    }
+    $uid = dashboard_session_user_id();
+    $entries = delete_watch_read_activity_log($uid);
+
+    $monitorId = isset($_GET['monitor_id']) ? (int) $_GET['monitor_id'] : 0;
+    if ($monitorId > 0) {
+        $pdo = trackify_pdo();
+        if (!$pdo instanceof PDO) {
+            echo json_encode(['status' => 'error', 'message' => 'Database not available']);
+            return;
+        }
+        try {
+            $stmt = $pdo->prepare('SELECT profile_url, label FROM delete_watch_monitor WHERE id = ? AND user_id = ? LIMIT 1');
+            $stmt->execute([$monitorId, $uid]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'DB error']);
+            return;
+        }
+        if (!is_array($row)) {
+            echo json_encode(['status' => 'error', 'message' => 'Monitor not found']);
+            return;
+        }
+        $wantUrl = (string) ($row['profile_url'] ?? '');
+        $filtered = [];
+        foreach ($entries as $e) {
+            if (!is_array($e)) {
+                continue;
+            }
+            $u = (string) ($e['profile_url'] ?? '');
+            if (delete_watch_urls_match($u, $wantUrl)) {
+                $filtered[] = $e;
+            }
+        }
+        echo json_encode([
+            'status'  => 'success',
+            'entries' => $filtered,
+            'context' => [
+                'profile_url' => $wantUrl,
+                'label'       => (string) ($row['label'] ?? ''),
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return;
+    }
+
+    echo json_encode(['status' => 'success', 'entries' => $entries]);
+}
+
+function handleDwDebug(): void
+{
+    $url = trim((string) ($_GET['url'] ?? ''));
+    if ($url === '') {
+        echo json_encode(['status' => 'error', 'message' => 'url param required']);
+        return;
+    }
+
+    // Reuse the same diagnostics structure as FB Monitor, but label it for Delete Watch.
+    $check = fb_check_profile_url($url);
+    echo json_encode([
+        'status'         => 'success',
+        'requested_url'  => $url,
+        'checker_status' => $check['status'] ?? null,
+        'checker_detail' => $check['detail'] ?? null,
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
 }

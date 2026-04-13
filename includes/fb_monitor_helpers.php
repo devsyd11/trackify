@@ -349,6 +349,11 @@ function fb_profile_identifier_from_url(string $url): array
         return ['type' => 'username', 'value' => strtolower($segments[1])];
     }
 
+    // Routed profile/page: /gaming/<name> (Facebook Gaming pages)
+    if (count($segments) >= 2 && strtolower($segments[0]) === 'gaming' && $segments[1] !== '') {
+        return ['type' => 'username', 'value' => strtolower($segments[1])];
+    }
+
     // Username / vanity URL style (first path segment)
     $first = strtolower($segments[0] ?? '');
     if ($first !== '' && $first !== 'pages' && $first !== 'people') {

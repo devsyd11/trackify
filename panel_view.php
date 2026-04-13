@@ -1327,13 +1327,33 @@ $userNavInitial = $userNavInitial ?? '?';
             box-sizing: border-box;
             padding: 40px 24px;
         }
+        /* Delete Watch — same layout as Facebook Monitor */
+        #deletewatchLayout.phone-layout {
+            width: 100%;
+            max-width: none;
+            align-self: stretch;
+            box-sizing: border-box;
+            padding: 40px 24px;
+        }
         #fbmonitorLayout .phone-layout-inner {
+            max-width: none;
+            width: 100%;
+            margin: 0;
+        }
+        #deletewatchLayout .phone-layout-inner {
             max-width: none;
             width: 100%;
             margin: 0;
         }
         /* Must beat `.phone-layout-columns` (same specificity); otherwise two columns + empty track */
         #fbmonitorLayout .phone-layout-columns--fbmonitor {
+            grid-template-columns: minmax(0, 1fr);
+            width: 100%;
+            max-width: none;
+            margin: 0;
+        }
+        /* Must beat `.phone-layout-columns` (same specificity); otherwise two columns + empty track */
+        #deletewatchLayout .phone-layout-columns--fbmonitor {
             grid-template-columns: minmax(0, 1fr);
             width: 100%;
             max-width: none;
@@ -1857,6 +1877,9 @@ $userNavInitial = $userNavInitial ?? '?';
             #fbmonitorLayout.phone-layout {
                 padding: 16px;
             }
+            #deletewatchLayout.phone-layout {
+                padding: 16px;
+            }
             .phone-layout {
                 padding: 16px;
             }
@@ -2138,6 +2161,10 @@ $userNavInitial = $userNavInitial ?? '?';
                             </svg>
                         </span>
                         <span class="side-nav-item-label">Facebook checker</span>
+                    </button>
+                    <button type="button" class="side-nav-item side-nav-item--sub" id="navItemDeleteWatch" onclick="switchView('deletewatch')" title="Delete Watch">
+                        <span class="side-nav-item-icon" aria-hidden="true">🗑</span>
+                        <span class="side-nav-item-label">Delete Watch</span>
                     </button>
                 </div>
             </div>
@@ -2545,6 +2572,68 @@ $userNavInitial = $userNavInitial ?? '?';
                 </div>
             </div>
         </section>
+        <section id="deletewatchLayout" class="phone-layout" style="display:none" aria-label="Delete Watch — Facebook profiles and pages">
+            <div class="phone-layout-inner">
+                <div class="phone-layout-columns phone-layout-columns--fbmonitor">
+                    <div class="card fb-monitor-card">
+                        <div class="fb-monitor-page-head">
+                            <div>
+                                <h2>Delete Watch</h2>
+                                <p class="subtitle card-view-desc fb-monitor-desc" style="color:var(--text-muted);margin:0">
+                                    Watch Facebook profiles or pages and get Telegram alerts when something you monitor becomes unavailable.
+                                </p>
+                            </div>
+                            <div class="fb-monitor-page-actions">
+                                <button type="button" class="fb-monitor-btn-add" onclick="dwOpenAddModal()">+ Add profile or page</button>
+                                <button type="button" class="btn btn-primary" id="dwCheckAllBtn" onclick="dwCheckAll()">Check all</button>
+                            </div>
+                        </div>
+
+                        <div class="fb-monitor-search-card">
+                            <span class="fb-monitor-search-label">Filter list</span>
+                            <div class="fb-monitor-search-row">
+                                <label for="dwSearch" class="fb-monitor-search-wrap">
+                                    <span class="fb-monitor-search-icon" aria-hidden="true">🔍</span>
+                                    <input type="search" id="dwSearch" placeholder="Search by name, URL, or status…" autocomplete="off">
+                                </label>
+                                <div class="fb-monitor-search-actions">
+                                    <button type="button" class="fb-monitor-refresh-btn" id="dwRefreshBtn" onclick="dwRefreshTable()" title="Refresh table">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                                        Refresh
+                                    </button>
+                                    <button type="button" class="fb-monitor-bulk-delete-btn" id="dwBulkDeleteBtn" onclick="dwOpenBulkRemoveModal()" hidden title="Bulk remove selected rows" aria-label="Bulk remove selected rows">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                        <span>Bulk Remove</span><span class="fb-monitor-bulk-count" id="dwBulkCount"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="fb-monitor-table-card">
+                            <div class="fb-monitor-table-title">Monitored profiles &amp; pages</div>
+                            <div class="saved-info-table-scroll" id="dwTableWrap" style="max-height:min(520px,55vh)">
+                                <table class="saved-info-table" id="dwTable" aria-label="Monitored Facebook profiles and pages (Delete Watch)">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col" class="fb-monitor-col-check">
+                                                <input type="checkbox" id="dwSelectAll" title="Select all on this page" aria-label="Select all on this page" disabled>
+                                            </th>
+                                            <th scope="col">Name</th>
+                                            <th scope="col">Facebook URL</th>
+                                            <th scope="col">Status</th>
+                                            <th scope="col" class="saved-info-col-time">Last checked</th>
+                                            <th scope="col" style="min-width:15rem">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dwTableBody" class="fb-monitor-tbody" aria-live="polite"></tbody>
+                                </table>
+                            </div>
+                            <nav class="fb-monitor-pagination" id="dwPagination" aria-label="Delete Watch list pages" hidden></nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
     <div class="lightbox" id="lightbox" onclick="closeLightbox()" role="dialog" aria-modal="true" aria-label="Full size capture">
@@ -2622,6 +2711,66 @@ $userNavInitial = $userNavInitial ?? '?';
             <div class="fb-monitor-modal-actions" style="margin-top:0">
                 <button type="button" class="btn btn-danger" onclick="fbMonitorConfirmBulkRemove()">Remove</button>
                 <button type="button" class="btn btn-secondary" onclick="fbMonitorCloseBulkRemoveModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="dwAddModal" role="dialog" aria-modal="true" aria-labelledby="dwAddModalTitle" onclick="dwCloseAddModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:440px">
+            <h2 class="modal-title" id="dwAddModalTitle">Add profile or page</h2>
+            <p style="font-size:13px;color:var(--text-muted);margin:-8px 0 16px;line-height:1.45">Enter a Facebook profile or page URL and a display name for your list.</p>
+            <div class="fb-monitor-modal-fields">
+                <div class="phone-lookup-input-wrap">
+                    <label for="dwUrlInput">Facebook URL</label>
+                    <input type="url" id="dwUrlInput"
+                           placeholder="https://www.facebook.com/username or …/pagename"
+                           autocomplete="off">
+                </div>
+                <div class="phone-lookup-input-wrap">
+                    <label for="dwNameInput">Name <span style="color:#f85149" aria-hidden="true">*</span></label>
+                    <input type="text" id="dwNameInput"
+                           placeholder="e.g. John Doe"
+                           autocomplete="off"
+                           required
+                           maxlength="191"
+                           aria-required="true">
+                </div>
+                <div id="dwAddError" class="phone-lookup-error" role="alert" hidden></div>
+            </div>
+            <div class="fb-monitor-modal-actions">
+                <button type="button" class="btn btn-primary" onclick="dwAdd()">Save</button>
+                <button type="button" class="btn btn-secondary" onclick="dwCloseAddModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="dwRowLogModal" role="dialog" aria-modal="true" aria-labelledby="dwRowLogModalTitle" onclick="dwCloseRowLogModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:520px">
+            <h2 class="modal-title" id="dwRowLogModalTitle">Check log</h2>
+            <p id="dwRowLogModalSub" style="font-size:12px;color:var(--text-muted);margin:-6px 0 12px;word-break:break-all;line-height:1.45"></p>
+            <pre class="fb-monitor-log-terminal fb-monitor-row-log-terminal" id="dwRowLogTerminal" style="max-height:min(360px,50vh);margin:0"></pre>
+            <button type="button" class="btn btn-secondary" style="width:100%;margin-top:14px" onclick="dwCloseRowLogModal()">Close</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="dwRemoveModal" role="dialog" aria-modal="true" aria-labelledby="dwRemoveModalTitle" onclick="dwCloseRemoveModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:400px">
+            <h2 class="modal-title" id="dwRemoveModalTitle">Remove from monitoring?</h2>
+            <p style="font-size:14px;color:var(--text-muted);margin:-6px 0 20px;line-height:1.55">This URL will be removed from your list. You can add it again later from <strong style="color:var(--text)">Delete Watch</strong>.</p>
+            <div class="fb-monitor-modal-actions" style="margin-top:0">
+                <button type="button" class="btn btn-danger" onclick="dwConfirmRemove()">Remove</button>
+                <button type="button" class="btn btn-secondary" onclick="dwCloseRemoveModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="dwBulkRemoveModal" role="dialog" aria-modal="true" aria-labelledby="dwBulkRemoveModalTitle" onclick="dwCloseBulkRemoveModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:420px">
+            <h2 class="modal-title" id="dwBulkRemoveModalTitle">Remove selected?</h2>
+            <p id="dwBulkRemoveModalBody" style="font-size:14px;color:var(--text-muted);margin:-6px 0 20px;line-height:1.55"></p>
+            <div class="fb-monitor-modal-actions" style="margin-top:0">
+                <button type="button" class="btn btn-danger" onclick="dwConfirmBulkRemove()">Remove</button>
+                <button type="button" class="btn btn-secondary" onclick="dwCloseBulkRemoveModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -3223,6 +3372,8 @@ $userNavInitial = $userNavInitial ?? '?';
 
         var fbMonitorListState = { page: 1, perPage: 10, q: '' };
         var fbMonitorSearchDebounceTimer = null;
+        var dwListState = { page: 1, perPage: 10, q: '' };
+        var dwSearchDebounceTimer = null;
 
         function switchView(which) {
             const trackifyLayout = document.getElementById('trackifyLayout');
@@ -3231,18 +3382,21 @@ $userNavInitial = $userNavInitial ?? '?';
             const saveInfoLayout = document.getElementById('saveInfoLayout');
             const exiftoolLayout = document.getElementById('exiftoolLayout');
             const fbmonitorLayout = document.getElementById('fbmonitorLayout');
+            const deletewatchLayout = document.getElementById('deletewatchLayout');
             const navTrackify = document.getElementById('navItemTrackify');
             const navPhone = document.getElementById('navItemPhone');
             const navIp = document.getElementById('navItemIp');
             const navSaveInfo = document.getElementById('navItemSaveInfo');
             const navExiftool = document.getElementById('navItemExiftool');
             const navAccountChecker = document.getElementById('navItemAccountChecker');
+            const navDeleteWatch = document.getElementById('navItemDeleteWatch');
             const grpFbTools = document.getElementById('sideNavGroupFbTools');
 
             if (!trackifyLayout || !phoneLayout || !ipLayout || !navTrackify || !navPhone || !navIp) return;
 
             closeSideNav();
             fbMonitorStopListAutoRefresh();
+            dwStopListAutoRefresh();
 
             navTrackify.classList.remove('active');
             navPhone.classList.remove('active');
@@ -3255,6 +3409,9 @@ $userNavInitial = $userNavInitial ?? '?';
             }
             if (navAccountChecker) {
                 navAccountChecker.classList.remove('active');
+            }
+            if (navDeleteWatch) {
+                navDeleteWatch.classList.remove('active');
             }
             if (grpFbTools) {
                 grpFbTools.classList.remove('has-active-child');
@@ -3273,6 +3430,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 if (fbmonitorLayout) {
                     fbmonitorLayout.style.display = 'none';
                 }
+                if (deletewatchLayout) {
+                    deletewatchLayout.style.display = 'none';
+                }
                 navPhone.classList.add('active');
                 loadPhoneHistory();
             } else if (which === 'ip') {
@@ -3287,6 +3447,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 }
                 if (fbmonitorLayout) {
                     fbmonitorLayout.style.display = 'none';
+                }
+                if (deletewatchLayout) {
+                    deletewatchLayout.style.display = 'none';
                 }
                 navIp.classList.add('active');
                 setTimeout(function () {
@@ -3304,6 +3467,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 if (fbmonitorLayout) {
                     fbmonitorLayout.style.display = 'none';
                 }
+                if (deletewatchLayout) {
+                    deletewatchLayout.style.display = 'none';
+                }
                 exiftoolLayout.style.display = 'block';
                 navExiftool.classList.add('active');
             } else if (which === 'saveinfo' && saveInfoLayout && navSaveInfo) {
@@ -3315,6 +3481,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 }
                 if (fbmonitorLayout) {
                     fbmonitorLayout.style.display = 'none';
+                }
+                if (deletewatchLayout) {
+                    deletewatchLayout.style.display = 'none';
                 }
                 saveInfoLayout.style.display = 'block';
                 navSaveInfo.classList.add('active');
@@ -3330,6 +3499,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 if (saveInfoLayout) {
                     saveInfoLayout.style.display = 'none';
                 }
+                if (deletewatchLayout) {
+                    deletewatchLayout.style.display = 'none';
+                }
                 fbmonitorLayout.style.display = 'block';
                 navAccountChecker.classList.add('active');
                 if (grpFbTools) {
@@ -3343,6 +3515,32 @@ $userNavInitial = $userNavInitial ?? '?';
                 }
                 loadFbMonitorList();
                 fbMonitorStartListAutoRefresh();
+            } else if (which === 'deletewatch' && deletewatchLayout && navDeleteWatch) {
+                trackifyLayout.style.display = 'none';
+                phoneLayout.style.display = 'none';
+                ipLayout.style.display = 'none';
+                if (exiftoolLayout) {
+                    exiftoolLayout.style.display = 'none';
+                }
+                if (saveInfoLayout) {
+                    saveInfoLayout.style.display = 'none';
+                }
+                if (fbmonitorLayout) {
+                    fbmonitorLayout.style.display = 'none';
+                }
+                deletewatchLayout.style.display = 'block';
+                navDeleteWatch.classList.add('active');
+                if (grpFbTools) {
+                    grpFbTools.classList.add('has-active-child');
+                    grpFbTools.classList.remove('is-collapsed');
+                }
+                setFbToolsNavExpanded(true);
+                var dwSearchInp = document.getElementById('dwSearch');
+                if (dwSearchInp) {
+                    dwListState.q = (dwSearchInp.value || '').trim();
+                }
+                loadDwList();
+                dwStartListAutoRefresh();
             } else {
                 trackifyLayout.style.display = 'grid';
                 phoneLayout.style.display = 'none';
@@ -3355,6 +3553,9 @@ $userNavInitial = $userNavInitial ?? '?';
                 }
                 if (fbmonitorLayout) {
                     fbmonitorLayout.style.display = 'none';
+                }
+                if (deletewatchLayout) {
+                    deletewatchLayout.style.display = 'none';
                 }
                 navTrackify.classList.add('active');
             }
@@ -3413,7 +3614,7 @@ $userNavInitial = $userNavInitial ?? '?';
             try {
                 const params = new URLSearchParams(window.location.search);
                 const view = (params.get('view') || '').toLowerCase();
-                if (view === 'saveinfo' || view === 'phone' || view === 'ip' || view === 'exiftool' || view === 'fbmonitor') {
+                if (view === 'saveinfo' || view === 'phone' || view === 'ip' || view === 'exiftool' || view === 'fbmonitor' || view === 'deletewatch') {
                     switchView(view);
                 }
             } catch (e) {}
@@ -4593,6 +4794,597 @@ $userNavInitial = $userNavInitial ?? '?';
 
         // -----------------------------------------------------------------------
         // End Facebook Monitor JS
+        // -----------------------------------------------------------------------
+
+        // -----------------------------------------------------------------------
+        // Delete Watch JS (Facebook unavailable alerts)
+        // -----------------------------------------------------------------------
+
+        var dwPendingRemoveId = null;
+        var dwListAutoRefreshTimer = null;
+
+        function dwOpenAddModal() {
+            var m = document.getElementById('dwAddModal');
+            var err = document.getElementById('dwAddError');
+            if (err) { err.hidden = true; err.textContent = ''; }
+            if (m) {
+                m.classList.add('show');
+                setTimeout(function () {
+                    var inp = document.getElementById('dwUrlInput');
+                    if (inp) inp.focus();
+                }, 80);
+            }
+        }
+
+        function dwCloseAddModal(event) {
+            var m = document.getElementById('dwAddModal');
+            if (!m || !m.classList.contains('show')) return;
+            if (event !== undefined && event !== null && event.target !== event.currentTarget) return;
+            m.classList.remove('show');
+        }
+
+        function dwOpenRemoveModal(id) {
+            dwPendingRemoveId = id;
+            var m = document.getElementById('dwRemoveModal');
+            if (m) m.classList.add('show');
+        }
+
+        function dwCloseRemoveModal(event) {
+            var m = document.getElementById('dwRemoveModal');
+            if (!m || !m.classList.contains('show')) return;
+            if (event !== undefined && event !== null && event.target !== event.currentTarget) return;
+            m.classList.remove('show');
+            dwPendingRemoveId = null;
+        }
+
+        async function dwConfirmRemove() {
+            var id = dwPendingRemoveId;
+            if (id == null) return;
+            try {
+                await fetch('api.php?action=dw_remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id }),
+                    credentials: 'same-origin'
+                });
+                await loadDwList();
+            } catch (e) {
+                // silent
+            } finally {
+                dwCloseRemoveModal();
+            }
+        }
+
+        function dwGetSelectedIds() {
+            const out = [];
+            document.querySelectorAll('#dwTableBody .fb-monitor-row-cb:checked').forEach(function (cb) {
+                const id = parseInt(cb.getAttribute('data-monitor-id'), 10);
+                if (id > 0) {
+                    out.push(id);
+                }
+            });
+            return out;
+        }
+
+        function dwSyncSelectAllFromRows() {
+            const sel = document.getElementById('dwSelectAll');
+            if (!sel) return;
+            const boxes = document.querySelectorAll('#dwTableBody .fb-monitor-row-cb');
+            if (boxes.length === 0) {
+                sel.checked = false;
+                sel.indeterminate = false;
+                sel.disabled = true;
+                return;
+            }
+            sel.disabled = false;
+            let n = 0;
+            boxes.forEach(function (cb) {
+                if (cb.checked) {
+                    n++;
+                }
+            });
+            sel.checked = n === boxes.length;
+            sel.indeterminate = n > 0 && n < boxes.length;
+        }
+
+        function dwUpdateBulkToolbar() {
+            const btn = document.getElementById('dwBulkDeleteBtn');
+            const cnt = document.getElementById('dwBulkCount');
+            const n = document.querySelectorAll('#dwTableBody .fb-monitor-row-cb:checked').length;
+            if (btn) {
+                btn.hidden = n === 0;
+                btn.setAttribute('aria-label', n === 0 ? 'Bulk remove selected rows' : 'Bulk remove ' + n + ' selected row' + (n === 1 ? '' : 's'));
+            }
+            if (cnt) {
+                cnt.textContent = n > 0 ? ' (' + n + ')' : '';
+            }
+        }
+
+        function dwOpenBulkRemoveModal() {
+            const ids = dwGetSelectedIds();
+            if (ids.length === 0) {
+                fbMonitorToast('Select at least one row.', true);
+                return;
+            }
+            const body = document.getElementById('dwBulkRemoveModalBody');
+            const m = document.getElementById('dwBulkRemoveModal');
+            if (body) {
+                body.textContent = ids.length === 1
+                    ? 'Remove 1 profile or page from your list? You can add it again later.'
+                    : 'Remove ' + ids.length + ' profiles or pages from your list? You can add them again later.';
+            }
+            if (m) {
+                m.classList.add('show');
+            }
+        }
+
+        function dwCloseBulkRemoveModal(event) {
+            const m = document.getElementById('dwBulkRemoveModal');
+            if (!m || !m.classList.contains('show')) return;
+            if (event !== undefined && event !== null && event.target !== event.currentTarget) return;
+            m.classList.remove('show');
+        }
+
+        async function dwConfirmBulkRemove() {
+            const ids = dwGetSelectedIds();
+            if (ids.length === 0) {
+                dwCloseBulkRemoveModal();
+                return;
+            }
+            try {
+                const res = await fetch('api.php?action=dw_remove_bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: ids }),
+                    credentials: 'same-origin'
+                });
+                const data = await res.json().catch(function () { return {}; });
+                dwCloseBulkRemoveModal();
+                if (data.status !== 'success') {
+                    fbMonitorToast(data.message || 'Could not delete.', true);
+                    return;
+                }
+                const del = typeof data.deleted === 'number' ? data.deleted : ids.length;
+                fbMonitorToast(del === 1 ? 'Removed 1 item.' : 'Removed ' + del + ' items.', false);
+                await loadDwList();
+            } catch (e) {
+                dwCloseBulkRemoveModal();
+                fbMonitorToast('Network error — try again.', true);
+            }
+        }
+
+        (function dwInitBulkSelection() {
+            const table = document.getElementById('dwTable');
+            const selAll = document.getElementById('dwSelectAll');
+            if (!table || !selAll || table._dwBulkInit) return;
+            table._dwBulkInit = true;
+            selAll.addEventListener('change', function () {
+                const on = selAll.checked;
+                document.querySelectorAll('#dwTableBody .fb-monitor-row-cb').forEach(function (cb) {
+                    cb.checked = on;
+                });
+                dwSyncSelectAllFromRows();
+                dwUpdateBulkToolbar();
+            });
+            table.addEventListener('change', function (e) {
+                if (e.target && e.target.classList && e.target.classList.contains('fb-monitor-row-cb')) {
+                    dwSyncSelectAllFromRows();
+                    dwUpdateBulkToolbar();
+                }
+            });
+        })();
+
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Escape') return;
+            var m = document.getElementById('dwAddModal');
+            if (m && m.classList.contains('show')) {
+                m.classList.remove('show');
+                return;
+            }
+            var rem = document.getElementById('dwRemoveModal');
+            if (rem && rem.classList.contains('show')) {
+                rem.classList.remove('show');
+                dwPendingRemoveId = null;
+                return;
+            }
+            var bulkRem = document.getElementById('dwBulkRemoveModal');
+            if (bulkRem && bulkRem.classList.contains('show')) {
+                bulkRem.classList.remove('show');
+                return;
+            }
+            var rowLog = document.getElementById('dwRowLogModal');
+            if (rowLog && rowLog.classList.contains('show')) {
+                rowLog.classList.remove('show');
+            }
+        });
+
+        function dwCloseRowLogModal(event) {
+            const m = document.getElementById('dwRowLogModal');
+            if (!m || !m.classList.contains('show')) return;
+            if (event && event.target !== event.currentTarget) return;
+            m.classList.remove('show');
+        }
+
+        async function dwOpenRowLogs(id) {
+            const modal = document.getElementById('dwRowLogModal');
+            const titleEl = document.getElementById('dwRowLogModalTitle');
+            const subEl = document.getElementById('dwRowLogModalSub');
+            const pre = document.getElementById('dwRowLogTerminal');
+            if (!modal || !pre) return;
+            modal.classList.add('show');
+            pre.innerHTML = '<span class="fb-monitor-log-empty">Loading…</span>';
+            if (titleEl) titleEl.textContent = 'Check log';
+            if (subEl) subEl.textContent = '';
+            try {
+                const res = await fetch('api.php?action=dw_logs&monitor_id=' + encodeURIComponent(String(id)), { credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    pre.innerHTML = '<span class="fb-monitor-log-empty">' + escHtml(data.message || 'Could not load log.') + '</span>';
+                    return;
+                }
+                const ctx = data.context || {};
+                const lbl = (ctx.label && String(ctx.label).trim()) ? String(ctx.label).trim() : '';
+                if (titleEl) titleEl.textContent = lbl ? lbl : 'Check log';
+                if (subEl) subEl.textContent = ctx.profile_url ? String(ctx.profile_url) : '';
+                const entries = data.entries || [];
+                if (entries.length === 0) {
+                    pre.innerHTML = '<span class="fb-monitor-log-empty">No logged checks for this URL yet. Run <strong>Check</strong> or wait for cron.</span>';
+                    return;
+                }
+                pre.innerHTML = fbMonitorFormatLogEntriesHtml(entries, { hideUrlInMeta: true });
+            } catch (e) {
+                pre.innerHTML = '<span class="fb-monitor-log-empty">Network error loading log.</span>';
+            }
+        }
+
+        function dwRenderPagination(meta) {
+            const el = document.getElementById('dwPagination');
+            if (!el) return;
+            const total = meta.total || 0;
+            const page = meta.page || 1;
+            const perPage = meta.per_page || 10;
+            const totalPages = meta.total_pages || 0;
+            if (total === 0) {
+                el.innerHTML = '';
+                el.hidden = true;
+                return;
+            }
+            el.hidden = false;
+            const start = (page - 1) * perPage + 1;
+            const end = Math.min(page * perPage, total);
+            const info = 'Showing ' + start + '–' + end + ' of ' + total;
+            const prevDisabled = page <= 1;
+            const nextDisabled = totalPages <= 1 || page >= totalPages;
+            el.innerHTML =
+                '<div class="fb-monitor-pagination-inner">' +
+                '<span class="fb-monitor-pagination-info">' + escHtml(info) + '</span>' +
+                '<div class="fb-monitor-pagination-btns">' +
+                '<button type="button" class="btn btn-secondary" id="dwPagePrev"' + (prevDisabled ? ' disabled' : '') + '>Previous</button>' +
+                '<span class="fb-monitor-pagination-page">Page ' + page + ' of ' + (totalPages || 1) + '</span>' +
+                '<button type="button" class="btn btn-secondary" id="dwPageNext"' + (nextDisabled ? ' disabled' : '') + '>Next</button>' +
+                '</div>' +
+                '</div>';
+            const prev = document.getElementById('dwPagePrev');
+            const next = document.getElementById('dwPageNext');
+            if (prev && !prevDisabled) {
+                prev.addEventListener('click', function () {
+                    dwListState.page = Math.max(1, page - 1);
+                    void loadDwList();
+                });
+            }
+            if (next && !nextDisabled) {
+                next.addEventListener('click', function () {
+                    dwListState.page = Math.min(totalPages, page + 1);
+                    void loadDwList();
+                });
+            }
+        }
+
+        function dwSearchApply() {
+            const inp = document.getElementById('dwSearch');
+            dwListState.q = (inp && inp.value ? inp.value : '').trim();
+            dwListState.page = 1;
+            void loadDwList();
+        }
+
+        (function bindDwSearch() {
+            const inp = document.getElementById('dwSearch');
+            if (!inp || inp._dwSearchBound) return;
+            inp._dwSearchBound = true;
+            inp.addEventListener('input', function () {
+                clearTimeout(dwSearchDebounceTimer);
+                dwSearchDebounceTimer = setTimeout(dwSearchApply, 320);
+            });
+            inp.addEventListener('search', function () {
+                clearTimeout(dwSearchDebounceTimer);
+                dwSearchApply();
+            });
+        })();
+
+        function dwStopListAutoRefresh() {
+            if (dwListAutoRefreshTimer !== null) {
+                clearInterval(dwListAutoRefreshTimer);
+                dwListAutoRefreshTimer = null;
+            }
+        }
+
+        function dwStartListAutoRefresh() {
+            dwStopListAutoRefresh();
+            dwListAutoRefreshTimer = setInterval(function () {
+                if (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden') {
+                    return;
+                }
+                var dwL = document.getElementById('deletewatchLayout');
+                if (dwL && dwL.style.display !== 'none') {
+                    loadDwList();
+                }
+            }, 60000);
+        }
+
+        function dwRefreshTable() {
+            var btn = document.getElementById('dwRefreshBtn');
+            if (btn) {
+                btn.disabled = true;
+            }
+            Promise.resolve(loadDwList()).finally(function () {
+                if (btn) {
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        async function loadDwList() {
+            const tbody = document.getElementById('dwTableBody');
+            const pagEl = document.getElementById('dwPagination');
+            if (!tbody) return;
+            try {
+                const qs = new URLSearchParams();
+                qs.set('action', 'dw_list');
+                qs.set('page', String(dwListState.page));
+                qs.set('per_page', String(dwListState.perPage));
+                if (dwListState.q) {
+                    qs.set('q', dwListState.q);
+                }
+                const res = await fetch('api.php?' + qs.toString(), { credentials: 'same-origin' });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    if (pagEl) {
+                        pagEl.innerHTML = '';
+                        pagEl.hidden = true;
+                    }
+                    const selFail = document.getElementById('dwSelectAll');
+                    if (selFail) {
+                        selFail.checked = false;
+                        selFail.indeterminate = false;
+                        selFail.disabled = true;
+                    }
+                    const bulkBtnFail = document.getElementById('dwBulkDeleteBtn');
+                    const bulkCntFail = document.getElementById('dwBulkCount');
+                    if (bulkBtnFail) bulkBtnFail.hidden = true;
+                    if (bulkCntFail) bulkCntFail.textContent = '';
+                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="6" style="color:#f07178;padding:16px">' + escHtml(data.message || 'Failed to load') + '</td></tr>';
+                    return;
+                }
+                if (typeof data.page === 'number' && data.page > 0) {
+                    dwListState.page = data.page;
+                }
+                const monitors = data.monitors || [];
+                const total = typeof data.total === 'number' ? data.total : 0;
+                const qActive = !!(dwListState.q && dwListState.q.length);
+                if (monitors.length === 0) {
+                    if (pagEl) {
+                        pagEl.innerHTML = '';
+                        pagEl.hidden = true;
+                    }
+                    let emptyMsg = 'No profiles or pages monitored yet.';
+                    if (total === 0 && qActive) {
+                        emptyMsg = 'No matches for your search.';
+                    }
+                    const selEmpty = document.getElementById('dwSelectAll');
+                    if (selEmpty) {
+                        selEmpty.checked = false;
+                        selEmpty.indeterminate = false;
+                        selEmpty.disabled = true;
+                    }
+                    const bulkBtnEmpty = document.getElementById('dwBulkDeleteBtn');
+                    const bulkCntEmpty = document.getElementById('dwBulkCount');
+                    if (bulkBtnEmpty) bulkBtnEmpty.hidden = true;
+                    if (bulkCntEmpty) bulkCntEmpty.textContent = '';
+                    tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="6" style="color:var(--text-muted);padding:16px">' + emptyMsg + '</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = monitors.map(function (m) {
+                    const id = parseInt(m.id, 10);
+                    const labelCell = m.label ? escHtml(m.label) : '<span style="color:var(--text-muted)">—</span>';
+                    const urlFull = escHtml(m.profile_url);
+                    const checked = m.last_checked_at ? escHtml(fbMonitorFormatDisplayDateTime(m.last_checked_at)) : 'Never';
+                    const statusLbl = fbStatusLabel(m.last_status);
+                    const statusTagClass = fbMonitorStatusTagClass(m.last_status);
+                    const checkSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>';
+                    const logsSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>';
+                    const trashSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>';
+                    return '<tr>'
+                        + '<td class="fb-monitor-col-check"><input type="checkbox" class="fb-monitor-row-cb" data-monitor-id="' + id + '" aria-label="Select this row"></td>'
+                        + '<td style="font-weight:600;max-width:12rem">' + labelCell + '</td>'
+                        + '<td><a href="' + escHtml(m.profile_url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--link);word-break:break-all;font-size:12px">' + urlFull + '</a></td>'
+                        + '<td class="fb-monitor-status-cell"><span class="' + statusTagClass + '">' + escHtml(statusLbl) + '</span></td>'
+                        + '<td class="saved-info-col-time" style="font-size:12px;color:var(--text-muted)">' + checked + '</td>'
+                        + '<td class="fb-monitor-action-cell">'
+                        +   '<div class="fb-monitor-action-btns">'
+                        +   '<button type="button" class="fb-monitor-check-btn" data-monitor-id="' + id + '" onclick="dwCheckOne(' + id + ', this)" aria-label="Check this URL now">'
+                        +     '<span class="fb-monitor-check-idle">' + checkSvg + ' <span>Check</span></span>'
+                        +     '<span class="fb-monitor-check-busy" aria-hidden="true"><span class="fb-monitor-spinner"></span><span>Checking…</span></span>'
+                        +   '</button>'
+                        +   '<button type="button" class="fb-monitor-logs-btn" data-monitor-id="' + id + '" onclick="dwOpenRowLogs(' + id + ')" aria-label="View check log for this URL">'
+                        +     logsSvg + ' <span>Logs</span>'
+                        +   '</button>'
+                        +   '<button type="button" class="fb-monitor-remove-btn" data-monitor-id="' + id + '" onclick="dwOpenRemoveModal(' + id + ')" aria-label="Remove from list">'
+                        +     trashSvg + ' <span>Remove</span>'
+                        +   '</button>'
+                        +   '</div>'
+                        + '</td>'
+                        + '</tr>';
+                }).join('');
+                dwSyncSelectAllFromRows();
+                dwUpdateBulkToolbar();
+                dwRenderPagination(data);
+            } catch (e) {
+                if (pagEl) {
+                    pagEl.innerHTML = '';
+                    pagEl.hidden = true;
+                }
+                const selNet = document.getElementById('dwSelectAll');
+                if (selNet) {
+                    selNet.checked = false;
+                    selNet.indeterminate = false;
+                    selNet.disabled = true;
+                }
+                const bulkBtnNet = document.getElementById('dwBulkDeleteBtn');
+                const bulkCntNet = document.getElementById('dwBulkCount');
+                if (bulkBtnNet) bulkBtnNet.hidden = true;
+                if (bulkCntNet) bulkCntNet.textContent = '';
+                tbody.innerHTML = '<tr class="fb-monitor-msg-row"><td colspan="6" style="color:#f07178;padding:16px">Network error</td></tr>';
+            }
+        }
+
+        async function dwAdd() {
+            const urlInput = document.getElementById('dwUrlInput');
+            const nameInput = document.getElementById('dwNameInput');
+            const errEl = document.getElementById('dwAddError');
+            const modal = document.getElementById('dwAddModal');
+            const saveBtn = modal ? modal.querySelector('button.btn.btn-primary') : null;
+            const cancelBtn = modal ? modal.querySelector('button.btn.btn-secondary') : null;
+            const url = (urlInput ? urlInput.value : '').trim();
+            const name = (nameInput ? nameInput.value : '').trim();
+            if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
+            if (!url) {
+                if (errEl) { errEl.textContent = 'Please enter a Facebook profile or page URL.'; errEl.hidden = false; }
+                return;
+            }
+            if (!name) {
+                if (errEl) { errEl.textContent = 'Please enter a name.'; errEl.hidden = false; }
+                if (nameInput) nameInput.focus();
+                return;
+            }
+            const prevSave = saveBtn ? saveBtn.textContent : '';
+            if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+            if (cancelBtn) { cancelBtn.disabled = true; }
+            try {
+                const res = await fetch('api.php?action=dw_add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url, label: name }),
+                    credentials: 'same-origin'
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    if (errEl) { errEl.textContent = data.message || 'Failed to add.'; errEl.hidden = false; }
+                    return;
+                }
+                if (urlInput) urlInput.value = '';
+                if (nameInput) nameInput.value = '';
+                dwCloseAddModal();
+                dwListState.page = 1;
+                await loadDwList();
+            } catch (e) {
+                if (errEl) { errEl.textContent = 'Network error — try again.'; errEl.hidden = false; }
+            } finally {
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = prevSave || 'Save'; }
+                if (cancelBtn) { cancelBtn.disabled = false; }
+            }
+        }
+
+        async function dwCheckAll() {
+            const btn = document.getElementById('dwCheckAllBtn');
+            const prev = btn ? btn.textContent : '';
+            if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+            try {
+                const res = await fetch('api.php?action=dw_check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({}),
+                    credentials: 'same-origin'
+                });
+                const text = await res.text();
+                let data = {};
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseErr) {
+                    fbMonitorToast(
+                        'Check failed (HTTP ' + res.status + '). Server did not return JSON — see PHP error log.',
+                        true
+                    );
+                    return;
+                }
+                if (data.status !== 'success') {
+                    fbMonitorToast(data.message || 'Check failed.', true);
+                } else {
+                    const results = data.results || [];
+                    if (results.length === 0) {
+                        fbMonitorToast('Nothing to check. Add a profile or page URL first.', false);
+                    } else {
+                        const n = results.length;
+                        await loadDwList();
+                        fbMonitorToast(
+                            n === 1
+                                ? 'Check complete — 1 URL.'
+                                : 'Check complete — ' + n + ' URLs.',
+                            false
+                        );
+                    }
+                }
+            } catch (e) {
+                fbMonitorToast('Network error — try again.', true);
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = prev; }
+            }
+        }
+
+        function dwSetCheckLoading(btn, loading) {
+            if (!btn || !btn.classList || !btn.classList.contains('fb-monitor-check-btn')) return;
+            btn.classList.toggle('is-loading', !!loading);
+            btn.disabled = !!loading;
+            btn.setAttribute('aria-busy', loading ? 'true' : 'false');
+        }
+
+        async function dwCheckOne(id, btn) {
+            const el = btn && btn.closest ? btn.closest('button.fb-monitor-check-btn') : null;
+            if (el) dwSetCheckLoading(el, true);
+            try {
+                const res = await fetch('api.php?action=dw_check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id }),
+                    credentials: 'same-origin'
+                });
+                const text = await res.text();
+                let data = {};
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseErr) {
+                    fbMonitorToast(
+                        'Check failed (HTTP ' + res.status + '). Server did not return JSON — see PHP error log.',
+                        true
+                    );
+                    return;
+                }
+                if (data.status !== 'success') {
+                    fbMonitorToast(data.message || 'Check failed.', true);
+                } else {
+                    await loadDwList();
+                    fbMonitorToast('Check complete.', false);
+                }
+            } catch (e) {
+                fbMonitorToast('Network error — try again.', true);
+            } finally {
+                if (el && el.isConnected) {
+                    dwSetCheckLoading(el, false);
+                }
+            }
+        }
+
+        // -----------------------------------------------------------------------
+        // End Delete Watch JS
         // -----------------------------------------------------------------------
 
         async function loadPhoneHistory() {
