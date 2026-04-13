@@ -1230,6 +1230,22 @@ function fb_check_profile_url(string $url): array
                 false,
                 true
             );
+            // If the "confirm" response itself is just a sign-in gate, do not treat it as active.
+            $eff2 = strtolower((string) ($fetch2['effective_url'] ?? ''));
+            $confirmEndedInAuthGate = (
+                strpos($eff2, '/login.php') !== false
+                || strpos($eff2, '/checkpoint/') !== false
+            );
+            if (($out2['status'] ?? '') === 'active' && $confirmEndedInAuthGate) {
+                $out2 = [
+                    'status'    => 'unknown',
+                    'detail'    => 'HTTP confirm: Facebook returned a sign-in gate (cannot confirm availability from this network/IP)',
+                    'http_code' => (int) ($fetch2['http_code'] ?? 0),
+                    // Keep update_last_status so callers persist unknown (not transient).
+                    'update_last_status' => true,
+                ];
+            }
+
             $s2 = (string) ($out2['status'] ?? 'unknown');
             // If HTTP can confirm unavailable, always trust it. If HTTP cannot confirm active (unknown),
             // prefer unknown over a sign-in-gate "active" to avoid false positives on VPS IPs.
