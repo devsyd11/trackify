@@ -1198,16 +1198,24 @@ function fb_check_profile_url(string $url): array
         );
         $out['preview_image'] = fb_monitor_extract_page_image($pw['html']);
 
-        // VPS/datacenter IPs often get forced into login redirects by the browser worker even when
-        // the *real* state is "content isn't available". If Playwright ends on login/checkpoint and
+        // VPS/datacenter IPs often get forced into sign-in gates by the browser worker even when
+        // the *real* state is "content isn't available". If Playwright looks like a sign-in gate and
         // we classified as active due to the unsigned login-wall heuristic, confirm via HTTP/mbasic.
         $effLower = strtolower((string) ($pw['effective_url'] ?? ''));
         $playwrightEndedInAuthGate = (
             strpos($effLower, '/login.php') !== false
             || strpos($effLower, '/checkpoint/') !== false
         );
-        if (
+        $detailLower = strtolower((string) ($out['detail'] ?? ''));
+        $playwrightLooksLikeGateActive = (
             $playwrightEndedInAuthGate
+            || strpos($detailLower, 'sign-in') !== false
+            || strpos($detailLower, 'sign in') !== false
+            || strpos($detailLower, 'login') !== false
+            || strpos($detailLower, 'gating') !== false
+        );
+        if (
+            $playwrightLooksLikeGateActive
             && ($out['status'] ?? '') === 'active'
             && function_exists('curl_init')
         ) {
@@ -1222,9 +1230,12 @@ function fb_check_profile_url(string $url): array
                 false,
                 true
             );
-            if (($out2['status'] ?? '') === 'unavailable') {
+            $s2 = (string) ($out2['status'] ?? 'unknown');
+            // If HTTP can confirm unavailable, always trust it. If HTTP cannot confirm active (unknown),
+            // prefer unknown over a sign-in-gate "active" to avoid false positives on VPS IPs.
+            if ($s2 === 'unavailable' || $s2 === 'unknown') {
                 $out = $out2;
-                $out['detail'] = 'HTTP confirm: ' . (string) ($out2['detail'] ?? 'unavailable');
+                $out['detail'] = 'HTTP confirm: ' . (string) ($out2['detail'] ?? $s2);
                 $out['preview_image'] = fb_monitor_extract_page_image((string) ($fetch2['html'] ?? ''));
             }
         }
