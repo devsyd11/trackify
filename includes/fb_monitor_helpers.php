@@ -600,6 +600,8 @@ function fb_profile_page_shows_content_unavailable(string $html, string $visible
         $strongUnavailable = [
             "this content isn't available right now",
             'this content isnt available right now',
+            "this content isn't available at the moment",
+            'this content isnt available at the moment',
             "this content isn't available",
             'this content isnt available',
             "sorry, this page isn't available",
@@ -630,8 +632,10 @@ function fb_profile_page_shows_content_unavailable(string $html, string $visible
 
     $phrases = [
         "this content isn't available right now",
+        "this content isn't available at the moment",
         "this content isn't available",
         'this content isnt available right now',
+        'this content isnt available at the moment',
         'this content isnt available',
         'page not found',
         "sorry, this page isn't available",
