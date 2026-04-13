@@ -1170,10 +1170,12 @@ function fb_monitor_extract_page_image(string $html): string
  * Facebook checker: always visits the URL with no Facebook session cookies (Playwright first, else HTTP).
  * Classification uses unsigned-session rules (e.g. login wall ⇒ active; “content not available” ⇒ unavailable).
  */
-function fb_check_profile_url(string $url): array
+function fb_check_profile_url(string $url, string $cookieString = ''): array
 {
     $url = trim($url);
-    $pw  = fb_monitor_try_playwright($url, '');
+    $cookieString = trim($cookieString);
+    $anonymousSession = $cookieString === '';
+    $pw  = fb_monitor_try_playwright($url, $cookieString);
     if ($pw !== null) {
         if (empty($pw['ok'])) {
             $err = trim((string) ($pw['error'] ?? 'check failed'));
@@ -1194,7 +1196,7 @@ function fb_check_profile_url(string $url): array
             '',
             $pw['visible_text'] ?? '',
             true,
-            true
+            $anonymousSession
         );
         $out['preview_image'] = fb_monitor_extract_page_image($pw['html']);
 
@@ -1219,7 +1221,7 @@ function fb_check_profile_url(string $url): array
             && ($out['status'] ?? '') === 'active'
             && function_exists('curl_init')
         ) {
-            $fetch2 = fb_monitor_fetch_facebook_html($url, '');
+            $fetch2 = fb_monitor_fetch_facebook_html($url, $cookieString);
             $out2 = fb_classify_fetched_profile(
                 $fetch2['html'],
                 $fetch2['effective_url'],
@@ -1228,7 +1230,7 @@ function fb_check_profile_url(string $url): array
                 (string) $fetch2['curl_error'],
                 '',
                 false,
-                true
+                $anonymousSession
             );
             // If the "confirm" response itself is just a sign-in gate, do not treat it as active.
             $eff2 = strtolower((string) ($fetch2['effective_url'] ?? ''));
@@ -1268,7 +1270,7 @@ function fb_check_profile_url(string $url): array
         ];
     }
 
-    $fetch = fb_monitor_fetch_facebook_html($url, '');
+    $fetch = fb_monitor_fetch_facebook_html($url, $cookieString);
     $out   = fb_classify_fetched_profile(
         $fetch['html'],
         $fetch['effective_url'],
@@ -1277,7 +1279,7 @@ function fb_check_profile_url(string $url): array
         $fetch['curl_error'],
         '',
         false,
-        true
+        $anonymousSession
     );
     $out['preview_image'] = fb_monitor_extract_page_image($fetch['html']);
 

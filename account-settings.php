@@ -65,6 +65,7 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                                 <nav class="settings-nav" role="tablist" aria-label="Settings categories">
                                     <button type="button" class="settings-nav-tab" role="tab" id="settings-tab-password" aria-controls="settings-panel-password" aria-selected="true">Change password</button>
                                     <button type="button" class="settings-nav-tab" role="tab" id="settings-tab-notifications" aria-controls="settings-panel-notifications" aria-selected="false" tabindex="-1">Notifications</button>
+                                    <button type="button" class="settings-nav-tab" role="tab" id="settings-tab-facebook" aria-controls="settings-panel-facebook" aria-selected="false" tabindex="-1">Facebook</button>
                                 </nav>
                             </aside>
 
@@ -121,6 +122,23 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                         </div>
                     </div>
 
+                    <div id="settings-panel-facebook" role="tabpanel" aria-labelledby="settings-tab-facebook" class="settings-tab-panel" hidden>
+                        <div class="card">
+                            <h2>Facebook cookies (global)</h2>
+                            <p class="settings-telegram-status" id="fb_cookie_status" aria-live="polite">Loading…</p>
+                            <div id="fbCookieFields"></div>
+                            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px">
+                                <button type="button" class="btn btn-secondary" id="fb_cookie_add_btn">Add cookie</button>
+                            </div>
+
+                            <p class="settings-alert" id="fb_cookie_error" role="alert" hidden></p>
+
+                            <div class="settings-telegram-actions">
+                                <button type="button" class="btn btn-primary" id="fb_cookie_save_btn">Save</button>
+                            </div>
+                        </div>
+                    </div>
+
                             </div>
                         </div>
                     </div>
@@ -130,9 +148,11 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                         var API = 'api.php';
                         var tabPwd = document.getElementById('settings-tab-password');
                         var tabNotify = document.getElementById('settings-tab-notifications');
+                        var tabFb = document.getElementById('settings-tab-facebook');
                         var panelPwd = document.getElementById('settings-panel-password');
                         var panelNotify = document.getElementById('settings-panel-notifications');
-                        if (!tabPwd || !tabNotify || !panelPwd || !panelNotify) return;
+                        var panelFb = document.getElementById('settings-panel-facebook');
+                        if (!tabPwd || !tabNotify || !tabFb || !panelPwd || !panelNotify || !panelFb) return;
 
                         var toastEl = document.getElementById('account-settings-toast');
                         var toastHideTimer = null;
@@ -153,15 +173,20 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
                         function activateTab(which) {
                             var isPwd    = which === 'password';
                             var isNotify = which === 'notifications';
+                            var isFb     = which === 'facebook';
                             tabPwd.setAttribute('aria-selected', isPwd ? 'true' : 'false');
                             tabNotify.setAttribute('aria-selected', isNotify ? 'true' : 'false');
+                            tabFb.setAttribute('aria-selected', isFb ? 'true' : 'false');
                             tabPwd.tabIndex    = isPwd    ? 0 : -1;
                             tabNotify.tabIndex = isNotify ? 0 : -1;
+                            tabFb.tabIndex     = isFb ? 0 : -1;
                             panelPwd.hidden    = !isPwd;
                             panelNotify.hidden = !isNotify;
+                            panelFb.hidden     = !isFb;
                         }
                         tabPwd.addEventListener('click', function () { activateTab('password'); });
                         tabNotify.addEventListener('click', function () { activateTab('notifications'); });
+                        tabFb.addEventListener('click', function () { activateTab('facebook'); });
 
                         var statusEl = document.getElementById('telegram_config_status');
                         var enableEl = document.getElementById('telegram_enabled');
@@ -282,6 +307,137 @@ dashboard_shell_begin('Account settings', 'settings', $userNavName, $userNavInit
 
                         void loadTelegramConfig();
 
+                        }
+
+                        // Facebook cookies (global)
+                        var fbStatus = document.getElementById('fb_cookie_status');
+                        var fbErr = document.getElementById('fb_cookie_error');
+                        var fbFields = document.getElementById('fbCookieFields');
+                        var fbAddBtn = document.getElementById('fb_cookie_add_btn');
+                        var fbSave = document.getElementById('fb_cookie_save_btn');
+                        if (fbStatus && fbErr && fbFields && fbAddBtn && fbSave) {
+                            function fbSetErr(msg) {
+                                if (msg) {
+                                    fbErr.textContent = String(msg);
+                                    fbErr.hidden = false;
+                                } else {
+                                    fbErr.textContent = '';
+                                    fbErr.hidden = true;
+                                }
+                            }
+                            function fbSetStatus(msg) {
+                                fbStatus.textContent = String(msg || '');
+                            }
+                            function makeCookieField(index, value) {
+                                var wrap = document.createElement('div');
+                                wrap.className = 'fb-cookie-field';
+                                wrap.style.marginTop = index === 0 ? '12px' : '10px';
+                                var lab = document.createElement('label');
+                                lab.textContent = 'Cookie field ' + (index + 1);
+                                var ta = document.createElement('textarea');
+                                ta.rows = 3;
+                                ta.style.width = '100%';
+                                ta.style.resize = 'vertical';
+                                ta.placeholder = index === 0 ? 'c_user=...; xs=...' : 'Backup cookie set';
+                                ta.value = value || '';
+                                ta.setAttribute('data-fb-cookie', '1');
+                                var actions = document.createElement('div');
+                                actions.style.display = 'flex';
+                                actions.style.justifyContent = 'flex-end';
+                                actions.style.marginTop = '6px';
+                                if (index > 0) {
+                                    var rm = document.createElement('button');
+                                    rm.type = 'button';
+                                    rm.className = 'btn btn-secondary';
+                                    rm.textContent = 'Remove';
+                                    rm.style.padding = '8px 12px';
+                                    rm.addEventListener('click', function () {
+                                        wrap.remove();
+                                        refreshLabels();
+                                    });
+                                    actions.appendChild(rm);
+                                }
+                                wrap.appendChild(lab);
+                                wrap.appendChild(ta);
+                                wrap.appendChild(actions);
+                                return wrap;
+                            }
+                            function refreshLabels() {
+                                var i = 0;
+                                Array.prototype.forEach.call(fbFields.querySelectorAll('.fb-cookie-field'), function (w) {
+                                    var lab = w.querySelector('label');
+                                    if (lab) lab.textContent = 'Cookie field ' + (i + 1);
+                                    i++;
+                                });
+                            }
+                            function getCookieValues() {
+                                var out = [];
+                                fbFields.querySelectorAll('textarea[data-fb-cookie="1"]').forEach(function (ta) {
+                                    out.push((ta.value || '').trim());
+                                });
+                                return out;
+                            }
+                            function setCookieValues(values) {
+                                fbFields.innerHTML = '';
+                                var list = Array.isArray(values) ? values : [];
+                                if (list.length === 0) list = [''];
+                                list.forEach(function (v, idx) {
+                                    fbFields.appendChild(makeCookieField(idx, v));
+                                });
+                            }
+                            async function loadFbCookies() {
+                                try {
+                                    var res = await fetch(API + '?action=fb_cookies_config', { credentials: 'same-origin' });
+                                    var data = await res.json().catch(function () { return {}; });
+                                    if (data.status !== 'success') {
+                                        fbSetStatus('Status: could not load cookies.');
+                                        return;
+                                    }
+                                    var arr = Array.isArray(data.cookies) ? data.cookies : [];
+                                    setCookieValues(arr);
+                                    var vals = getCookieValues();
+                                    var hasAny = vals.some(function (v) { return !!v; });
+                                    fbSetStatus(hasAny ? 'Status: cookies saved.' : 'Status: no cookies set (unsigned checks).');
+                                } catch (e) {
+                                    fbSetStatus('Status: could not load cookies (network error).');
+                                }
+                            }
+                            fbAddBtn.addEventListener('click', function () {
+                                var idx = fbFields.querySelectorAll('.fb-cookie-field').length;
+                                fbFields.appendChild(makeCookieField(idx, ''));
+                                refreshLabels();
+                                var last = fbFields.querySelector('.fb-cookie-field:last-child textarea');
+                                if (last) last.focus();
+                            });
+                            fbSave.addEventListener('click', async function () {
+                                fbSetErr('');
+                                var prev = fbSave.textContent;
+                                fbSave.disabled = true;
+                                fbSave.textContent = 'Saving…';
+                                try {
+                                    var cookies = getCookieValues();
+                                    var res = await fetch(API + '?action=fb_cookies_save', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ cookies: cookies }),
+                                        credentials: 'same-origin'
+                                    });
+                                    var data = await res.json().catch(function () { return {}; });
+                                    if (data.status !== 'success') {
+                                        fbSetErr(data.message || 'Could not save');
+                                        return;
+                                    }
+                                    var hasAny = cookies.some(function (v) { return !!v; });
+                                    fbSetStatus(hasAny ? 'Status: cookies saved.' : 'Status: no cookies set (unsigned checks).');
+                                    showToast(data.message || 'Saved.');
+                                } catch (e) {
+                                    fbSetErr('Network error — try again');
+                                } finally {
+                                    fbSave.disabled = false;
+                                    fbSave.textContent = prev;
+                                }
+                            });
+                            void loadFbCookies();
                         }
 
                     })();

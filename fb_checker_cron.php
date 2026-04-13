@@ -23,6 +23,7 @@ $root = __DIR__;
 // trackify_capture.php provides: trackify_pdo(), trackify_send_telegram_html()
 require_once $root . '/trackify_capture.php';
 require_once $root . '/includes/fb_monitor_helpers.php';
+require_once $root . '/includes/fb_global_cookies.php';
 
 // Prevent overlapping cron runs with a lock file
 $lockFile = $root . '/data/fb_checker/cron.lock';
@@ -72,12 +73,14 @@ foreach ($userDirs as $dir) {
     $cfg = fb_monitor_read_config($uid);
 
     $interval = max(1, (int) ($cfg['check_interval_minutes'] ?? 15));
+    $cookieString = fb_cookies_best_cookie_string($uid);
 
     // Fetch monitors that are due (never checked, or last check older than interval)
     $stmt = $pdo->prepare(
         'SELECT id, profile_url, label, last_status
          FROM facebook_monitor
          WHERE user_id = ?
+           AND last_status != \'active\'
            AND (last_checked_at IS NULL
                 OR last_checked_at < DATE_SUB(NOW(), INTERVAL ? MINUTE))'
     );
@@ -87,7 +90,7 @@ foreach ($userDirs as $dir) {
     foreach ($rows as $row) {
         $url        = (string) $row['profile_url'];
         $prevStatus = (string) $row['last_status'];
-        $check      = fb_check_profile_url($url);
+        $check      = fb_check_profile_url($url, $cookieString);
         $newStatus  = $check['status'];
         $detail     = $check['detail'];
 

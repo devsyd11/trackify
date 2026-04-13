@@ -23,6 +23,7 @@ $root = __DIR__;
 require_once $root . '/trackify_capture.php';
 require_once $root . '/includes/fb_monitor_helpers.php';
 require_once $root . '/includes/delete_watch_helpers.php';
+require_once $root . '/includes/fb_global_cookies.php';
 
 // Prevent overlapping runs
 $lockFile = $root . '/data/delete_watch/cron.lock';
@@ -65,11 +66,13 @@ foreach ($userDirs as $dir) {
 
     $cfg = delete_watch_read_config($uid);
     $interval = max(1, (int) ($cfg['check_interval_minutes'] ?? 15));
+    $cookieString = fb_cookies_best_cookie_string($uid);
 
     $stmt = $pdo->prepare(
         'SELECT id, profile_url, label, last_status
          FROM delete_watch_monitor
          WHERE user_id = ?
+           AND last_status != \'unavailable\'
            AND (last_checked_at IS NULL
                 OR last_checked_at < DATE_SUB(NOW(), INTERVAL ? MINUTE))'
     );
@@ -79,7 +82,7 @@ foreach ($userDirs as $dir) {
     foreach ($rows as $row) {
         $url        = (string) $row['profile_url'];
         $prevStatus = (string) $row['last_status'];
-        $check      = fb_check_profile_url($url);
+        $check      = fb_check_profile_url($url, $cookieString);
         $newStatus  = $check['status'];
         $detail     = $check['detail'];
 

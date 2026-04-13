@@ -19,6 +19,7 @@ $authActions = [
     'fb_monitor_list', 'fb_monitor_add', 'fb_monitor_remove', 'fb_monitor_remove_bulk', 'fb_monitor_check',
     'fb_monitor_logs', 'fb_monitor_config', 'fb_monitor_save_config', 'fb_monitor_debug',
     'dw_list', 'dw_add', 'dw_remove', 'dw_remove_bulk', 'dw_check', 'dw_logs', 'dw_config', 'dw_save_config', 'dw_debug',
+    'fb_cookies_config', 'fb_cookies_save',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -51,6 +52,7 @@ chdir($baseDir);
 
 require_once $baseDir . '/trackify_capture.php';
 require_once $baseDir . '/includes/fb_monitor_helpers.php';
+require_once $baseDir . '/includes/fb_global_cookies.php';
 require_once $baseDir . '/includes/delete_watch_helpers.php';
 
 switch ($action) {
@@ -179,6 +181,12 @@ switch ($action) {
         break;
     case 'dw_debug':
         handleDwDebug();
+        break;
+    case 'fb_cookies_config':
+        handleFbCookiesConfig();
+        break;
+    case 'fb_cookies_save':
+        handleFbCookiesSave();
         break;
     default:
         echo json_encode(['status' => 'error', 'message' => 'Unknown action']);
@@ -2797,6 +2805,7 @@ function handleFbMonitorCheck(): void
         $input = [];
     }
     $onlyId = isset($input['id']) ? (int) $input['id'] : null;
+    $cookieString = fb_cookies_best_cookie_string($uid);
 
     $pdo = trackify_pdo();
     if (!$pdo instanceof PDO) {
@@ -2809,7 +2818,8 @@ function handleFbMonitorCheck(): void
             $stmt = $pdo->prepare('SELECT * FROM facebook_monitor WHERE id = ? AND user_id = ?');
             $stmt->execute([$onlyId, $uid]);
         } else {
-            $stmt = $pdo->prepare('SELECT * FROM facebook_monitor WHERE user_id = ?');
+            // Skip rows already active (Facebook checker only needs to watch non-active targets).
+            $stmt = $pdo->prepare("SELECT * FROM facebook_monitor WHERE user_id = ? AND last_status != 'active'");
             $stmt->execute([$uid]);
         }
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -2821,7 +2831,7 @@ function handleFbMonitorCheck(): void
     $results = [];
     foreach ($rows as $row) {
         $prevStatus = (string) $row['last_status'];
-        $check      = fb_check_profile_url((string) $row['profile_url']);
+        $check      = fb_check_profile_url((string) $row['profile_url'], $cookieString);
         $newStatus  = $check['status'];
         $detail     = $check['detail'];
         $rowLabel   = (string) ($row['label'] ?? '');
@@ -3336,6 +3346,7 @@ function handleDwCheck(): void
         $input = [];
     }
     $onlyId = isset($input['id']) ? (int) $input['id'] : null;
+    $cookieString = fb_cookies_best_cookie_string($uid);
 
     $pdo = trackify_pdo();
     if (!$pdo instanceof PDO) {
@@ -3348,7 +3359,8 @@ function handleDwCheck(): void
             $stmt = $pdo->prepare('SELECT * FROM delete_watch_monitor WHERE id = ? AND user_id = ?');
             $stmt->execute([$onlyId, $uid]);
         } else {
-            $stmt = $pdo->prepare('SELECT * FROM delete_watch_monitor WHERE user_id = ?');
+            // Skip rows already unavailable (Delete Watch only needs to watch active-ish targets).
+            $stmt = $pdo->prepare("SELECT * FROM delete_watch_monitor WHERE user_id = ? AND last_status != 'unavailable'");
             $stmt->execute([$uid]);
         }
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -3360,7 +3372,7 @@ function handleDwCheck(): void
     $results = [];
     foreach ($rows as $row) {
         $prevStatus = (string) $row['last_status'];
-        $check      = fb_check_profile_url((string) $row['profile_url']);
+        $check      = fb_check_profile_url((string) $row['profile_url'], $cookieString);
         $newStatus  = $check['status'];
         $detail     = $check['detail'];
         $rowLabel   = (string) ($row['label'] ?? '');
@@ -3474,4 +3486,68 @@ function handleDwDebug(): void
         'checker_status' => $check['status'] ?? null,
         'checker_detail' => $check['detail'] ?? null,
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+}
+
+// ---------------------------------------------------------------------------
+// Global Facebook cookies (Account settings)
+// ---------------------------------------------------------------------------
+
+function handleFbCookiesConfig(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        echo json_encode(['status' => 'error', 'message' => 'GET required']);
+        return;
+    }
+    $uid = dashboard_session_user_id();
+    $cfg = fb_cookies_read($uid);
+    $cookies = $cfg['cookies'] ?? [];
+    $out = [];
+    foreach ($cookies as $c) {
+        $c = trim((string) $c);
+        if ($c !== '') {
+            $out[] = $c;
+        }
+    }
+    if ($out === []) {
+        $out = [''];
+    }
+    echo json_encode([
+        'status'     => 'success',
+        'cookies'    => $out,
+        'updated_at' => (string) ($cfg['updated_at'] ?? ''),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+function handleFbCookiesSave(): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['status' => 'error', 'message' => 'POST required']);
+        return;
+    }
+    $uid   = dashboard_session_user_id();
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+    $raw = $input['cookies'] ?? null;
+    if (!is_array($raw)) {
+        echo json_encode(['status' => 'error', 'message' => 'cookies array required']);
+        return;
+    }
+    $clean = [];
+    foreach ($raw as $c) {
+        $c = trim((string) $c);
+        if ($c !== '') {
+            $clean[] = $c;
+        }
+    }
+    // Soft limit to prevent giant payloads.
+    if (count($clean) > 25) {
+        $clean = array_slice($clean, 0, 25);
+    }
+    $ok = fb_cookies_write($uid, $clean);
+    echo json_encode([
+        'status'  => $ok ? 'success' : 'error',
+        'message' => $ok ? 'Facebook cookies saved.' : 'Could not save cookies.',
+    ]);
 }
