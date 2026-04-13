@@ -1198,6 +1198,37 @@ function fb_check_profile_url(string $url): array
         );
         $out['preview_image'] = fb_monitor_extract_page_image($pw['html']);
 
+        // VPS/datacenter IPs often get forced into login redirects by the browser worker even when
+        // the *real* state is "content isn't available". If Playwright ends on login/checkpoint and
+        // we classified as active due to the unsigned login-wall heuristic, confirm via HTTP/mbasic.
+        $effLower = strtolower((string) ($pw['effective_url'] ?? ''));
+        $playwrightEndedInAuthGate = (
+            strpos($effLower, '/login.php') !== false
+            || strpos($effLower, '/checkpoint/') !== false
+        );
+        if (
+            $playwrightEndedInAuthGate
+            && ($out['status'] ?? '') === 'active'
+            && function_exists('curl_init')
+        ) {
+            $fetch2 = fb_monitor_fetch_facebook_html($url, '');
+            $out2 = fb_classify_fetched_profile(
+                $fetch2['html'],
+                $fetch2['effective_url'],
+                $url,
+                (int) $fetch2['http_code'],
+                (string) $fetch2['curl_error'],
+                '',
+                false,
+                true
+            );
+            if (($out2['status'] ?? '') === 'unavailable') {
+                $out = $out2;
+                $out['detail'] = 'HTTP confirm: ' . (string) ($out2['detail'] ?? 'unavailable');
+                $out['preview_image'] = fb_monitor_extract_page_image((string) ($fetch2['html'] ?? ''));
+            }
+        }
+
         return $out;
     }
 
