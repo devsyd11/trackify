@@ -321,7 +321,18 @@ function fb_url_to_mbasic(string $url): string
  */
 function fb_profile_identifier_from_url(string $url): array
 {
+    $url = trim($url);
+    if ($url === '') {
+        return ['type' => 'none', 'value' => ''];
+    }
+
     $path = (string) parse_url($url, PHP_URL_PATH);
+    if ($path === '' || $path === '/') {
+        // Some environments hand us slightly odd URLs / redirects; fall back to regex extraction.
+        if (preg_match('~https?://(?:www\.|m\.|mbasic\.)?(?:facebook\.com|fb\.com)/([^/?#]+)~i', $url, $m)) {
+            $path = '/' . $m[1];
+        }
+    }
     $path = ltrim($path, '/');
     $pathLower = strtolower($path);
     $segments = $path === '' ? [] : array_values(array_filter(explode('/', $path), static fn ($s) => $s !== ''));
