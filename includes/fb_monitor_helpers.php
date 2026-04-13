@@ -1352,15 +1352,27 @@ function fb_monitor_fetch_facebook_html(string $url, string $cookieString): arra
         return ['html' => $html, 'code' => $code, 'final_url' => $finalUrl, 'curl_err' => $curlErr];
     };
 
-    $attempted = [$mbasicUrl];
-    $resp = $fetchOnce($mbasicUrl, $uaMobile, $headersMobile);
+    // Prefer www first (desktop UA). Some VPS/regions show permanent sign-in walls on m/mbasic.
+    $attempted = [$wwwUrl];
+    $resp = $fetchOnce($wwwUrl, $uaDesktop, $headersDesktop);
     $html = $resp['html'];
     $code = $resp['code'];
     $finalUrl = $resp['final_url'];
     $curlErr = $resp['curl_err'];
-    $usedUrl = $mbasicUrl;
+    $usedUrl = $wwwUrl;
 
     $lower = strtolower($html);
+    // If www fails outright, fall back to mbasic then m.
+    if ($html === '' || $code >= 400 || $code === 0) {
+        $attempted[] = $mbasicUrl;
+        $retryB = $fetchOnce($mbasicUrl, $uaMobile, $headersMobile);
+        $html = $retryB['html'];
+        $code = $retryB['code'];
+        $finalUrl = $retryB['final_url'];
+        $curlErr = $retryB['curl_err'];
+        $usedUrl = $mbasicUrl;
+        $lower = strtolower($html);
+    }
     $isCompatWall = (
         strpos($lower, 'not available on this browser') !== false ||
         strpos($lower, 'hindi available ang facebook sa browser') !== false ||
@@ -1392,9 +1404,11 @@ function fb_monitor_fetch_facebook_html(string $url, string $cookieString): arra
             strpos($lower, 'use a supported browser') !== false
         );
 
-        // If m still walls (or errors), try www as last resort.
+        // If m still walls (or errors), try www as last resort (may be first attempt already).
         if ($stillCompatWall || $code >= 400 || $code === 0) {
-            $attempted[] = $wwwUrl;
+            if (!in_array($wwwUrl, $attempted, true)) {
+                $attempted[] = $wwwUrl;
+            }
             $retryW = $fetchOnce($wwwUrl, $uaDesktop, $headersDesktop);
             $html = $retryW['html'];
             $code = $retryW['code'];
